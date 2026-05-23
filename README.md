@@ -17,8 +17,8 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 
 ```
 ┌──────────────────┐     WebSocket (ws://127.0.0.1:9876)     ┌─────────────────┐
-│  Chrome          │◄──────────────────────────────────────►│  bridge-server   │
-│  Extension       │     JSON messages: add / query / sync   │  (Node.js)       │
+│  Chrome          │◄──────────────────────────────────────► │  bridge-server   │
+│  Extension       │     JSON messages: add / query / sync   │   (Node.js)      │
 │                  │                                         │                  │
 │  ┌────────────┐  │                                         │  ┌────────────┐  │
 │  │ sidepanel  │  │  ◄── WebSocket client                   │  │ spawn pi   │  │
@@ -29,8 +29,8 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 │  │ worker     │  │  ◄── toolbar click → open sidepanel     │  │ pi-kb      │  │
 │  └────────────┘  │                                         │  │ .pi/agent/ │  │
 └──────────────────┘                                         │  │  kb/       │  │
-  @chrome-kb/extension                                        │  └────────────┘  │
-                                                              └─────────────────┘
+  @chrome-kb/extension                                       │  └────────────┘  │
+                                                             └─────────────────┘
                                                                @chrome-kb/bridge
 ```
 

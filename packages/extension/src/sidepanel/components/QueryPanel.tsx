@@ -3,11 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Wrench, CheckCircle2 } from "lucide-react";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
+
+type TimelineEntry = { type: "tool"; text: string; cls: string } | { type: "text"; text: string };
 
 type QueryEntry = {
   question: string;
-  toolEvents: { text: string; cls: string }[];
-  answerBlocks: string[];
+  timeline: TimelineEntry[];
 };
 
 interface QueryPanelProps {
@@ -66,32 +68,26 @@ export default function QueryPanel({ isQuerying, results, connected, onQuery }: 
                   {r.question}
                 </div>
 
-                {/* Tool events */}
-                {r.toolEvents.length > 0 && (
-                  <div className="rounded-md border bg-muted/50 p-2 font-mono text-[11px] leading-relaxed space-y-0.5">
-                    {r.toolEvents.map((ev, j) => (
-                      <div key={j} className={`flex items-center gap-1.5 ${ev.cls}`}>
-                        {ev.cls.includes("green") ? (
-                          <CheckCircle2 className="size-3 flex-shrink-0" />
-                        ) : (
-                          <Wrench className="size-3 flex-shrink-0" />
-                        )}
-                        {ev.text}
-                      </div>
-                    ))}
+                {/* Timeline — chronological interleave of tool calls & agent output */}
+                {r.timeline.length > 0 && (
+                  <div className="rounded-md border bg-muted/50 p-2 space-y-1.5">
+                    {r.timeline.map((entry, j) =>
+                      entry.type === "tool" ? (
+                        <div key={j} className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}>
+                          {entry.cls.includes("green") ? (
+                            <CheckCircle2 className="size-3 flex-shrink-0" />
+                          ) : (
+                            <Wrench className="size-3 flex-shrink-0" />
+                          )}
+                          {entry.text}
+                        </div>
+                      ) : (
+                        <div key={j} className="py-1 px-1 border-b border-border last:border-b-0">
+                          <MarkdownRenderer text={entry.text} />
+                        </div>
+                      ),
+                    )}
                   </div>
-                )}
-
-                {/* Answer blocks */}
-                {r.answerBlocks.map((block, j) =>
-                  block ? (
-                    <div
-                      key={j}
-                      className="text-sm leading-relaxed whitespace-pre-wrap py-2 px-1 border-b border-border last:border-b-0"
-                    >
-                      {block}
-                    </div>
-                  ) : null,
                 )}
               </div>
             ))}

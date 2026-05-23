@@ -424,7 +424,7 @@ function log(msg) {
 function spawnPiRpc(ws, promptText, command) {
   log(`spawn: pi --mode rpc --no-session → ${command}: ${promptText.slice(0, 80)}...`);
 
-  const child = spawn("pi", ["--mode", "rpc", "--no-session"], {
+  const child = spawn("pi", ["--mode", "rpc", "--no-session", "--no-builtin-tools"], {
     stdio: ["pipe", "pipe", "pipe"],
   });
 

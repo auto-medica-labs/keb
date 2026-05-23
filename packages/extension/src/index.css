@@ -128,3 +128,92 @@
     @apply font-sans;
   }
 }
+
+/* ── Markdown rendered content ─────────────────────────────────── */
+@layer components {
+  .markdown-content {
+    @apply break-words;
+
+    & > *:first-child {
+      margin-top: 0;
+    }
+
+    & > *:last-child {
+      margin-bottom: 0;
+    }
+
+    /* Headings */
+    & h1 {
+      @apply text-lg font-semibold mt-3 mb-1.5;
+    }
+    & h2 {
+      @apply text-base font-semibold mt-3 mb-1.5;
+    }
+    & h3 {
+      @apply text-sm font-semibold mt-2.5 mb-1;
+    }
+    & h4, & h5, & h6 {
+      @apply text-sm font-medium mt-2 mb-1;
+    }
+
+    /* Paragraphs */
+    & p {
+      @apply mb-2 last:mb-0;
+    }
+
+    /* Lists */
+    & ul {
+      @apply list-disc pl-5 mb-2 space-y-0.5;
+    }
+    & ol {
+      @apply list-decimal pl-5 mb-2 space-y-0.5;
+    }
+    & li > ul, & li > ol {
+      @apply mb-0 mt-0.5;
+    }
+
+    /* Blockquotes */
+    & blockquote {
+      @apply border-l-2 border-muted-foreground/30 pl-3 italic text-muted-foreground my-2;
+    }
+
+    /* Code */
+    & code {
+      @apply bg-muted rounded px-1 py-0.5 text-[12px] font-mono;
+    }
+    & pre {
+      @apply bg-muted rounded-md p-2.5 my-2 overflow-x-auto text-[12px] leading-relaxed;
+
+      & code {
+        @apply bg-transparent p-0 rounded-none text-[12px];
+      }
+    }
+
+    /* Inline elements */
+    & a {
+      @apply text-primary underline underline-offset-2;
+    }
+    & strong {
+      @apply font-semibold;
+    }
+    & em {
+      @apply italic;
+    }
+
+    /* Horizontal rule */
+    & hr {
+      @apply my-3 border-border;
+    }
+
+    /* Tables */
+    & table {
+      @apply w-full text-[12px] border-collapse my-2;
+    }
+    & th {
+      @apply border border-border bg-muted px-2 py-1 text-left font-semibold;
+    }
+    & td {
+      @apply border border-border px-2 py-1;
+    }
+  }
+}

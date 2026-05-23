@@ -14,7 +14,7 @@ chrome.runtime.onInstalled.addListener(async () => {
 
   chrome.contextMenus.create({
     id: "kb-add-page",
-    title: "Add to KB",
+    title: "Add this URL to Knowledge Bases",
     contexts: ["page"],
   });
 });

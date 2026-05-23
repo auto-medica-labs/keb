@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, CheckCircle2, Wrench } from "lucide-react";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
 
 type TimelineEntry = { type: "tool"; text: string; cls: string } | { type: "text"; text: string };
 
@@ -95,10 +96,10 @@ export default function AddPanel({ isAdding, isDone, timeline, connected, onAdd 
 
           {/* Scrollable timeline */}
           <ScrollArea className="flex-1 min-h-0">
-            <div className="p-3 font-mono text-[11px] leading-relaxed space-y-1">
+            <div className="p-3 leading-relaxed space-y-1">
               {timeline.map((entry, i) =>
                 entry.type === "tool" ? (
-                  <div key={i} className={`flex items-center gap-1.5 ${entry.cls}`}>
+                  <div key={i} className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}>
                     {entry.cls.includes("green") ? (
                       <CheckCircle2 className="size-3 flex-shrink-0" />
                     ) : (
@@ -109,9 +110,9 @@ export default function AddPanel({ isAdding, isDone, timeline, connected, onAdd 
                 ) : (
                   <div
                     key={i}
-                    className="text-foreground whitespace-pre-wrap py-1 border-b border-border last:border-b-0"
+                    className="py-2 border-b border-border last:border-b-0"
                   >
-                    {entry.text}
+                    <MarkdownRenderer text={entry.text} />
                   </div>
                 ),
               )}

@@ -12,6 +12,7 @@
   "dependencies": {
     "@base-ui/react": "^1.5.0",
     "@fontsource-variable/geist": "^5.2.9",
+    "markdown-it": "^14.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "shadcn": "^4.8.0",
@@ -21,6 +22,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.1.5",
     "@types/chrome": "^0.0.313",
+    "@types/markdown-it": "^14.1.2",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",

@@ -12,14 +12,13 @@ import Footer from "./components/Footer";
 
 type ActiveTab = "add" | "query" | "browse";
 
+// Unified timeline — interleaves tool events and text deltas (used by both tabs)
+type TimelineEntry = { type: "tool"; text: string; cls: string } | { type: "text"; text: string };
+
 type QueryEntry = {
   question: string;
-  toolEvents: { text: string; cls: string }[];
-  answerBlocks: string[];
+  timeline: TimelineEntry[];
 };
-
-// Unified timeline for add tab — interleaves tool events and text deltas
-type TimelineEntry = { type: "tool"; text: string; cls: string } | { type: "text"; text: string };
 
 export default function App() {
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
@@ -40,7 +39,6 @@ export default function App() {
   // Refs for latest state (avoids stale closure in WS callbacks)
   const isAddingRef = useRef(false);
   const isQueryingRef = useRef(false);
-  const currentQueryBlockRef = useRef<number | null>(null);
   const addTimelineRef = useRef<TimelineEntry[]>([]);
   const queryResultsRef = useRef<QueryEntry[]>([]);
 
@@ -139,27 +137,17 @@ export default function App() {
           const updated = [...prev];
           const last = updated[updated.length - 1];
           if (!last) return prev;
-          const blocks = [...last.answerBlocks];
-          const blockIdx =
-            currentQueryBlockRef.current !== null
-              ? currentQueryBlockRef.current
-              : blocks.length - 1;
-          if (blockIdx >= 0 && blockIdx < blocks.length) {
-            blocks[blockIdx] = blocks[blockIdx] + delta;
+          const tline = [...last.timeline];
+          const lastEntry = tline[tline.length - 1];
+          if (lastEntry?.type === "text") {
+            tline[tline.length - 1] = { type: "text", text: lastEntry.text + delta };
           } else {
-            blocks.push(delta);
-            currentQueryBlockRef.current = blocks.length - 1;
+            tline.push({ type: "text", text: delta });
           }
-          updated[updated.length - 1] = { ...last, answerBlocks: blocks };
+          updated[updated.length - 1] = { ...last, timeline: tline };
           return updated;
         });
       }
-      return;
-    }
-
-    // ── Turn boundaries ──
-    if (etype === "turn_end") {
-      currentQueryBlockRef.current = null;
       return;
     }
 
@@ -175,9 +163,9 @@ export default function App() {
           if (!last) return prev;
           updated[updated.length - 1] = {
             ...last,
-            toolEvents: [
-              ...last.toolEvents,
-              { text: `Running ${toolName}...`, cls: "text-yellow-500" },
+            timeline: [
+              ...last.timeline,
+              { type: "tool", text: `Running ${toolName}...`, cls: "text-yellow-500" },
             ],
           };
           return updated;
@@ -197,9 +185,9 @@ export default function App() {
           if (!last) return prev;
           updated[updated.length - 1] = {
             ...last,
-            toolEvents: [
-              ...last.toolEvents,
-              { text: `Finished ${toolName}`, cls: "text-green-500" },
+            timeline: [
+              ...last.timeline,
+              { type: "tool", text: `Finished ${toolName}`, cls: "text-green-500" },
             ],
           };
           return updated;
@@ -265,8 +253,7 @@ export default function App() {
       return;
     }
     setIsQuerying(true);
-    setQueryResults([{ question: text, toolEvents: [], answerBlocks: [] }]);
-    currentQueryBlockRef.current = null;
+    setQueryResults([{ question: text, timeline: [] }]);
     setAgentStatus("🔍 Thinking...");
   }
 

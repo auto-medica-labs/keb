@@ -34,8 +34,12 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
   return (
     <header className="flex justify-between items-center px-3 py-2.5 border-b bg-card flex-shrink-0">
       <div className="flex items-center gap-2">
-        <span className="text-base">🧠</span>
-        <span className="font-semibold text-sm">KB</span>
+        <img
+          src="https://r2.mdevd.co/asset/logo_transparent.png"
+          alt="logo"
+          className="size-5 object-contain"
+        />
+        <span className="font-semibold text-sm">Knowledge Bases</span>
         <Select value={workspace} onValueChange={(value) => value && onSwitchWorkspace(value)}>
           <SelectTrigger className="h-7 w-32 text-xs border-border ml-1">
             <SelectValue />

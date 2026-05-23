@@ -16,7 +16,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 ## Architecture
 
 ```
-┌──────────────────┐     WebSocket (ws://127.0.0.1:9876)     ┌─────────────────┐
+┌──────────────────┐     WebSocket (ws://127.0.0.1:9876)     ┌──────────────────┐
 │  Chrome          │◄──────────────────────────────────────► │  bridge-server   │
 │  Extension       │     JSON messages: add / query / sync   │   (Node.js)      │
 │                  │                                         │                  │
@@ -30,7 +30,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 │  └────────────┘  │                                         │  │ .pi/agent/ │  │
 └──────────────────┘                                         │  │  kb/       │  │
   @chrome-kb/extension                                       │  └────────────┘  │
-                                                             └─────────────────┘
+                                                             └──────────────────┘
                                                                @chrome-kb/bridge
 ```
 

@@ -54,9 +54,7 @@ export default function BrowsePanel() {
                   className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
                 >
                   <span className="text-sm flex-shrink-0">📄</span>
-                  <span className="text-sm font-medium text-primary">
-                    {escapeHtml(name)}
-                  </span>
+                  <span className="text-sm font-medium text-primary">{escapeHtml(name)}</span>
                   {summaries[name].source && (
                     <span className="text-[11px] text-muted-foreground ml-auto truncate max-w-[120px]">
                       {escapeHtml(summaries[name].source)}

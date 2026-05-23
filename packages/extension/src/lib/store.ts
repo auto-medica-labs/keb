@@ -51,8 +51,7 @@ export async function setConnectionState(state: ConnectionState): Promise<void> 
 }
 
 export async function getConnectionState(): Promise<ConnectionState> {
-  const { [KEYS.connectionState]: state } =
-    await chrome.storage.local.get(KEYS.connectionState);
+  const { [KEYS.connectionState]: state } = await chrome.storage.local.get(KEYS.connectionState);
   return (state as ConnectionState) || { connected: false, lastSync: null };
 }
 

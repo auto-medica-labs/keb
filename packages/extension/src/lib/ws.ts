@@ -30,11 +30,7 @@ export interface SyncResult {
   workspaces: string[];
 }
 
-export type ConnectionStatus =
-  | "connected"
-  | "disconnected"
-  | "connecting"
-  | "reconnecting";
+export type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting";
 
 export interface WSCallbacks {
   onStatusChange: (status: ConnectionStatus) => void;
@@ -68,8 +64,7 @@ export class WSClient {
   connect() {
     if (
       this.ws &&
-      (this.ws.readyState === WebSocket.OPEN ||
-        this.ws.readyState === WebSocket.CONNECTING)
+      (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)
     ) {
       return;
     }

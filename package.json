@@ -6,9 +6,16 @@
   "scripts": {
     "dev": "pnpm --filter @chrome-kb/extension dev",
     "build": "pnpm --filter @chrome-kb/extension build",
-    "typecheck": "pnpm --filter @chrome-kb/extension typecheck",
+    "typecheck": "pnpm --filter './packages/*' typecheck",
     "preview": "pnpm --filter @chrome-kb/extension preview",
     "bridge": "pnpm --filter @chrome-kb/bridge start",
-    "bridge:dev": "pnpm --filter @chrome-kb/bridge dev"
+    "bridge:dev": "pnpm --filter @chrome-kb/bridge dev",
+    "lint": "oxlint",
+    "format": "oxfmt --write packages",
+    "format:check": "oxfmt --check packages"
+  },
+  "devDependencies": {
+    "oxfmt": "^0.51.0",
+    "oxlint": "^1.66.0"
   }
 }

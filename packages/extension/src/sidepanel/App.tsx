@@ -1,12 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
-import {
-  WSClient,
-  type ConnectionStatus,
-  type BridgeEvent,
-  type SyncResult,
-} from "../lib/ws";
+import { WSClient, type ConnectionStatus, type BridgeEvent, type SyncResult } from "../lib/ws";
 import { setKBState, getConfig, setConfig } from "../lib/store";
 import Header from "./components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,13 +19,10 @@ type QueryEntry = {
 };
 
 // Unified timeline for add tab — interleaves tool events and text deltas
-type TimelineEntry =
-  | { type: "tool"; text: string; cls: string }
-  | { type: "text"; text: string };
+type TimelineEntry = { type: "tool"; text: string; cls: string } | { type: "text"; text: string };
 
 export default function App() {
-  const [connectionStatus, setConnectionStatus] =
-    useState<ConnectionStatus>("disconnected");
+  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const [workspace, setWorkspaceState] = useState("default");
   const [activeTab, setActiveTab] = useState<ActiveTab>("add");
   const [docCount, setDocCount] = useState(0);
@@ -137,10 +129,7 @@ export default function App() {
     const etype = event.type;
 
     // ── Text deltas (streaming LLM output) ──
-    if (
-      etype === "message_update" &&
-      event.assistantMessageEvent?.type === "text_delta"
-    ) {
+    if (etype === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
       const delta = event.assistantMessageEvent.delta || "";
 
       if (isAddingRef.current) {
@@ -276,9 +265,7 @@ export default function App() {
       return;
     }
     setIsQuerying(true);
-    setQueryResults([
-      { question: text, toolEvents: [], answerBlocks: [] },
-    ]);
+    setQueryResults([{ question: text, toolEvents: [], answerBlocks: [] }]);
     currentQueryBlockRef.current = null;
     setAgentStatus("🔍 Thinking...");
   }
@@ -304,13 +291,22 @@ export default function App() {
         className="flex flex-col flex-1 min-h-0"
       >
         <TabsList className="w-full rounded-none border-b bg-secondary/50 h-auto p-0">
-          <TabsTrigger value="add" className="flex-1 rounded-none data-[state=active]:bg-background">
+          <TabsTrigger
+            value="add"
+            className="flex-1 rounded-none data-[state=active]:bg-background"
+          >
             📥 Add Knowledge
           </TabsTrigger>
-          <TabsTrigger value="query" className="flex-1 rounded-none data-[state=active]:bg-background">
+          <TabsTrigger
+            value="query"
+            className="flex-1 rounded-none data-[state=active]:bg-background"
+          >
             🔍 Consult
           </TabsTrigger>
-          <TabsTrigger value="browse" className="flex-1 rounded-none data-[state=active]:bg-background">
+          <TabsTrigger
+            value="browse"
+            className="flex-1 rounded-none data-[state=active]:bg-background"
+          >
             📚 Browse
           </TabsTrigger>
         </TabsList>
@@ -337,11 +333,7 @@ export default function App() {
           </TabsContent>
         </div>
       </Tabs>
-      <Footer
-        docCount={docCount}
-        conceptCount={conceptCount}
-        agentStatus={agentStatus}
-      />
+      <Footer docCount={docCount} conceptCount={conceptCount} agentStatus={agentStatus} />
     </div>
   );
 }

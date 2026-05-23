@@ -22,11 +22,7 @@ const statusColors: Record<ConnectionStatus, string> = {
   reconnecting: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
 };
 
-export default function Header({
-  connectionStatus,
-  workspace,
-  onSwitchWorkspace,
-}: HeaderProps) {
+export default function Header({ connectionStatus, workspace, onSwitchWorkspace }: HeaderProps) {
   const [workspaces, setWorkspaces] = useState<string[]>(["default"]);
 
   useEffect(() => {
@@ -54,9 +50,7 @@ export default function Header({
         </Select>
       </div>
       <div className="flex items-center gap-1.5">
-        <span
-          className={`size-2 rounded-full flex-shrink-0 ${statusColors[connectionStatus]}`}
-        />
+        <span className={`size-2 rounded-full flex-shrink-0 ${statusColors[connectionStatus]}`} />
         <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
           {connectionStatus}
         </span>

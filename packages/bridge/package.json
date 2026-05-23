@@ -5,9 +5,15 @@
   "type": "module",
   "scripts": {
     "start": "node src/bridge-server.js",
-    "dev": "node --watch src/bridge-server.js"
+    "dev": "node --watch src/bridge-server.js",
+    "typecheck": "tsc -b"
   },
   "dependencies": {
     "ws": "^8.21.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/ws": "^8.0.0",
+    "typescript": "~5.8.3"
   }
 }

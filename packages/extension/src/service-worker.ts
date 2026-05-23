@@ -53,12 +53,10 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   // Send the URL to the side panel so it can auto-populate the Add field
   // Slight delay to allow the panel to load
   setTimeout(() => {
-    chrome.runtime
-      .sendMessage({ type: "add-url-from-context", url })
-      .catch(() => {
-        // Side panel may not be ready yet — the URL will be lost, but
-        // the user can still paste it manually.
-      });
+    chrome.runtime.sendMessage({ type: "add-url-from-context", url }).catch(() => {
+      // Side panel may not be ready yet — the URL will be lost, but
+      // the user can still paste it manually.
+    });
   }, 300);
 });
 

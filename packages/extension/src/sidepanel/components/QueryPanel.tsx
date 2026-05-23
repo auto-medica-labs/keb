@@ -17,12 +17,7 @@ interface QueryPanelProps {
   onQuery: (text: string) => void;
 }
 
-export default function QueryPanel({
-  isQuerying,
-  results,
-  connected,
-  onQuery,
-}: QueryPanelProps) {
+export default function QueryPanel({ isQuerying, results, connected, onQuery }: QueryPanelProps) {
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -56,11 +51,7 @@ export default function QueryPanel({
             disabled={!connected || !text.trim() || isQuerying}
             className="h-9"
           >
-            {isQuerying ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              "Ask"
-            )}
+            {isQuerying ? <Loader2 className="size-4 animate-spin" /> : "Ask"}
           </Button>
         </div>
       </div>
@@ -100,7 +91,7 @@ export default function QueryPanel({
                     >
                       {block}
                     </div>
-                  ) : null
+                  ) : null,
                 )}
               </div>
             ))}

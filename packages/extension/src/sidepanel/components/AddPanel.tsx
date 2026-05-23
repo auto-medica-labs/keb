@@ -4,9 +4,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, CheckCircle2, Wrench } from "lucide-react";
 
-type TimelineEntry =
-  | { type: "tool"; text: string; cls: string }
-  | { type: "text"; text: string };
+type TimelineEntry = { type: "tool"; text: string; cls: string } | { type: "text"; text: string };
 
 interface AddPanelProps {
   isAdding: boolean;
@@ -16,13 +14,7 @@ interface AddPanelProps {
   onAdd: (url: string) => void;
 }
 
-export default function AddPanel({
-  isAdding,
-  isDone,
-  timeline,
-  connected,
-  onAdd,
-}: AddPanelProps) {
+export default function AddPanel({ isAdding, isDone, timeline, connected, onAdd }: AddPanelProps) {
   const [url, setUrl] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -54,9 +46,7 @@ export default function AddPanel({
     <div className="flex flex-col h-full gap-3">
       {/* URL input — shrink to content */}
       <div className="flex-shrink-0">
-        <label className="text-xs text-muted-foreground font-medium block mb-1.5">
-          URL
-        </label>
+        <label className="text-xs text-muted-foreground font-medium block mb-1.5">URL</label>
         <div className="flex gap-2">
           <Input
             ref={inputRef}
@@ -123,7 +113,7 @@ export default function AddPanel({
                   >
                     {entry.text}
                   </div>
-                )
+                ),
               )}
             </div>
           </ScrollArea>

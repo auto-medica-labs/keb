@@ -1,10 +1,10 @@
-// service-worker.js — Context menu, action click → side panel, message relay
+// service-worker.ts — Context menu, action click → side panel, message relay
 //
 // The service worker does NOT hold a WebSocket connection (the side panel does).
 // It handles:
 //   1. Context menu "Add to KB" → gets page URL, opens side panel, relays the URL
 //   2. Action icon click → opens side panel
-//   3. Runtime messages between contexts (kept for future use)
+//   3. Runtime messages between contexts
 
 // ── Install ──────────────────────────────────────────────────────────────
 
@@ -25,17 +25,10 @@ chrome.action.onClicked.addListener(async (tab) => {
   console.log("[chrome-kb] onClicked — tab.id:", tab?.id, "windowId:", tab?.windowId);
   try {
     // Open for the current tab (not window) so it follows the tab
-    await chrome.sidePanel.open({ tabId: tab.id });
+    await chrome.sidePanel.open({ windowId: tab.windowId });
     console.log("[chrome-kb] side panel opened");
   } catch (err) {
     console.error("[chrome-kb] sidePanel.open failed:", err);
-    // Fallback: try window-level open
-    try {
-      await chrome.sidePanel.open({ windowId: tab.windowId });
-      console.log("[chrome-kb] side panel opened (window fallback)");
-    } catch (err2) {
-      console.error("[chrome-kb] both approaches failed:", err2);
-    }
   }
 });
 
@@ -71,8 +64,13 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
 // ── Runtime message relay ────────────────────────────────────────────────
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "ping") {
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (
+    typeof message === "object" &&
+    message !== null &&
+    "type" in message &&
+    message.type === "ping"
+  ) {
     sendResponse({ type: "pong" });
     return false;
   }

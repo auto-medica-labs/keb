@@ -33,11 +33,12 @@ A Chrome extension that turns your browser into a personal knowledge base, power
 
 1. **Chrome Extension** — Provides the UI (side panel) and triggers (context menu, toolbar icon).
 2. **bridge-server.js** — A standalone WebSocket server that bridges the extension to pi-kb. It spawns `pi --mode rpc --no-session` for add/query operations and reads the filesystem directly for sync. No TUI session needed.
-3. **pi-kb** — pi's built-in knowledge base stored at `~/.pi/agent/kb/`. Contains summaries, concepts, an index, and a registry.
+3. **pi-kb** — a pi extension that provides the knowledge base stored at `~/.pi/agent/kb/`. Contains summaries, concepts, an index, and a registry.
 
 ## Prerequisites
 
 - [pi](https://github.com/earendil-works/pi-coding-agent) installed and in your `$PATH`
+- [pi-kb](https://github.com/dheerapat/pi-kb) extension installed in pi
 - Node.js ≥ 18 (for the bridge server)
 - A Chromium-based browser (Chrome, Edge, Brave, Arc, etc.)
 

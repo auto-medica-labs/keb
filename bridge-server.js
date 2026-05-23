@@ -142,6 +142,56 @@ function buildSyncData(workspace) {
 }
 
 // ---------------------------------------------------------------------------
+// URL normalization & registry lookup (mirrors extensions/kb/store.ts)
+// ---------------------------------------------------------------------------
+
+/** Normalize a URL for dedup comparison: strip trailing slash (unless root),
+ *  fragment, and default ports (443 for https, 80 for http). */
+function normalizeUrl(url) {
+  try {
+    const parsed = new URL(url);
+    parsed.hash = "";
+    if (parsed.pathname.length > 1 && parsed.pathname.endsWith("/")) {
+      parsed.pathname = parsed.pathname.slice(0, -1);
+    }
+    if (
+      (parsed.protocol === "https:" && parsed.port === "443") ||
+      (parsed.protocol === "http:" && parsed.port === "80")
+    ) {
+      parsed.port = "";
+    }
+    return parsed.toString();
+  } catch {
+    return url;
+  }
+}
+
+/** Check if a URL is already in the registry by originalPath. */
+function isUrlInRegistry(url, workspace) {
+  const normalized = normalizeUrl(url);
+  const reg = readRegistry(workspace);
+  return Object.values(reg).some(
+    (e) => normalizeUrl(e.originalPath) === normalized,
+  );
+}
+
+/** Find a registry entry by URL. Returns null if not found. */
+function findByUrl(url, workspace) {
+  const normalized = normalizeUrl(url);
+  const reg = readRegistry(workspace);
+  return (
+    Object.values(reg).find(
+      (e) => normalizeUrl(e.originalPath) === normalized,
+    ) ?? null
+  );
+}
+
+/** Quick check: does a string look like an HTTP URL? */
+function isUrl(str) {
+  return /^https?:\/\//i.test(str);
+}
+
+// ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
@@ -251,6 +301,26 @@ function startBridge(port) {
             ws.send(safeStringify({ type: "error", message: "Missing 'url' field" }));
             return;
           }
+
+          // Dedup check: if it's a URL, scan the registry before spawning pi.
+          // Avoids a hang where pi short-circuits with no agent turn → no agent_end.
+          if (isUrl(msg.url) && isUrlInRegistry(msg.url, workspace)) {
+            const entry = findByUrl(msg.url, workspace);
+            log(`add: already in KB: ${msg.url} (added ${entry?.addedAt?.slice(0, 10) || "?"})`);
+            ws.send(safeStringify({
+              type: "event",
+              data: {
+                type: "message_update",
+                assistantMessageEvent: {
+                  type: "text_delta",
+                  delta: `Already in KB: ${msg.url} (added ${entry?.addedAt?.slice(0, 10) || "previously"})`,
+                },
+              },
+            }));
+            ws.send(safeStringify({ type: "done", command: "add" }));
+            return;
+          }
+
           if (activeChild) { activeChild.kill(); activeChild = null; }
           const prompt = workspace
             ? `/kb-add -w ${workspace} ${msg.url}`

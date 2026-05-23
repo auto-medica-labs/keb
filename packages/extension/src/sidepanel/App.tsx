@@ -308,7 +308,7 @@ export default function App() {
             📥 Add Knowledge
           </TabsTrigger>
           <TabsTrigger value="query" className="flex-1 rounded-none data-[state=active]:bg-background">
-            🔍 Query
+            🔍 Consult
           </TabsTrigger>
           <TabsTrigger value="browse" className="flex-1 rounded-none data-[state=active]:bg-background">
             📚 Browse

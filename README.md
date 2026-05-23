@@ -152,4 +152,11 @@ TypeScript `strict` mode also enforces `noImplicitAny`, `noUnusedLocals`, and `n
 
 ## License
 
-MIT
+This project uses a **dual license**:
+
+| Package | License | Scope |
+|---|---|---|
+| `@chrome-kb/extension` | [MIT](packages/extension/LICENSE) | Free for any use, modification, and distribution |
+| `@chrome-kb/bridge` | [MIT with SaaS restriction](packages/bridge/LICENSE) | Free for self-hosted use; no competing SaaS/cloud hosting permitted |
+
+The bridge license allows you to use, modify, and self-host the bridge freely, but prohibits offering it to third parties as a hosted, managed, or SaaS product where the primary value is the bridge's functionality itself.

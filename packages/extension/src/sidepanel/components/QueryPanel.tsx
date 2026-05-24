@@ -59,49 +59,59 @@ export default function QueryPanel({ isQuerying, results, connected, onQuery }: 
       </div>
 
       {results.length > 0 && (
-        <ScrollArea className="flex-1 min-h-0 border rounded-md bg-muted/30 p-3">
-          <div className="space-y-4">
-            {results.map((r, i) => (
-              <div key={i} className="space-y-2">
-                {/* Question */}
-                <div className="bg-accent border-l-2 border-primary rounded-r-md px-3 py-2 text-sm font-medium">
-                  {r.question}
-                </div>
-
-                {/* Timeline — chronological interleave of tool calls & agent output */}
-                {r.timeline.length > 0 && (
-                  <div className="rounded-md border bg-muted/50 p-2 space-y-1.5">
-                    {r.timeline.map((entry, j) =>
-                      entry.type === "tool" ? (
-                        <div
-                          key={j}
-                          className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}
-                        >
-                          {entry.cls.includes("green") ? (
-                            <CheckCircle2 className="size-3 flex-shrink-0" />
-                          ) : (
-                            <Wrench className="size-3 flex-shrink-0" />
-                          )}
-                          {entry.text}
-                        </div>
-                      ) : (
-                        <div key={j} className="py-1 px-1 border-b border-border last:border-b-0">
-                          <MarkdownRenderer text={entry.text} />
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-              </div>
-            ))}
-            {isQuerying && (
-              <div className="flex items-center gap-2 text-xs text-muted-foreground pt-2">
-                <Loader2 className="size-3 animate-spin" />
-                Thinking...
-              </div>
+        <div className="flex-1 min-h-0 border rounded-md bg-muted/50 flex flex-col">
+          {/* Status header */}
+          <div className="flex items-center gap-2 px-3 py-2 border-b flex-shrink-0">
+            {isQuerying ? (
+              <>
+                <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
+                <span className="text-xs text-muted-foreground">
+                  Thinking — keep this tab open until done
+                </span>
+              </>
+            ) : (
+              <>
+                <CheckCircle2 className="size-3.5 text-green-500" />
+                <span className="text-xs text-green-500 font-medium">Complete!</span>
+              </>
             )}
           </div>
-        </ScrollArea>
+
+          {/* Scrollable timeline */}
+          <ScrollArea className="flex-1 min-h-0">
+            <div className="p-3 leading-relaxed space-y-1">
+              {results.map((r, i) => (
+                <div key={i}>
+                  {/* Question */}
+                  <div className="bg-accent border-l-2 border-primary rounded-r-md px-3 py-2 text-sm font-medium mb-2">
+                    {r.question}
+                  </div>
+
+                  {/* Timeline — chronological interleave of tool calls & agent output */}
+                  {r.timeline.map((entry, j) =>
+                    entry.type === "tool" ? (
+                      <div
+                        key={j}
+                        className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}
+                      >
+                        {entry.cls.includes("green") ? (
+                          <CheckCircle2 className="size-3 flex-shrink-0" />
+                        ) : (
+                          <Wrench className="size-3 flex-shrink-0" />
+                        )}
+                        {entry.text}
+                      </div>
+                    ) : (
+                      <div key={j} className="py-2 border-b border-border last:border-b-0">
+                        <MarkdownRenderer text={entry.text} />
+                      </div>
+                    ),
+                  )}
+                </div>
+              ))}
+            </div>
+          </ScrollArea>
+        </div>
       )}
     </div>
   );

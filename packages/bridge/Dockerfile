@@ -4,13 +4,12 @@
 # Build:
 #   docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
 #
-# Run (API key via env var):
+# Run (recommended: env file — keeps secrets out of shell history):
+#   cp .env.example .env   # then fill in your API keys
 #   docker run -d \
 #     --name chrome-kb-bridge \
 #     -p 9876:9876 \
-#     -e ANTHROPIC_API_KEY=sk-ant-... \
-#     -e PI_DEFAULT_PROVIDER=anthropic \
-#     -e PI_DEFAULT_MODEL=claude-sonnet-4-20250514 \
+#     --env-file .env \
 #     -v kb-data:/root/.pi/agent/kb \
 #     chrome-kb-bridge
 #

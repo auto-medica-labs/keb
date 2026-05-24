@@ -37,72 +37,55 @@ PI_AGENT_DIR="${HOME}/.pi/agent"
 # ---------------------------------------------------------------------------
 # 1. Build auth.json from environment variables
 # ---------------------------------------------------------------------------
-# Standard pi provider env vars -> auth.json key mapping
-# (from pi docs/providers.md)
-env_to_auth() {
-  case "$1" in
-    ANTHROPIC_API_KEY)            echo "anthropic" ;;
-    OPENAI_API_KEY)               echo "openai" ;;
-    AZURE_OPENAI_API_KEY)         echo "azure-openai-responses" ;;
-    DEEPSEEK_API_KEY)             echo "deepseek" ;;
-    GEMINI_API_KEY)               echo "google" ;;
-    MISTRAL_API_KEY)              echo "mistral" ;;
-    GROQ_API_KEY)                 echo "groq" ;;
-    CEREBRAS_API_KEY)             echo "cerebras" ;;
-    XAI_API_KEY)                  echo "xai" ;;
-    OPENROUTER_API_KEY)           echo "openrouter" ;;
-    AI_GATEWAY_API_KEY)           echo "vercel-ai-gateway" ;;
-    ZAI_API_KEY)                  echo "zai" ;;
-    OPENCODE_API_KEY)             echo "opencode" ;;
-    HF_TOKEN)                     echo "huggingface" ;;
-    FIREWORKS_API_KEY)            echo "fireworks" ;;
-    TOGETHER_API_KEY)             echo "together" ;;
-    KIMI_API_KEY)                 echo "kimi-coding" ;;
-    MINIMAX_API_KEY)              echo "minimax" ;;
-    XIAOMI_API_KEY)               echo "xiaomi" ;;
-    *)                            echo "" ;;
-  esac
-}
-
 # Only write auth.json if no file is already present (mounted or inherited)
 if [ ! -f "${PI_AGENT_DIR}/auth.json" ]; then
-  # Collect provider entries from env vars
-  # shellcheck disable=SC2012
-  auth_keys=""
-  for var in $(env | cut -d= -f1); do
-    key=$(env_to_auth "$var")
-    if [ -n "$key" ] && eval [ -n "\"\${$var+x}\"" ]; then
-      value=$(eval echo "\"\${$var}\"")
-      if [ -n "$value" ]; then
-        if [ -z "$auth_keys" ]; then
-          auth_keys="$key"
-        else
-          auth_keys="${auth_keys} ${key}"
-        fi
-        # Export each value for later use
-        eval "auth_val_${key}=\"\${value}\""
-      fi
-    fi
-  done
+  mkdir -p "${PI_AGENT_DIR}"
+  # Use node to build JSON safely — JSON.stringify handles all special
+  # character escaping that shell printf / eval cannot.
+  count=$(node - "${PI_AGENT_DIR}/auth.json" <<'NODEAUTH'
+var fs = require("fs");
+var path = process.argv[2];
 
-  if [ -n "$auth_keys" ]; then
-    mkdir -p "${PI_AGENT_DIR}"
-    # Write JSON with proper formatting using a heredoc
-    {
-      printf '{\n'
-      _count=0
-      for _key in $auth_keys; do
-        eval "_val=\"\${auth_val_${_key}}\""
-        if [ $_count -gt 0 ]; then
-          printf ',\n'
-        fi
-        printf '    "%s": { "type": "api_key", "key": "%s" }' "$_key" "$_val"
-        _count=$((_count + 1))
-      done
-      printf '\n}\n'
-    } > "${PI_AGENT_DIR}/auth.json"
-    chmod 600 "${PI_AGENT_DIR}/auth.json"
-    echo "[entrypoint] Wrote auth.json from env vars ($_count provider(s))"
+// Standard pi provider env vars -> auth.json key mapping
+// (from pi docs/providers.md)
+var map = {
+  ANTHROPIC_API_KEY: "anthropic",
+  OPENAI_API_KEY: "openai",
+  AZURE_OPENAI_API_KEY: "azure-openai-responses",
+  DEEPSEEK_API_KEY: "deepseek",
+  GEMINI_API_KEY: "google",
+  MISTRAL_API_KEY: "mistral",
+  GROQ_API_KEY: "groq",
+  CEREBRAS_API_KEY: "cerebras",
+  XAI_API_KEY: "xai",
+  OPENROUTER_API_KEY: "openrouter",
+  AI_GATEWAY_API_KEY: "vercel-ai-gateway",
+  ZAI_API_KEY: "zai",
+  OPENCODE_API_KEY: "opencode",
+  HF_TOKEN: "huggingface",
+  FIREWORKS_API_KEY: "fireworks",
+  TOGETHER_API_KEY: "together",
+  KIMI_API_KEY: "kimi-coding",
+  MINIMAX_API_KEY: "minimax",
+  XIAOMI_API_KEY: "xiaomi"
+};
+
+var auth = {};
+Object.keys(map).forEach(function(k) {
+  var v = process.env[k];
+  if (v) auth[map[k]] = { type: "api_key", key: v };
+});
+
+var count = Object.keys(auth).length;
+if (count > 0) {
+  fs.writeFileSync(path, JSON.stringify(auth, null, 2) + "\n");
+  fs.chmodSync(path, 0o600);
+}
+process.stdout.write(String(count));
+NODEAUTH
+  )
+  if [ -n "$count" ] && [ "$count" -gt 0 ]; then
+    echo "[entrypoint] Wrote auth.json from env vars ($count provider(s))"
   fi
 fi
 

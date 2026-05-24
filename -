@@ -1,5 +1,0 @@
-{
-  "defaultProvider": "/tmp/test-settings.json",
-  "defaultModel": "anthropic",
-  "defaultThinkingLevel": "claude-sonnet-4-20250514"
-}

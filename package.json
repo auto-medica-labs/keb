@@ -5,7 +5,7 @@
   "packageManager": "pnpm@10.24.0",
   "scripts": {
     "dev": "pnpm --filter @chrome-kb/extension dev",
-    "build": "pnpm --filter @chrome-kb/extension build",
+    "build": "pnpm --filter @chrome-kb/extension --filter @chrome-kb/landing build",
     "typecheck": "pnpm --filter './packages/*' typecheck",
     "preview": "pnpm --filter @chrome-kb/extension preview",
     "bridge": "pnpm --filter @chrome-kb/bridge start",

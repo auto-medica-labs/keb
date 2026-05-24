@@ -50,7 +50,7 @@ export default function Footer({
         {pendingCount > 0 && (
           <button
             onClick={onRepair}
-            className="text-amber-500 hover:text-amber-400 underline cursor-pointer transition-colors"
+            className="inline-flex items-center gap-1 whitespace-nowrap text-amber-500 hover:text-amber-400 underline cursor-pointer transition-colors"
             title="Repair interrupted compilations"
           >
             <TriangleAlert className="size-3" />

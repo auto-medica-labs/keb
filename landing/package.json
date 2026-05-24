@@ -1,0 +1,13 @@
+{
+  "name": "chrome-kb-landing",
+  "private": true,
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "cssnano": "^7.0.0",
+    "html-minifier-terser": "^7.2.0",
+    "postcss": "^8.5.0",
+    "sharp": "^0.33.0"
+  }
+}

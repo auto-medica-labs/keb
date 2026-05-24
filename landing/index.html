@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="You read hundreds of articles. You remember none of them. Kep turns every web page into a searchable, connected knowledge base your AI can reason over."
+    />
+    <!-- Facebook Meta Tags -->
+    <meta property="og:url" content="https://kep.mdevd.co/" />
+    <meta property="og:type" content="website" />
+    <meta
+      property="og:title"
+      content="Kep — Your Browser, Your Knowledge Base"
+    />
+    <meta
+      property="og:description"
+      content="You read hundreds of articles. You remember none of them. Kep turns every web page into a searchable, AI-powered knowledge base. Two clicks, any page, your personal wiki."
+    />
+    <meta property="og:image" content="https://kep.mdevd.co/asset/logo.png" />
+    <!-- Twitter Meta Tags -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="twitter:domain" content="kep.mdevd.co" />
+    <meta property="twitter:url" content="https://kep.mdevd.co/" />
+    <meta
+      name="twitter:title"
+      content="Kep — Your Browser, Your Knowledge Base"
+    />
+    <meta
+      name="twitter:description"
+      content="You read hundreds of articles. You remember none of them. Kep turns every web page into a searchable, AI-powered knowledge base. Two clicks, any page, your personal wiki."
+    />
+    <meta name="twitter:image" content="https://kep.mdevd.co/asset/logo.png" />
+
+    <title>Kep — Stop losing what you read</title>
+    <link rel="icon" type="image/png" href="asset/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+  </head>
+  <body>
+    <nav>
+      <div class="container">
+        <div class="logo-group">
+          <img
+            src="https://r2.mdevd.co/asset/auto-medica-lab-full-transparent.png"
+            alt="Kep logo"
+            class="logo-img"
+          />
+        </div>
+        <div>
+          <ul>
+            <li><a href="#how-it-works">How It Works</a></li>
+            <li><a href="#features">Features</a></li>
+            <li><a href="#why">Why Kep?</a></li>
+            <li><a href="https://github.com/dheerapat/chrome-kb">GitHub</a></li>
+          </ul>
+        </div>
+        <button
+          class="theme-toggle"
+          id="themeToggle"
+          aria-label="Toggle dark mode"
+        >
+          <i data-lucide="sun"></i>
+        </button>
+      </div>
+    </nav>
+
+    <main>
+      <!-- Hero -->
+      <section class="hero-section">
+        <div class="container">
+          <div class="hero-grid">
+            <div class="hero-text">
+              <h1>
+                You read hundreds of articles.<br />
+                You remember none of them.
+              </h1>
+              <p>
+                <strong class="brand">Kep</strong> turns every web page into a
+                searchable, connected knowledge base your AI can reason over.
+                Two clicks. Any page. Your personal wiki.
+              </p>
+              <div class="hero-actions">
+                <a
+                  href="https://github.com/dheerapat/chrome-kb#installation"
+                  class="cta-button"
+                >
+                  <i data-lucide="download"></i>
+                  Get Started
+                </a>
+                <a
+                  href="https://github.com/dheerapat/chrome-kb"
+                  class="cta-button secondary"
+                >
+                  <i data-lucide="star"></i>
+                  Star on GitHub
+                </a>
+              </div>
+              <div class="hero-stats">
+                <span><i data-lucide="shield-check"></i> Runs locally</span>
+                <span><i data-lucide="code-2"></i> Open source</span>
+                <span><i data-lucide="brain"></i> Works with any LLM</span>
+              </div>
+            </div>
+            <div class="hero-visual">
+              <img
+                src="asset/consult-knowledge.gif"
+                alt="Ask questions, get AI answers from your knowledge base"
+                loading="eager"
+              />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- How It Works -->
+      <section id="how-it-works" class="content-section screenshots-section">
+        <div class="container">
+          <h2>How It Works</h2>
+          <div class="steps">
+            <div class="step">
+              <div class="step-icon"><i data-lucide="file-plus-2"></i></div>
+              <h3>Save a page</h3>
+              <p>Right-click any page or paste a URL — done in two clicks.</p>
+            </div>
+            <div class="step-connector"><i data-lucide="arrow-right"></i></div>
+            <div class="step">
+              <div class="step-icon"><i data-lucide="bot"></i></div>
+              <h3>AI builds your wiki</h3>
+              <p>
+                pi extracts concepts and compiles structured, interlinked pages.
+              </p>
+            </div>
+            <div class="step-connector"><i data-lucide="arrow-right"></i></div>
+            <div class="step">
+              <div class="step-icon"><i data-lucide="message-circle"></i></div>
+              <h3>Ask anything</h3>
+              <p>
+                Query your knowledge base in natural language and get grounded
+                answers.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Features -->
+      <section id="features" class="content-section">
+        <div class="container">
+          <h2>Three Modes, One Side Panel</h2>
+          <div class="values-grid">
+            <div class="value-item">
+              <div class="value-icon">
+                <i data-lucide="file-plus-2"></i>
+              </div>
+              <h3>Add Knowledge</h3>
+              <p>
+                Right-click any page and choose "Add to knowledge base". Watch
+                as your LLM compiles summaries and concept pages in real time.
+              </p>
+            </div>
+            <div class="value-item">
+              <div class="value-icon">
+                <i data-lucide="book-search"></i>
+              </div>
+              <h3>Consult</h3>
+              <p>
+                Ask questions and get streaming AI responses grounded in pages
+                you've saved — with inline source references.
+              </p>
+            </div>
+            <div class="value-item">
+              <div class="value-icon">
+                <i data-lucide="library"></i>
+              </div>
+              <h3>Browse</h3>
+              <p>
+                Explore your personal wiki — summaries, concepts, and source
+                URLs, all cross-linked and searchable.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Screenshots -->
+      <section id="screenshots" class="content-section screenshots-section">
+        <div class="container">
+          <h2>See It in Action</h2>
+          <div class="screenshots-grid">
+            <figure>
+              <img
+                src="asset/add-knowledge.gif"
+                alt="Add Knowledge — compiling acupuncture page"
+                loading="lazy"
+              />
+              <figcaption>
+                Add URLs — watch pi compile pages in real time
+              </figcaption>
+            </figure>
+            <figure>
+              <img
+                src="asset/consult-knowledge.gif"
+                alt="Consult — asking about acupuncture"
+                loading="lazy"
+              />
+              <figcaption>
+                Ask questions — get streaming answers from your knowledge base
+              </figcaption>
+            </figure>
+            <figure>
+              <img
+                src="asset/browse-knowledge.png"
+                alt="Browse — compiled documents and concepts"
+                loading="lazy"
+              />
+              <figcaption>
+                Browse — explore summaries, concepts, and sources
+              </figcaption>
+            </figure>
+          </div>
+        </div>
+      </section>
+
+      <!-- Why Kep -->
+      <section id="why" class="content-section">
+        <div class="container">
+          <h2>Why Kep?</h2>
+          <div class="comparison-grid">
+            <div class="comparison-card highlight">
+              <div class="comparison-icon"><i data-lucide="zap"></i></div>
+              <h3>Kep</h3>
+              <ul>
+                <li>
+                  <i data-lucide="check"></i> Two-click capture from any page
+                </li>
+                <li>
+                  <i data-lucide="check"></i> AI-powered Q&A on your saved pages
+                </li>
+                <li>
+                  <i data-lucide="check"></i> Auto-generated wiki with
+                  cross-links
+                </li>
+                <li>
+                  <i data-lucide="check"></i> Runs locally — your data, your LLM
+                </li>
+              </ul>
+            </div>
+            <div class="comparison-card">
+              <div class="comparison-icon"><i data-lucide="bookmark"></i></div>
+              <h3>Bookmarks</h3>
+              <ul>
+                <li>
+                  <i data-lucide="minus"></i> Saves links only — not content
+                </li>
+                <li>
+                  <i data-lucide="minus"></i> No search across page contents
+                </li>
+                <li><i data-lucide="minus"></i> Flat list, no connections</li>
+              </ul>
+            </div>
+            <div class="comparison-card">
+              <div class="comparison-icon">
+                <i data-lucide="sticky-note"></i>
+              </div>
+              <h3>Notion / Obsidian</h3>
+              <ul>
+                <li><i data-lucide="minus"></i> Manual copy-paste required</li>
+                <li>
+                  <i data-lucide="minus"></i> No automatic concept extraction
+                </li>
+                <li>
+                  <i data-lucide="minus"></i> Separate app, breaks your flow
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <section class="content-section cta-section">
+        <div class="container">
+          <h2>Stop losing what you read.</h2>
+          <p>
+            Turn your browser into a knowledge base your AI can reason over.
+          </p>
+          <a
+            href="https://github.com/dheerapat/chrome-kb#installation"
+            class="cta-button"
+          >
+            <i data-lucide="download"></i>
+            Try Kep — It's Free
+          </a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container" style="flex-direction: column; gap: 0.25rem">
+        <span style="display: flex; align-items: center; gap: 0.35rem"
+          ><i data-lucide="copyright"></i> 2026 Kep. Open source under MIT
+          license.</span
+        >
+        <p style="font-size: 0.8rem; opacity: 0.8">
+          Brought to you by Auto Medica Labs.
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      const themeToggle = document.getElementById("themeToggle");
+      const body = document.body;
+
+      const currentTheme = localStorage.getItem("theme") || "light";
+      if (currentTheme === "dark") {
+        body.classList.add("dark-mode");
+        themeToggle.innerHTML = '<i data-lucide="moon"></i>';
+      } else {
+        themeToggle.innerHTML = '<i data-lucide="sun"></i>';
+      }
+      lucide.createIcons();
+
+      themeToggle.addEventListener("click", () => {
+        body.classList.toggle("dark-mode");
+
+        if (body.classList.contains("dark-mode")) {
+          themeToggle.innerHTML = '<i data-lucide="moon"></i>';
+          localStorage.setItem("theme", "dark");
+        } else {
+          themeToggle.innerHTML = '<i data-lucide="sun"></i>';
+          localStorage.setItem("theme", "light");
+        }
+        lucide.createIcons();
+      });
+    </script>
+  </body>
+</html>

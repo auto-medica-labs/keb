@@ -1,38 +1,19 @@
-# chrome-kb 🧠
+# Kep
 
-A Chrome extension that turns your browser into a personal knowledge base, powered by [pi](https://github.com/earendil-works/pi-coding-agent). Add any web page to your KB with two clicks, then consult and browse structured, interlinked wiki pages compiled by your LLM — all from Chrome's side panel.
+A Chrome extension that turns your browser into a personal knowledge base, powered by [pi](https://github.com/earendil-works/pi-coding-agent). Add any web page to your knowledge base with two clicks, then consult and browse structured, interlinked wiki pages compiled by your LLM — all from Chrome's side panel.
 
 Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **shadcn/ui**. Managed as a **pnpm workspace** monorepo.
 
 ## Features
 
-- **📥 Add URLs** — Right-click any page and choose "Add to KB", or paste a URL directly. pi fetches the page, extracts key concepts, and compiles structured summaries and cross-linked concept pages.
-- **🔍 Consult** — Ask natural-language questions and get streaming LLM responses drawn from your knowledge base, complete with inline references.
-- **📚 Browse** — Explore all compiled documents and extracted concepts in a scrollable list, with source tracking.
-- **🗂️ Multi-workspace** — Switch between isolated knowledge bases for different projects or topics.
-- **⚡ Live streaming** — Watch the LLM compile pages and answer queries in real time with event-level progress.
-- **🔌 Standalone bridge** — The WebSocket bridge runs independently of pi's TUI, so you can consult your KB from Chrome anytime.
+- **Add URLs** — Right-click any page and choose "Add to knowledge base", or paste a URL directly. pi fetches the page, extracts key concepts, and compiles structured summaries and cross-linked concept pages.
+- **Consult** — Ask natural-language questions and get streaming LLM responses drawn from your knowledge base, complete with inline references.
+- **Browse** — Explore all compiled documents and extracted concepts in a scrollable list, with source tracking.
+- **Multi-workspace** — Switch between isolated knowledge bases for different projects or topics.
+- **Live streaming** — Watch the LLM compile pages and answer queries in real time with event-level progress.
+- **Standalone bridge** — The WebSocket bridge runs independently of pi's TUI, so you can consult your knowledge base from Chrome anytime.
 
 ## Architecture
-
-```
-┌──────────────────┐     WebSocket (ws://127.0.0.1:9876)     ┌──────────────────┐
-│  Chrome          │◄──────────────────────────────────────► │  bridge-server   │
-│  Extension       │     JSON messages: add / query / sync   │   (Node.js)      │
-│                  │                                         │                  │
-│  ┌────────────┐  │                                         │  ┌────────────┐  │
-│  │ sidepanel  │  │  ◄── WebSocket client                   │  │ spawn pi   │  │
-│  │ (React SPA)│  │  ◄── chrome.storage.local cache         │  │ --mode rpc │  │
-│  └────────────┘  │                                         │  └─────┬──────┘  │
-│  ┌────────────┐  │                                         │        │         │
-│  │ service    │  │  ◄── context menu "Add to KB"           │  ┌─────▼──────┐  │
-│  │ worker     │  │  ◄── toolbar click → open sidepanel     │  │ pi-kb      │  │
-│  └────────────┘  │                                         │  │ .pi/agent/ │  │
-└──────────────────┘                                         │  │  kb/       │  │
-  @chrome-kb/extension                                       │  └────────────┘  │
-                                                             └──────────────────┘
-                                                               @chrome-kb/bridge
-```
 
 1. **@chrome-kb/bridge** — Standalone WebSocket server that bridges the extension to pi-kb. Written in JS with full JSDoc type annotations.
 2. **@chrome-kb/extension** — React side panel + TypeScript service worker. Built with Vite.

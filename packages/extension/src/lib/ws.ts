@@ -3,9 +3,12 @@
 // Manages the WebSocket connection to the pi-kb bridge server,
 // handling reconnection, message routing, and typed events.
 
+import type { RegistryEntry, Summary, Concept } from "./store";
+
 export type WSMessage =
   | { type: "add"; url: string; workspace?: string }
   | { type: "query"; text: string; workspace?: string }
+  | { type: "repair"; workspace?: string }
   | { type: "sync"; workspace?: string };
 
 export type BridgeEvent = {
@@ -23,10 +26,10 @@ export type WSResponse =
   | { type: "stderr"; text: string };
 
 export interface SyncResult {
-  registry: Record<string, unknown>;
+  registry: Record<string, RegistryEntry>;
   index: string;
-  summaries: Record<string, { content: string; source: string; added: string }>;
-  concepts: Record<string, { content: string; sources: string[]; updated: string }>;
+  summaries: Record<string, Summary>;
+  concepts: Record<string, Concept>;
   workspaces: string[];
 }
 

@@ -41,7 +41,7 @@ export default function QueryPanel({ isQuerying, results, connected, onQuery }: 
           <Input
             ref={inputRef}
             type="text"
-            placeholder="What is the architecture?"
+            placeholder="Ask some question..."
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}

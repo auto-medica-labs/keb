@@ -84,7 +84,7 @@ export default function AddPanel({ isAdding, isDone, timeline, connected, onAdd 
             {isAdding && !isDone ? (
               <>
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Compiling...</span>
+                <span className="text-xs text-muted-foreground">Compiling — keep this tab open until done</span>
               </>
             ) : (
               <>

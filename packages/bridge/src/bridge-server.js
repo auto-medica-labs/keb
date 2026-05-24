@@ -493,6 +493,51 @@ function spawnPiRpc(ws, promptText, command) {
 function startBridge(port) {
   const wss = new WebSocketServer({ host: "127.0.0.1", port });
 
+  /** @type {Set<import('node:child_process').ChildProcess>} */
+  const childProcesses = new Set();
+
+  let shuttingDown = false;
+
+  /**
+   * Gracefully shut down the bridge: close all connections, kill children, exit.
+   * @param {string} signal - Signal name for logging
+   */
+  function shutdown(signal) {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    log(`🛑 Received ${signal} — shutting down gracefully...`);
+
+    // Kill all active child processes
+    for (const child of childProcesses) {
+      try {
+        child.kill("SIGTERM");
+      } catch {
+        /* ignore */
+      }
+    }
+    childProcesses.clear();
+
+    // Forcibly terminate all connected WebSocket clients
+    for (const client of wss.clients) {
+      client.terminate();
+    }
+
+    // Close the WebSocket server
+    wss.close(() => {
+      log(`✅ Bridge stopped.`);
+      process.exit(0);
+    });
+
+    // Force exit after 5s if graceful shutdown hangs
+    setTimeout(() => {
+      log(`⚠️  Graceful shutdown timed out — forcing exit.`);
+      process.exit(1);
+    }, 5000).unref();
+  }
+
+  process.once("SIGINT", () => shutdown("SIGINT"));
+  process.once("SIGTERM", () => shutdown("SIGTERM"));
+
   wss.on("listening", () => {
     log(`✅ Bridge listening on ws://127.0.0.1:${port}`);
     log(`   Chrome extension can now connect. Press Ctrl+C to stop.`);
@@ -533,31 +578,42 @@ function startBridge(port) {
 
           // Dedup check: if it's a URL, scan the registry before spawning pi.
           // Avoids a hang where pi short-circuits with no agent turn → no agent_end.
+          // BUT: if the entry exists but was never fully compiled (interrupted
+          // compilation), we must pass through to pi so /kb-add can re-compile it.
           if (isUrl(msg.url) && isUrlInRegistry(msg.url, workspace)) {
             const entry = findByUrl(msg.url, workspace);
-            log(`add: already in KB: ${msg.url} (added ${entry?.addedAt?.slice(0, 10) || "?"})`);
-            ws.send(
-              safeStringify({
-                type: "event",
-                data: {
-                  type: "message_update",
-                  assistantMessageEvent: {
-                    type: "text_delta",
-                    delta: `Already in KB: ${msg.url} (added ${entry?.addedAt?.slice(0, 10) || "previously"})`,
+            // compiled === false means the LLM session was interrupted before
+            // finishing all wiki artifacts. Pass through so pi can re-compile.
+            if (entry && entry.compiled !== false) {
+              log(`add: already in KB: ${msg.url} (added ${entry?.addedAt?.slice(0, 10) || "?"})`);
+              ws.send(
+                safeStringify({
+                  type: "event",
+                  data: {
+                    type: "message_update",
+                    assistantMessageEvent: {
+                      type: "text_delta",
+                      delta: `Already in KB: ${msg.url} (added ${entry?.addedAt?.slice(0, 10) || "previously"})`,
+                    },
                   },
-                },
-              }),
-            );
-            ws.send(safeStringify({ type: "done", command: "add" }));
-            return;
+                }),
+              );
+              ws.send(safeStringify({ type: "done", command: "add" }));
+              return;
+            }
+            if (entry) {
+              log(`add: re-compiling interrupted entry: ${msg.url} (added ${entry.addedAt.slice(0, 10)})`);
+            }
           }
 
           if (activeChild) {
             activeChild.kill();
+            childProcesses.delete(activeChild);
             activeChild = null;
           }
           const prompt = workspace ? `/kb-add -w ${workspace} ${msg.url}` : `/kb-add ${msg.url}`;
           activeChild = spawnPiRpc(ws, prompt, "add");
+          childProcesses.add(activeChild);
           break;
         }
 
@@ -568,12 +624,53 @@ function startBridge(port) {
           }
           if (activeChild) {
             activeChild.kill();
+            childProcesses.delete(activeChild);
             activeChild = null;
           }
           const prompt = workspace
             ? `/kb-query -w ${workspace} ${msg.text}`
             : `/kb-query ${msg.text}`;
           activeChild = spawnPiRpc(ws, prompt, "query");
+          childProcesses.add(activeChild);
+          break;
+        }
+
+        case "repair": {
+          // Safety guard: only spawn pi if there are actually pending entries.
+          // pi's /kb-repair short-circuits with no LLM turn when nothing is
+          // pending, which would cause the bridge to hang (no agent_end).
+          const reg = readRegistry(workspace);
+          const pendingCount = Object.values(reg).filter((e) => e.compiled === false).length;
+          if (pendingCount === 0) {
+            ws.send(
+              safeStringify({
+                type: "event",
+                data: {
+                  type: "message_update",
+                  assistantMessageEvent: {
+                    type: "text_delta",
+                    delta: workspace
+                      ? `All documents are compiled in workspace "${workspace}". Nothing to repair.`
+                      : "All documents are compiled. Nothing to repair.",
+                  },
+                },
+              }),
+            );
+            ws.send(safeStringify({ type: "done", command: "repair" }));
+            break;
+          }
+
+          if (activeChild) {
+            activeChild.kill();
+            childProcesses.delete(activeChild);
+            activeChild = null;
+          }
+          const repairPrompt = workspace
+            ? `/kb-repair -w ${workspace}`
+            : `/kb-repair`;
+          log(`repair: ${pendingCount} pending doc(s)${workspace ? ` in ${workspace}` : ""}`);
+          activeChild = spawnPiRpc(ws, repairPrompt, "repair");
+          childProcesses.add(activeChild);
           break;
         }
 
@@ -606,6 +703,7 @@ function startBridge(port) {
       log(`🔌 Chrome extension disconnected`);
       if (activeChild) {
         activeChild.kill();
+        childProcesses.delete(activeChild);
         activeChild = null;
       }
     });

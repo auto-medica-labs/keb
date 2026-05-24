@@ -2,29 +2,47 @@ import { useState, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getSummaries, getConcepts } from "../../lib/store";
+import { getSummaries, getConcepts, getRegistry, isEntryCompiled, type RegistryEntry } from "../../lib/store";
 import type { Summary, Concept } from "../../lib/store";
 import { escapeHtml } from "../../lib/utils";
 
 export default function BrowsePanel() {
   const [summaries, setSummaries] = useState<Record<string, Summary>>({});
   const [concepts, setConcepts] = useState<Record<string, Concept>>({});
+  const [pendingDocs, setPendingDocs] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     (async () => {
-      const [sums, cons] = await Promise.all([getSummaries(), getConcepts()]);
+      const [sums, cons, reg] = await Promise.all([getSummaries(), getConcepts(), getRegistry()]);
       setSummaries(sums);
       setConcepts(cons);
+      computePending(reg);
     })();
 
     // Re-render when storage changes
     const listener = () => {
-      getSummaries().then(setSummaries);
-      getConcepts().then(setConcepts);
+      Promise.all([getSummaries(), getConcepts(), getRegistry()]).then(
+        ([sums, cons, reg]) => {
+          setSummaries(sums);
+          setConcepts(cons);
+          computePending(reg);
+        },
+      );
     };
     chrome.storage.onChanged.addListener(listener);
     return () => chrome.storage.onChanged.removeListener(listener);
   }, []);
+
+  function computePending(reg: Record<string, unknown>) {
+    const pending = new Set<string>();
+    for (const entry of Object.values(reg)) {
+      const e = entry as RegistryEntry;
+      if (!isEntryCompiled(e) && e.docName) {
+        pending.add(e.docName);
+      }
+    }
+    setPendingDocs(pending);
+  }
 
   const summNames = Object.keys(summaries);
   const concSlugs = Object.keys(concepts);
@@ -55,6 +73,9 @@ export default function BrowsePanel() {
                 >
                   <span className="text-sm flex-shrink-0">📄</span>
                   <span className="text-sm font-medium text-primary">{escapeHtml(name)}</span>
+                  {pendingDocs.has(name) && (
+                    <span className="text-amber-500 text-[11px] flex-shrink-0" title="Compilation interrupted — pending">⚠</span>
+                  )}
                   {summaries[name].source && (
                     <span className="text-[11px] text-muted-foreground ml-auto truncate max-w-[120px]">
                       {escapeHtml(summaries[name].source)}

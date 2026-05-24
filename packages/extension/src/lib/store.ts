@@ -36,8 +36,24 @@ export interface Concept {
   updated: string;
 }
 
+/** Mirror of pi-kb's RegistryEntry. `compiled` tracks whether ALL wiki
+ *  artifacts (summary, concepts, index) were written. Set to false on add,
+ *  flipped to true by the final kb_update_index compilation step. */
+export interface RegistryEntry {
+  name: string;
+  sourcePath: string;
+  originalPath: string;
+  docName: string;
+  addedAt: string;
+  lastCompiledAt?: string;
+  /** True only after ALL wiki artifacts (summary, concepts, index) are written. */
+  compiled: boolean;
+}
+
+export type Registry = Record<string, RegistryEntry>;
+
 export interface KBSyncData {
-  registry?: Record<string, unknown>;
+  registry?: Registry;
   index?: string;
   summaries?: Record<string, Summary>;
   concepts?: Record<string, Concept>;
@@ -114,6 +130,20 @@ export async function setConfig(cfg: Partial<KBConfig>): Promise<void> {
   await chrome.storage.local.set({
     [KEYS.config]: { ...current, ...cfg },
   });
+}
+
+// ── Registry helpers (eventual consistency) ─────────────────────────────
+
+/** Check whether a registry entry is fully compiled.
+ *  Missing `compiled` field is treated as true for backward compatibility. */
+export function isEntryCompiled(entry: RegistryEntry): boolean {
+  return entry.compiled !== false;
+}
+
+/** Count registry entries that are not yet fully compiled. */
+export async function countPendingCompilations(): Promise<number> {
+  const reg = await getRegistry();
+  return Object.values(reg).filter((e) => !isEntryCompiled(e as RegistryEntry)).length;
 }
 
 // ── Clear ────────────────────────────────────────────────────────────────

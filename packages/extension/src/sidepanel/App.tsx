@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { WSClient, type ConnectionStatus, type BridgeEvent, type SyncResult } from "../lib/ws";
-import { setKBState, getConfig, setConfig } from "../lib/store";
+import { setKBState, getConfig, setConfig, isEntryCompiled, type RegistryEntry } from "../lib/store";
 import Header from "./components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddPanel from "./components/AddPanel";
@@ -26,6 +26,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("add");
   const [docCount, setDocCount] = useState(0);
   const [conceptCount, setConceptCount] = useState(0);
+  const [pendingCount, setPendingCount] = useState(0);
   const [agentStatus, setAgentStatus] = useState<string>("");
   const [addTimeline, setAddTimeline] = useState<TimelineEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
@@ -201,6 +202,10 @@ export default function App() {
     setKBState(data).then(() => {
       setDocCount(Object.keys(data.summaries || {}).length);
       setConceptCount(Object.keys(data.concepts || {}).length);
+      const pending = Object.values(data.registry || {}).filter(
+        (e: RegistryEntry) => !isEntryCompiled(e),
+      ).length;
+      setPendingCount(pending);
     });
   }
 
@@ -220,6 +225,15 @@ export default function App() {
         setAddDone(false);
         doneTimeoutRef.current = null;
       }, 2000);
+    }
+
+    if (command === "repair") {
+      addToolToTimeline("Repair complete. Re-syncing...", "text-green-400 font-semibold");
+      setTimeout(() => {
+        wsRef.current?.sync();
+      }, 500);
+      setIsAdding(false);
+      setAgentStatus("");
     }
 
     if (command === "query") {
@@ -245,6 +259,26 @@ export default function App() {
       { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
     ]);
     setAgentStatus("⚙️ Compiling...");
+  }
+
+  function handleRepair() {
+    if (!wsRef.current?.send({ type: "repair" })) {
+      toast.error("Not connected to KB bridge");
+      return;
+    }
+    if (doneTimeoutRef.current) {
+      clearTimeout(doneTimeoutRef.current);
+      doneTimeoutRef.current = null;
+    }
+    setIsAdding(true);
+    setAddDone(false);
+    setAddTimeline([
+      { type: "tool", text: "Repairing interrupted compilations...", cls: "text-blue-400" },
+      { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
+    ]);
+    setAgentStatus("⚙️ Repairing...");
+    // Switch to add tab so the user can see repair progress
+    setActiveTab("add");
   }
 
   function handleQuery(text: string) {
@@ -320,7 +354,7 @@ export default function App() {
           </TabsContent>
         </div>
       </Tabs>
-      <Footer docCount={docCount} conceptCount={conceptCount} agentStatus={agentStatus} />
+      <Footer docCount={docCount} conceptCount={conceptCount} pendingCount={pendingCount} agentStatus={agentStatus} onRepair={handleRepair} />
     </div>
   );
 }

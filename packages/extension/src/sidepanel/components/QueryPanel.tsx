@@ -73,7 +73,10 @@ export default function QueryPanel({ isQuerying, results, connected, onQuery }: 
                   <div className="rounded-md border bg-muted/50 p-2 space-y-1.5">
                     {r.timeline.map((entry, j) =>
                       entry.type === "tool" ? (
-                        <div key={j} className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}>
+                        <div
+                          key={j}
+                          className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}
+                        >
                           {entry.cls.includes("green") ? (
                             <CheckCircle2 className="size-3 flex-shrink-0" />
                           ) : (

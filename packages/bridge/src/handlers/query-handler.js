@@ -20,9 +20,7 @@ import { safeStringify } from "../lib/utils.js";
  * @returns {import('node:child_process').ChildProcess} The spawned child
  */
 export function handleQuery({ ws, text, workspace, spawn }) {
-  const prompt = workspace
-    ? `/kb-query -w ${workspace} ${text}`
-    : `/kb-query ${text}`;
+  const prompt = workspace ? `/kb-query -w ${workspace} ${text}` : `/kb-query ${text}`;
 
   return spawn(prompt, "query", {
     onEvent: (event) => {

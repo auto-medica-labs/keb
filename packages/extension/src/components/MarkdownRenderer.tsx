@@ -3,9 +3,9 @@ import MarkdownIt from "markdown-it";
 
 // Singleton — create once, reuse across renders
 const md = new MarkdownIt({
-  breaks: true,       // convert '\n' to <br>
-  linkify: true,      // auto-convert URLs to links
-  typographer: true,  // smart quotes, dashes, etc.
+  breaks: true, // convert '\n' to <br>
+  linkify: true, // auto-convert URLs to links
+  typographer: true, // smart quotes, dashes, etc.
 });
 
 interface MarkdownRendererProps {

@@ -1,8 +1,15 @@
 import { useState, useEffect } from "react";
+import { FileText, TriangleAlert, Tag } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { getSummaries, getConcepts, getRegistry, isEntryCompiled, type RegistryEntry } from "../../lib/store";
+import {
+  getSummaries,
+  getConcepts,
+  getRegistry,
+  isEntryCompiled,
+  type RegistryEntry,
+} from "../../lib/store";
 import type { Summary, Concept } from "../../lib/store";
 import { escapeHtml } from "../../lib/utils";
 
@@ -21,13 +28,11 @@ export default function BrowsePanel() {
 
     // Re-render when storage changes
     const listener = () => {
-      Promise.all([getSummaries(), getConcepts(), getRegistry()]).then(
-        ([sums, cons, reg]) => {
-          setSummaries(sums);
-          setConcepts(cons);
-          computePending(reg);
-        },
-      );
+      Promise.all([getSummaries(), getConcepts(), getRegistry()]).then(([sums, cons, reg]) => {
+        setSummaries(sums);
+        setConcepts(cons);
+        computePending(reg);
+      });
     };
     chrome.storage.onChanged.addListener(listener);
     return () => chrome.storage.onChanged.removeListener(listener);
@@ -71,10 +76,12 @@ export default function BrowsePanel() {
                   key={name}
                   className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
                 >
-                  <span className="text-sm flex-shrink-0">📄</span>
+                  <FileText className="size-4 flex-shrink-0 text-muted-foreground" />
                   <span className="text-sm font-medium text-primary">{escapeHtml(name)}</span>
                   {pendingDocs.has(name) && (
-                    <span className="text-amber-500 text-[11px] flex-shrink-0" title="Compilation interrupted — pending">⚠</span>
+                    <span title="Compilation interrupted — pending">
+                      <TriangleAlert className="size-3.5 text-amber-500 flex-shrink-0" />
+                    </span>
                   )}
                   {summaries[name].source && (
                     <span className="text-[11px] text-muted-foreground ml-auto truncate max-w-[120px]">
@@ -96,7 +103,7 @@ export default function BrowsePanel() {
             <div className="flex flex-wrap gap-1.5">
               {concSlugs.map((slug) => (
                 <Badge key={slug} variant="secondary" className="cursor-pointer">
-                  🏷️ {escapeHtml(slug)}
+                  <Tag className="size-3" /> {escapeHtml(slug)}
                 </Badge>
               ))}
             </div>

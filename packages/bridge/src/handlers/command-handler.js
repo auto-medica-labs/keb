@@ -82,7 +82,9 @@ function handleAdd({ ws, url, workspace, kbStore, spawn }) {
       }
 
       // compiled === false: interrupted compilation — pass through to re-compile
-      log(`add: re-compiling interrupted entry: ${url} (added ${entry.addedAt?.slice(0, 10) || "?"})`);
+      log(
+        `add: re-compiling interrupted entry: ${url} (added ${entry.addedAt?.slice(0, 10) || "?"})`,
+      );
     }
   }
 

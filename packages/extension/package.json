@@ -28,11 +28,12 @@
     "@vitejs/plugin-react": "^4.6.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lucide-react": "^0.503.0",
+    "lucide-react": "^1.16.0",
     "tailwind-merge": "^3.6.0",
     "tailwind-variants": "^0.3.1",
     "tailwindcss": "^4.1.5",
     "typescript": "~5.8.3",
     "vite": "^6.3.5"
-  }
+  },
+  "packageManager": "pnpm@10.24.0"
 }

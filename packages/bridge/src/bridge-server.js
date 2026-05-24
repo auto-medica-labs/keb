@@ -70,12 +70,9 @@ import { handleSync } from "./handlers/sync-handler.js";
 // ---------------------------------------------------------------------------
 
 /** @type {number} */
-const PORT = parseInt(
-  process.env.PORT ||
-    process.argv[process.argv.indexOf("--port") + 1] ||
-    "9876",
-  10,
-) || 9876;
+const PORT =
+  parseInt(process.env.PORT || process.argv[process.argv.indexOf("--port") + 1] || "9876", 10) ||
+  9876;
 
 /** @type {string} */
 const HOST = process.env.HOST || "127.0.0.1";

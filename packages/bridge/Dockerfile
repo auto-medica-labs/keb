@@ -58,8 +58,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # ---------------------------------------------------------------------------
 FROM base AS pi-layer
 
-# Pin a specific pi version for reproducible builds.
-# Update this tag when you want to upgrade pi.
+# TODO: pin to a specific version for reproducible builds
 ARG PI_VERSION=latest
 
 RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} && \

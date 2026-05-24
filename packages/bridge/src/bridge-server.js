@@ -31,6 +31,7 @@ import { homedir } from "node:os";
  * @property {string} [addedAt]    - ISO timestamp when the entry was added
  * @property {string} [docName]    - Slug of the generated summary doc
  * @property {string} [hash]       - Content hash for change detection
+ * @property {boolean} [compiled]  - Whether the LLM compilation completed (false = interrupted)
  */
 
 /**
@@ -82,7 +83,13 @@ import { homedir } from "node:os";
  */
 
 /**
- * @typedef {BridgeAddMessage|BridgeQueryMessage|BridgeSyncMessage} BridgeMessage
+ * @typedef {Object} BridgeRepairMessage
+ * @property {'repair'} type
+ * @property {string} [workspace]
+ */
+
+/**
+ * @typedef {BridgeAddMessage|BridgeQueryMessage|BridgeSyncMessage|BridgeRepairMessage} BridgeMessage
  */
 
 /**
@@ -418,7 +425,7 @@ function log(msg) {
  * Forwards stdout (JSON events) and stderr to the WebSocket client.
  * @param {import('ws').WebSocket} ws - Connected WebSocket client
  * @param {string} promptText - The pi command to execute (e.g. "/kb-add https://...")
- * @param {'add'|'query'} command - Operation type (used for done events and logging)
+ * @param {'add'|'query'|'repair'|'sync'} command - Operation type (used for done events and logging)
  * @returns {import('node:child_process').ChildProcess} The spawned child process
  */
 function spawnPiRpc(ws, promptText, command) {
@@ -602,7 +609,7 @@ function startBridge(port) {
               return;
             }
             if (entry) {
-              log(`add: re-compiling interrupted entry: ${msg.url} (added ${entry.addedAt.slice(0, 10)})`);
+              log(`add: re-compiling interrupted entry: ${msg.url} (added ${entry.addedAt?.slice(0, 10) || "?"})`);
             }
           }
 

@@ -9,8 +9,9 @@
  * add/query operations, and reads the filesystem directly for sync.
  *
  * Usage:
- *   node bridge-server.js                # start the server
- *   node bridge-server.js --port 9876    # custom port
+ *   node bridge-server.js                    # start the server (HOST=127.0.0.1 PORT=9876)
+ *   HOST=0.0.0.0 PORT=9876 node bridge-server.js  # all interfaces, custom port
+ *   node bridge-server.js --port 9876        # custom port (overrides PORT env)
  *
  * The server runs until Ctrl+C. No pi TUI session needed.
  */
@@ -124,7 +125,15 @@ import { homedir } from "node:os";
 // ---------------------------------------------------------------------------
 
 /** @type {number} */
-const PORT = parseInt(process.argv[process.argv.indexOf("--port") + 1] || "9876", 10) || 9876;
+const PORT = parseInt(
+  process.env.PORT ||
+    process.argv[process.argv.indexOf("--port") + 1] ||
+    "9876",
+  10,
+) || 9876;
+
+/** @type {string} */
+const HOST = process.env.HOST || "127.0.0.1";
 
 // ---------------------------------------------------------------------------
 // Helper: tiny pi-kb store clone for sync (filesystem reads only)
@@ -484,17 +493,18 @@ function spawnPiRpc(ws, promptText, command) {
 
 /**
  * Start the WebSocket bridge server.
- * Listens on ws://127.0.0.1:{port} and handles add/query/sync messages
+ * Listens on ws://{host}:{port} and handles add/query/sync messages
  * from the Chrome extension by spawning child pi processes or reading
  * the KB filesystem directly.
  * @param {number} port - TCP port to listen on
+ * @param {string} host - IP address to bind to
  * @returns {void}
  */
-function startBridge(port) {
-  const wss = new WebSocketServer({ host: "127.0.0.1", port });
+function startBridge(port, host) {
+  const wss = new WebSocketServer({ host, port });
 
   wss.on("listening", () => {
-    log(`✅ Bridge listening on ws://127.0.0.1:${port}`);
+    log(`✅ Bridge listening on ws://${host}:${port}`);
     log(`   Chrome extension can now connect. Press Ctrl+C to stop.`);
   });
 
@@ -620,4 +630,4 @@ function startBridge(port) {
 // Start
 // ---------------------------------------------------------------------------
 
-startBridge(PORT);
+startBridge(PORT, HOST);

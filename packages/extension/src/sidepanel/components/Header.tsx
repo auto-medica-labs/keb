@@ -32,7 +32,7 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
   }, [connectionStatus]);
 
   return (
-    <header className="flex justify-between items-center px-3 py-2.5 border-b bg-card flex-shrink-0">
+    <header className="flex justify-between items-center px-3 py-2.5 bg-card flex-shrink-0">
       <div className="flex items-center gap-2">
         <img
           src="https://r2.mdevd.co/asset/logo_transparent.png"

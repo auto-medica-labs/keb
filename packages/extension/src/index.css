@@ -152,7 +152,9 @@
     & h3 {
       @apply text-sm font-semibold mt-2.5 mb-1;
     }
-    & h4, & h5, & h6 {
+    & h4,
+    & h5,
+    & h6 {
       @apply text-sm font-medium mt-2 mb-1;
     }
 
@@ -168,7 +170,8 @@
     & ol {
       @apply list-decimal pl-5 mb-2 space-y-0.5;
     }
-    & li > ul, & li > ol {
+    & li > ul,
+    & li > ol {
       @apply mb-0 mt-0.5;
     }
 

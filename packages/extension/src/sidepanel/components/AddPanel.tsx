@@ -84,7 +84,9 @@ export default function AddPanel({ isAdding, isDone, timeline, connected, onAdd 
             {isAdding && !isDone ? (
               <>
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
-                <span className="text-xs text-muted-foreground">Compiling...</span>
+                <span className="text-xs text-muted-foreground">
+                  Compiling — keep this tab open until done
+                </span>
               </>
             ) : (
               <>
@@ -99,7 +101,10 @@ export default function AddPanel({ isAdding, isDone, timeline, connected, onAdd 
             <div className="p-3 leading-relaxed space-y-1">
               {timeline.map((entry, i) =>
                 entry.type === "tool" ? (
-                  <div key={i} className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}>
+                  <div
+                    key={i}
+                    className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}
+                  >
                     {entry.cls.includes("green") ? (
                       <CheckCircle2 className="size-3 flex-shrink-0" />
                     ) : (
@@ -108,10 +113,7 @@ export default function AddPanel({ isAdding, isDone, timeline, connected, onAdd 
                     {entry.text}
                   </div>
                 ) : (
-                  <div
-                    key={i}
-                    className="py-2 border-b border-border last:border-b-0"
-                  >
+                  <div key={i} className="py-2 border-b border-border last:border-b-0">
                     <MarkdownRenderer text={entry.text} />
                   </div>
                 ),

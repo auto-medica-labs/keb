@@ -1,8 +1,15 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
+import { FilePlusCorner, BookSearch, Library } from "lucide-react";
 import { WSClient, type ConnectionStatus, type BridgeEvent, type SyncResult } from "../lib/ws";
-import { setKBState, getConfig, setConfig } from "../lib/store";
+import {
+  setKBState,
+  getConfig,
+  setConfig,
+  isEntryCompiled,
+  type RegistryEntry,
+} from "../lib/store";
 import Header from "./components/Header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddPanel from "./components/AddPanel";
@@ -26,7 +33,8 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("add");
   const [docCount, setDocCount] = useState(0);
   const [conceptCount, setConceptCount] = useState(0);
-  const [agentStatus, setAgentStatus] = useState<string>("");
+  const [pendingCount, setPendingCount] = useState(0);
+  const [agentStatus, setAgentStatus] = useState<"compiling" | "repairing" | "thinking" | "">("");
   const [addTimeline, setAddTimeline] = useState<TimelineEntry[]>([]);
   const [isAdding, setIsAdding] = useState(false);
   const [addDone, setAddDone] = useState(false);
@@ -201,6 +209,10 @@ export default function App() {
     setKBState(data).then(() => {
       setDocCount(Object.keys(data.summaries || {}).length);
       setConceptCount(Object.keys(data.concepts || {}).length);
+      const pending = Object.values(data.registry || {}).filter(
+        (e: RegistryEntry) => !isEntryCompiled(e),
+      ).length;
+      setPendingCount(pending);
     });
   }
 
@@ -220,6 +232,15 @@ export default function App() {
         setAddDone(false);
         doneTimeoutRef.current = null;
       }, 2000);
+    }
+
+    if (command === "repair") {
+      addToolToTimeline("Repair complete. Re-syncing...", "text-green-400 font-semibold");
+      setTimeout(() => {
+        wsRef.current?.sync();
+      }, 500);
+      setIsAdding(false);
+      setAgentStatus("");
     }
 
     if (command === "query") {
@@ -244,7 +265,27 @@ export default function App() {
       { type: "tool", text: `Adding: ${url}`, cls: "text-blue-400" },
       { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
     ]);
-    setAgentStatus("⚙️ Compiling...");
+    setAgentStatus("compiling");
+  }
+
+  function handleRepair() {
+    if (!wsRef.current?.send({ type: "repair" })) {
+      toast.error("Not connected to KB bridge");
+      return;
+    }
+    if (doneTimeoutRef.current) {
+      clearTimeout(doneTimeoutRef.current);
+      doneTimeoutRef.current = null;
+    }
+    setIsAdding(true);
+    setAddDone(false);
+    setAddTimeline([
+      { type: "tool", text: "Repairing interrupted compilations...", cls: "text-blue-400" },
+      { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
+    ]);
+    setAgentStatus("repairing");
+    // Switch to add tab so the user can see repair progress
+    setActiveTab("add");
   }
 
   function handleQuery(text: string) {
@@ -254,7 +295,7 @@ export default function App() {
     }
     setIsQuerying(true);
     setQueryResults([{ question: text, timeline: [] }]);
-    setAgentStatus("🔍 Thinking...");
+    setAgentStatus("thinking");
   }
 
   function handleSwitchWorkspace(name: string) {
@@ -277,24 +318,27 @@ export default function App() {
         onValueChange={(v) => setActiveTab(v as ActiveTab)}
         className="flex flex-col flex-1 min-h-0"
       >
-        <TabsList className="w-full rounded-none border-b bg-secondary/50 h-auto p-0">
+        <TabsList variant="line" className="w-full rounded-none h-auto px-3">
           <TabsTrigger
             value="add"
-            className="flex-1 rounded-none data-[state=active]:bg-background"
+            className="flex-1 rounded-none py-2.5 text-xs font-medium gap-1.5"
           >
-            📥 Add Knowledge
+            <FilePlusCorner className="size-4" />
+            Add Knowledge
           </TabsTrigger>
           <TabsTrigger
             value="query"
-            className="flex-1 rounded-none data-[state=active]:bg-background"
+            className="flex-1 rounded-none py-2.5 text-xs font-medium gap-1.5"
           >
-            🔍 Consult
+            <BookSearch className="size-4" />
+            Consult
           </TabsTrigger>
           <TabsTrigger
             value="browse"
-            className="flex-1 rounded-none data-[state=active]:bg-background"
+            className="flex-1 rounded-none py-2.5 text-xs font-medium gap-1.5"
           >
-            📚 Browse
+            <Library className="size-4" />
+            Browse
           </TabsTrigger>
         </TabsList>
         <div className="flex-1 min-h-0 overflow-hidden p-4">
@@ -320,7 +364,13 @@ export default function App() {
           </TabsContent>
         </div>
       </Tabs>
-      <Footer docCount={docCount} conceptCount={conceptCount} agentStatus={agentStatus} />
+      <Footer
+        docCount={docCount}
+        conceptCount={conceptCount}
+        pendingCount={pendingCount}
+        agentStatus={agentStatus}
+        onRepair={handleRepair}
+      />
     </div>
   );
 }

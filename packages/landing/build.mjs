@@ -14,18 +14,20 @@ await mkdir(`${DIST}/asset`);
 
 // --- minify HTML ---
 console.log("Minifying HTML...");
-const html = await readFile("index.html", "utf-8");
-const minifiedHtml = await minifyHtml(html, {
-  collapseWhitespace: true,
-  removeComments: true,
-  removeEmptyAttributes: true,
-  removeRedundantAttributes: true,
-  removeScriptTypeAttributes: true,
-  minifyCSS: false, // handled separately
-  minifyJS: true,
-  keepClosingSlash: true,
-});
-await writeFile(`${DIST}/index.html`, minifiedHtml);
+for (const page of ["index.html", "privacy.html"]) {
+  const html = await readFile(page, "utf-8");
+  const minifiedHtml = await minifyHtml(html, {
+    collapseWhitespace: true,
+    removeComments: true,
+    removeEmptyAttributes: true,
+    removeRedundantAttributes: true,
+    removeScriptTypeAttributes: true,
+    minifyCSS: false,
+    minifyJS: true,
+    keepClosingSlash: true,
+  });
+  await writeFile(`${DIST}/${page}`, minifiedHtml);
+}
 
 // --- minify CSS ---
 console.log("Minifying CSS...");
@@ -69,7 +71,8 @@ async function size(path) {
   return (s.size / 1024).toFixed(1) + " KB";
 }
 
-console.log(`  index.html : ${await size(`${DIST}/index.html`)}`);
+console.log(`  index.html     : ${await size(`${DIST}/index.html`)}`);
+console.log(`  privacy.html   : ${await size(`${DIST}/privacy.html`)}`);
 console.log(`  style.css  : ${await size(`${DIST}/style.css`)}`);
 for (const file of assetFiles) {
   const ext = file.slice(file.lastIndexOf("."));

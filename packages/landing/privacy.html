@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="description"
+      content="Keb Privacy Policy — No data collection, fully local, open source."
+    />
+    <title>Keb — Privacy Policy</title>
+    <link rel="icon" type="image/png" href="asset/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Google+Sans:ital,opsz,wght@0,17..18,400..700;1,17..18,400..700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+      .privacy-section {
+        padding: 4rem 0;
+        min-height: 60vh;
+      }
+      .privacy-section .container {
+        max-width: 800px;
+      }
+      .privacy-section h1 {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 2.5rem;
+        color: var(--primary-color);
+        text-align: center;
+      }
+      .privacy-section h2 {
+        font-size: 1.4rem;
+        font-weight: 700;
+        margin-top: 2.5rem;
+        margin-bottom: 0.75rem;
+        text-align: left;
+        color: var(--text-primary);
+      }
+      .privacy-section p {
+        font-size: 1rem;
+        line-height: 1.7;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+      }
+      .privacy-section ul {
+        list-style: none;
+        padding: 0;
+        margin-bottom: 1.5rem;
+      }
+      .privacy-section li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.5rem;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        padding: 0.35rem 0;
+        line-height: 1.5;
+      }
+      .privacy-section li svg {
+        width: 18px;
+        height: 18px;
+        flex-shrink: 0;
+        margin-top: 2px;
+        color: var(--primary-color);
+      }
+      .back-link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 2rem;
+        transition: opacity 0.2s;
+      }
+      .back-link:hover {
+        opacity: 0.75;
+      }
+      .back-link svg {
+        width: 18px;
+        height: 18px;
+      }
+      .last-updated {
+        text-align: center;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        opacity: 0.7;
+        margin-top: 3rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid rgba(0, 224, 255, 0.15);
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <div class="container">
+        <div class="logo-group">
+          <a
+            href="/"
+            style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none"
+          >
+            <img
+              src="https://r2.mdevd.co/asset/auto-medica-lab-full-transparent.png"
+              class="logo-img"
+            />
+          </a>
+        </div>
+        <div>
+          <ul>
+            <li><a href="/#how-it-works">How It Works</a></li>
+            <li><a href="/#features">Features</a></li>
+            <li><a href="/#why">Why Keb?</a></li>
+            <li><a href="https://github.com/dheerapat/chrome-kb">GitHub</a></li>
+          </ul>
+        </div>
+        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+          <i data-lucide="sun"></i>
+        </button>
+      </div>
+    </nav>
+
+    <main>
+      <section class="privacy-section">
+        <div class="container">
+          <a href="/" class="back-link">
+            <i data-lucide="arrow-left"></i>
+            Back to home
+          </a>
+
+          <h1>Privacy Policy</h1>
+
+          <p>
+            Keb operates entirely on your machine. We do not collect, store, transmit, or share any
+            personal data, browsing history, or usage information.
+          </p>
+
+          <h2>No Data Collection</h2>
+          <p>
+            Keb never sends data to any server we operate. All processing happens locally in your
+            browser and on your own machine.
+          </p>
+
+          <h2>Self-Hosted Bridge</h2>
+          <p>
+            Keb connects to a local WebSocket server (<code>ws://127.0.0.1:9876</code>) that you run
+            yourself. No third-party server is involved. You control all code and data.
+          </p>
+
+
+
+          <h2>No Analytics, No Tracking</h2>
+          <p>
+            There are no analytics SDKs, telemetry, cookies, or third-party services embedded in the
+            extension or this website.
+          </p>
+
+          <h2>No Remote Code Execution</h2>
+          <p>
+            Keb does not fetch or execute remote scripts. The extension loads only its own bundled
+            code. Your knowledge base is yours.
+          </p>
+
+          <h2>Third-Party Links</h2>
+          <p>
+            Keb may display links to external websites (e.g., saved URLs in your knowledge base). We
+            are not responsible for the privacy practices of those sites.
+          </p>
+
+          <h2>Changes</h2>
+          <p>
+            If this policy changes, we will update the date below. Keb is open source — you can
+            verify what the extension does by reviewing the code on GitHub.
+          </p>
+
+          <div class="last-updated">Last updated: May 2026</div>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div class="container" style="flex-direction: column; gap: 0.25rem">
+        <span style="display: flex; align-items: center; gap: 0.35rem">
+          <i data-lucide="copyright"></i> 2026 Keb. Open source under MIT license.
+        </span>
+        <p style="font-size: 0.8rem; opacity: 0.8">
+          <a href="/privacy.html" style="color: inherit; text-decoration: underline"
+            >Privacy Policy</a
+          >
+        </p>
+      </div>
+    </footer>
+
+    <script>
+      const themeToggle = document.getElementById("themeToggle");
+      const body = document.body;
+
+      const currentTheme = localStorage.getItem("theme") || "light";
+      if (currentTheme === "dark") {
+        body.classList.add("dark-mode");
+        themeToggle.innerHTML = '<i data-lucide="moon"></i>';
+      } else {
+        themeToggle.innerHTML = '<i data-lucide="sun"></i>';
+      }
+      lucide.createIcons();
+
+      themeToggle.addEventListener("click", () => {
+        body.classList.toggle("dark-mode");
+        if (body.classList.contains("dark-mode")) {
+          themeToggle.innerHTML = '<i data-lucide="moon"></i>';
+          localStorage.setItem("theme", "dark");
+        } else {
+          themeToggle.innerHTML = '<i data-lucide="sun"></i>';
+          localStorage.setItem("theme", "light");
+        }
+        lucide.createIcons();
+      });
+    </script>
+  </body>
+</html>

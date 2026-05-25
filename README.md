@@ -15,8 +15,8 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 
 ## Architecture
 
-1. **@chrome-kb/bridge** — Standalone WebSocket server that bridges the extension to pi-kb. Written in JS with full JSDoc type annotations.
-2. **@chrome-kb/extension** — React side panel + TypeScript service worker. Built with Vite.
+1. **@keb/bridge** — Standalone WebSocket server that bridges the extension to pi-kb. Written in JS with full JSDoc type annotations.
+2. **@keb/extension** — React side panel + TypeScript service worker. Built with Vite.
 3. **pi-kb** — pi extension providing the knowledge base at `~/.pi/agent/kb/`.
 
 ## Prerequisites
@@ -75,12 +75,12 @@ chrome-kb/
 ├── package.json                  # Root workspace orchestrator
 ├── .oxlintrc.json                # Lint rules
 ├── packages/
-│   ├── bridge/                   # @chrome-kb/bridge
+│   ├── bridge/                   # @keb/bridge
 │   │   ├── package.json
 │   │   ├── tsconfig.json         # checkJs + allowJs for JSDoc
 │   │   └── src/
 │   │       └── bridge-server.js  # WebSocket bridge server (JS + JSDoc)
-│   └── extension/                # @chrome-kb/extension
+│   └── extension/                # @keb/extension
 │       ├── package.json
 │       ├── tsconfig.json
 │       ├── vite.config.ts
@@ -137,7 +137,7 @@ This project uses a **dual license**:
 
 | Package | License | Scope |
 |---|---|---|
-| `@chrome-kb/extension` | [MIT](packages/extension/LICENSE) | Free for any use, modification, and distribution |
-| `@chrome-kb/bridge` | [MIT with SaaS restriction](packages/bridge/LICENSE) | Free for self-hosted use; no competing SaaS/cloud hosting permitted |
+| `@keb/extension` | [MIT](packages/extension/LICENSE) | Free for any use, modification, and distribution |
+| `@keb/bridge` | [MIT with SaaS restriction](packages/bridge/LICENSE) | Free for self-hosted use; no competing SaaS/cloud hosting permitted |
 
 The bridge license allows you to use, modify, and self-host the bridge freely, but prohibits offering it to third parties as a hosted, managed, or SaaS product where the primary value is the bridge's functionality itself.

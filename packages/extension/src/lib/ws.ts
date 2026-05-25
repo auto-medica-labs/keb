@@ -77,7 +77,7 @@ export class WSClient {
     this.ws = new WebSocket(WS_URL);
 
     this.ws.onopen = () => {
-      console.log("[chrome-kb] WS connected");
+      console.log("[keb] WS connected");
       this.clearReconnectTimer();
       this.callbacks.onStatusChange("connected");
       this.send({ type: "sync", workspace: this.workspace });
@@ -94,13 +94,13 @@ export class WSClient {
     };
 
     this.ws.onclose = () => {
-      console.log("[chrome-kb] WS disconnected");
+      console.log("[keb] WS disconnected");
       this.callbacks.onStatusChange("disconnected");
       this.scheduleReconnect();
     };
 
     this.ws.onerror = (err) => {
-      console.error("[chrome-kb] WS error:", err);
+      console.error("[keb] WS error:", err);
     };
   }
 
@@ -137,11 +137,11 @@ export class WSClient {
         this.callbacks.onDone(msg.command);
         break;
       case "error":
-        console.error("[chrome-kb] Bridge error:", msg.message);
+        console.error("[keb] Bridge error:", msg.message);
         this.callbacks.onError(msg.message);
         break;
       case "stderr":
-        console.warn("[chrome-kb] Bridge stderr:", msg.text);
+        console.warn("[keb] Bridge stderr:", msg.text);
         break;
     }
   }

@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "chrome-kb",
+  "name": "Keb",
   "version": "0.2.0",
   "description": "A personal knowledge base that compiles markdown documents and URLs into structured, interlinked wiki pages using your LLM",
   "permissions": ["storage", "sidePanel", "contextMenus", "tabs"],

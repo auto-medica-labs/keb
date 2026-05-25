@@ -22,13 +22,13 @@ chrome.runtime.onInstalled.addListener(async () => {
 // ── Action click → open side panel ───────────────────────────────────────
 
 chrome.action.onClicked.addListener(async (tab) => {
-  console.log("[chrome-kb] onClicked — tab.id:", tab?.id, "windowId:", tab?.windowId);
+  console.log("[keb] onClicked — tab.id:", tab?.id, "windowId:", tab?.windowId);
   try {
     // Open for the current tab (not window) so it follows the tab
     await chrome.sidePanel.open({ windowId: tab.windowId });
-    console.log("[chrome-kb] side panel opened");
+    console.log("[keb] side panel opened");
   } catch (err) {
-    console.error("[chrome-kb] sidePanel.open failed:", err);
+    console.error("[keb] sidePanel.open failed:", err);
   }
 });
 
@@ -39,7 +39,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
 
   const url = tab?.url || info.pageUrl;
   if (!url || !url.startsWith("http")) {
-    console.warn("[chrome-kb] Cannot add non-HTTP URL:", url);
+    console.warn("[keb] Cannot add non-HTTP URL:", url);
     return;
   }
 
@@ -47,7 +47,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   try {
     await chrome.sidePanel.open({ windowId: tab!.windowId });
   } catch (err) {
-    console.error("[chrome-kb] Failed to open side panel:", err);
+    console.error("[keb] Failed to open side panel:", err);
   }
 
   // Send the URL to the side panel so it can auto-populate the Add field

@@ -2,7 +2,7 @@
 // @ts-check
 
 /**
- * bridge-server.js — Standalone WebSocket bridge for chrome-kb.
+ * bridge-server.js — Standalone WebSocket bridge for Keb.
  *
  * Runs independently of pi's TUI. Connects the Chrome extension to pi-kb
  * via WebSocket on ws://127.0.0.1:9876. Spawns child pi processes for

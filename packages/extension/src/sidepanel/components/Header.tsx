@@ -19,13 +19,18 @@ interface HeaderProps {
 const statusColors: Record<ConnectionStatus, string> = {
   connected: "bg-green-500 shadow-[0_0_6px_var(--color-green-500)]",
   disconnected: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
-  connecting: "bg-yellow-500 shadow-[0_0_6px_var(--color-yellow-500)] animate-pulse",
+  connecting:
+    "bg-yellow-500 shadow-[0_0_6px_var(--color-yellow-500)] animate-pulse",
   reconnecting: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
 };
 
 const KB_WORKSPACES_KEY = "kb:workspaces";
 
-export default function Header({ connectionStatus, workspace, onSwitchWorkspace }: HeaderProps) {
+export default function Header({
+  connectionStatus,
+  workspace,
+  onSwitchWorkspace,
+}: HeaderProps) {
   const [workspaces, setWorkspaces] = useState<string[]>(["default"]);
   const mountedRef = useRef(false);
 
@@ -55,7 +60,10 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
 
   // Listen for storage changes (workspaces arrive via sync after connection)
   useEffect(() => {
-    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
+    const onChanged = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      area: string,
+    ) => {
       if (area === "local" && changes[KB_WORKSPACES_KEY]) {
         refreshWorkspaces();
       }
@@ -71,7 +79,7 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
   );
 
   return (
-    <header className="flex justify-between items-center px-3 py-2.5 bg-card flex-shrink-0">
+    <header className="flex justify-between items-center px-3 py-2.5 bg-card shrink-0">
       <div className="flex items-center gap-2">
         <img
           src="https://r2.mdevd.co/asset/logo_transparent.png"
@@ -99,7 +107,9 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
         </Select>
       </div>
       <div className="flex items-center gap-1.5">
-        <span className={`size-2 rounded-full flex-shrink-0 ${statusColors[connectionStatus]}`} />
+        <span
+          className={`size-2 rounded-full shrink-0 ${statusColors[connectionStatus]}`}
+        />
         <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
           {connectionStatus}
         </span>

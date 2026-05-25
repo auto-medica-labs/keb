@@ -1,5 +1,5 @@
 {
-  "name": "@chrome-kb/extension",
+  "name": "@keb/extension",
   "version": "1.0.0",
   "private": true,
   "type": "module",

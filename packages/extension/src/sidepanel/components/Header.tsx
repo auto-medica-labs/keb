@@ -78,7 +78,7 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
           alt="logo"
           className="size-5 object-contain"
         />
-        <span className="font-semibold text-sm">Knowledge Bases</span>
+        <span className="font-semibold text-sm">Keb — Knowledge Bases</span>
         <Select
           value={workspace}
           items={workspaceItems}

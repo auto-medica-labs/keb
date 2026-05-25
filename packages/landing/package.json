@@ -1,5 +1,5 @@
 {
-  "name": "@chrome-kb/landing",
+  "name": "@keb/landing",
   "private": true,
   "scripts": {
     "build": "node build.mjs"

@@ -2,15 +2,7 @@ import { minify as minifyHtml } from "html-minifier-terser";
 import postcss from "postcss";
 import cssnano from "cssnano";
 import sharp from "sharp";
-import {
-  rm,
-  cp,
-  readFile,
-  writeFile,
-  mkdir,
-  readdir,
-  stat,
-} from "node:fs/promises";
+import { rm, cp, readFile, writeFile, mkdir, readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 
 const DIST = "dist";

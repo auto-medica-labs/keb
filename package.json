@@ -1,15 +1,15 @@
 {
-  "name": "chrome-kb",
-  "version": "1.0.0",
+  "name": "keb",
+  "version": "0.0.1",
   "private": true,
   "packageManager": "pnpm@10.24.0",
   "scripts": {
-    "dev": "pnpm --filter @chrome-kb/extension dev",
-    "build": "pnpm --filter @chrome-kb/extension --filter @chrome-kb/landing build",
+    "dev": "pnpm --filter @keb/extension dev",
+    "build": "pnpm --filter @keb/extension --filter @keb/landing build",
     "typecheck": "pnpm --filter './packages/*' typecheck",
-    "preview": "pnpm --filter @chrome-kb/extension preview",
-    "bridge": "pnpm --filter @chrome-kb/bridge start",
-    "bridge:dev": "pnpm --filter @chrome-kb/bridge dev",
+    "preview": "pnpm --filter @keb/extension preview",
+    "bridge": "pnpm --filter @keb/bridge start",
+    "bridge:dev": "pnpm --filter @keb/bridge dev",
     "lint": "oxlint",
     "format": "oxfmt --write packages",
     "format:check": "oxfmt --check packages"

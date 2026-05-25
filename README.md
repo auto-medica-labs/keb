@@ -31,7 +31,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 ### 1. Install dependencies & build
 
 ```bash
-cd chrome-kb
+cd keb
 pnpm install
 pnpm build
 ```
@@ -70,7 +70,7 @@ The extension icon will appear in your toolbar.
 ## Project Structure
 
 ```
-chrome-kb/
+keb/
 ├── pnpm-workspace.yaml
 ├── package.json                  # Root workspace orchestrator
 ├── .oxlintrc.json                # Lint rules

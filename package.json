@@ -2,7 +2,7 @@
   "name": "keb",
   "version": "0.0.1",
   "private": true,
-  "packageManager": "pnpm@10.24.0",
+  "packageManager": "pnpm@11.3.0",
   "scripts": {
     "dev": "pnpm --filter @keb/extension dev",
     "build": "pnpm --filter @keb/extension --filter @keb/landing build",

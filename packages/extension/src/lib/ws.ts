@@ -33,7 +33,7 @@ export interface SyncResult {
   workspaces: string[];
 }
 
-export type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting";
+export type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting" | "max_retries";
 
 export interface WSCallbacks {
   onStatusChange: (status: ConnectionStatus) => void;
@@ -44,13 +44,16 @@ export interface WSCallbacks {
 }
 
 const WS_URL = "ws://127.0.0.1:9876";
-const RECONNECT_DELAY = 2000;
+const BASE_RECONNECT_DELAY = 2000;
+const MAX_RECONNECT_RETRIES = 3;
 
 export class WSClient {
   private ws: WebSocket | null = null;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private callbacks: WSCallbacks;
   private workspace: string = "default";
+  private retryCount: number = 0;
+  private intentionalClose: boolean = false;
 
   constructor(callbacks: WSCallbacks) {
     this.callbacks = callbacks;
@@ -78,6 +81,8 @@ export class WSClient {
 
     this.ws.onopen = () => {
       console.log("[keb] WS connected");
+      this.retryCount = 0;
+      this.intentionalClose = false;
       this.clearReconnectTimer();
       this.callbacks.onStatusChange("connected");
       this.send({ type: "sync", workspace: this.workspace });
@@ -105,6 +110,7 @@ export class WSClient {
   }
 
   disconnect() {
+    this.intentionalClose = true;
     this.clearReconnectTimer();
     if (this.ws) {
       this.ws.close();
@@ -114,7 +120,6 @@ export class WSClient {
 
   send(data: WSMessage): boolean {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
-      this.callbacks.onStatusChange("disconnected");
       return false;
     }
     this.ws.send(JSON.stringify({ ...data, workspace: this.workspace }));
@@ -147,12 +152,23 @@ export class WSClient {
   }
 
   private scheduleReconnect() {
+    if (this.intentionalClose) return;
     if (this.reconnectTimer) return;
+
+    if (this.retryCount >= MAX_RECONNECT_RETRIES) {
+      console.log("[keb] Max reconnection retries reached");
+      this.callbacks.onStatusChange("max_retries");
+      return;
+    }
+
+    this.retryCount++;
+    const delay = BASE_RECONNECT_DELAY * Math.pow(2, this.retryCount - 1); // 2s, 4s, 8s
+    console.log(`[keb] Reconnecting in ${delay}ms (attempt ${this.retryCount}/${MAX_RECONNECT_RETRIES})`);
     this.callbacks.onStatusChange("reconnecting");
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect();
-    }, RECONNECT_DELAY);
+    }, delay);
   }
 
   private clearReconnectTimer() {

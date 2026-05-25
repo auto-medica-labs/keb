@@ -77,9 +77,11 @@ export default function App() {
       onStatusChange: (status) => {
         setConnectionStatus(status);
         if (status === "connected") {
-          toast.success("Connected to KB bridge");
+          toast.success("Connected to Keb bridge server");
         } else if (status === "disconnected") {
-          toast.error("Disconnected from KB bridge");
+          toast.error("Disconnected from Keb bridge server");
+        } else if (status === "max_retries") {
+          toast.error("Bridge server not running. Start bridge server & reopen extension to retry.");
         }
       },
       onEvent: (event: BridgeEvent) => handleBridgeEvent(event),

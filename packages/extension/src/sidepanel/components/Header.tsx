@@ -22,6 +22,7 @@ const statusColors: Record<ConnectionStatus, string> = {
   connecting:
     "bg-yellow-500 shadow-[0_0_6px_var(--color-yellow-500)] animate-pulse",
   reconnecting: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
+  max_retries: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
 };
 
 const KB_WORKSPACES_KEY = "kb:workspaces";
@@ -110,9 +111,15 @@ export default function Header({
         <span
           className={`size-2 rounded-full shrink-0 ${statusColors[connectionStatus]}`}
         />
-        <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
-          {connectionStatus}
-        </span>
+        {connectionStatus === "max_retries" ? (
+          <span className="text-[11px] text-destructive leading-tight text-right">
+            OFFLINE
+          </span>
+        ) : (
+          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+            {connectionStatus}
+          </span>
+        )}
       </div>
     </header>
   );

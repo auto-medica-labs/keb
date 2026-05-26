@@ -5,7 +5,25 @@ import { resolve } from "path";
 
 // https://vite.dev/config/
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  // Use relative paths — required for Chrome extensions since extension
+  // pages load from chrome-extension://[id]/index.html with no server
+  base: "./",
+  plugins: [
+    react(),
+    tailwindcss(),
+    // Strip crossorigin attributes from the built HTML.  Chrome extension
+    // pages load from chrome-extension:// which doesn't serve CORS headers.
+    // crossorigin on <link rel=stylesheet> can cause the entire stylesheet
+    // to be treated as a non-author origin, which silently breaks CSS
+    // @layer cascade ordering — table resets in @layer base end up
+    // overriding @layer components styles.
+    {
+      name: "remove-crossorigin-for-extension",
+      transformIndexHtml(html) {
+        return html.replace(/crossorigin/g, "");
+      },
+    },
+  ],
   resolve: {
     alias: {
       "@": resolve(__dirname, "./src"),

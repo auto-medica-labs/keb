@@ -40,7 +40,7 @@ await writeFile(`${DIST}/style.css`, result.css);
 
 // --- compress images ---
 console.log("Compressing images...");
-const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif"];
+const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".webp", ".gif", ".svg"];
 const assetFiles = (await readdir("asset")).map((f) => join("asset", f));
 
 for (const file of assetFiles) {

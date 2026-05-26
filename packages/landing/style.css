@@ -653,22 +653,53 @@ footer .container {
 /*-==============================
     MEDIA QUERIES
 -==============================*/
+@media (min-width: 769px) {
+  .comparison-card:nth-child(1) {
+    order: 2;
+  }
+  .comparison-card:nth-child(2) {
+    order: 1;
+  }
+  .comparison-card:nth-child(3) {
+    order: 3;
+  }
+}
+
 @media (max-width: 768px) {
   .hero-grid {
     grid-template-columns: 1fr;
     gap: 2rem;
   }
 
-  .hero-text h1 {
-    font-size: 2rem;
-  }
-
   .hero-text {
     order: -1;
+    padding: 1.5rem 1.25rem;
+  }
+
+  .hero-text h1 {
+    font-size: 1.6rem;
+    margin-bottom: 0.75rem;
+  }
+
+  .hero-text p {
+    font-size: 0.95rem;
+    max-width: 100%;
+  }
+
+  .hero-actions {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .cta-button {
+    padding: 0.85rem 1.25rem;
+    font-size: 0.9rem;
+    justify-content: center;
   }
 
   .hero-stats {
     justify-content: center;
+    gap: 0.75rem;
   }
 
   h2 {

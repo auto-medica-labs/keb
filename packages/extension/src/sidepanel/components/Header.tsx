@@ -10,6 +10,8 @@ import {
 import { getWorkspaces } from "../../lib/store";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 
+const NARROW_BREAKPOINT = 500;
+
 interface HeaderProps {
   connectionStatus: ConnectionStatus;
   workspace: string;
@@ -33,6 +35,8 @@ export default function Header({
   onSwitchWorkspace,
 }: HeaderProps) {
   const [workspaces, setWorkspaces] = useState<string[]>(["default"]);
+  const [isNarrow, setIsNarrow] = useState(false);
+  const headerRef = useRef<HTMLElement | null>(null);
   const mountedRef = useRef(false);
 
   // Fetch workspaces from storage whenever it changes (sync result arrives later)
@@ -59,6 +63,19 @@ export default function Header({
     }
   }, [connectionStatus, refreshWorkspaces]);
 
+  // Resize observer to detect narrow panel
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      setIsNarrow(entry.contentRect.width < NARROW_BREAKPOINT);
+    });
+    observer.observe(el);
+    // Check initial width in case the panel is already narrow on mount
+    setIsNarrow(el.getBoundingClientRect().width < NARROW_BREAKPOINT);
+    return () => observer.disconnect();
+  }, []);
+
   // Listen for storage changes (workspaces arrive via sync after connection)
   useEffect(() => {
     const onChanged = (
@@ -80,14 +97,16 @@ export default function Header({
   );
 
   return (
-    <header className="flex justify-between items-center px-3 py-2.5 bg-card shrink-0">
+    <header ref={headerRef} className="flex justify-between items-center px-3 py-2.5 bg-card shrink-0">
       <div className="flex items-center gap-2">
         <img
           src="https://r2.mdevd.co/asset/logo_transparent.png"
           alt="logo"
           className="size-5 object-contain"
         />
-        <span className="font-semibold text-sm">Keb — Knowledge Bases</span>
+        <span className="font-semibold text-sm">
+          {isNarrow ? "Keb" : "Keb — Knowledge Bases"}
+        </span>
         <Select
           value={workspace}
           items={workspaceItems}

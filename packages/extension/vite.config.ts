@@ -20,7 +20,7 @@ export default defineConfig({
     {
       name: "remove-crossorigin-for-extension",
       transformIndexHtml(html) {
-        return html.replace(/crossorigin/g, "");
+        return html.replace(/\s*crossorigin(?=[\s>])/g, "");
       },
     },
   ],

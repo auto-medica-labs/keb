@@ -15,22 +15,31 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 
 ## Architecture
 
-1. **@keb/bridge** — Standalone WebSocket server that bridges the extension to pi-kb. Written in JS with full JSDoc type annotations.
-2. **@keb/extension** — React side panel + TypeScript service worker. Built with Vite.
-3. **pi-kb** — pi extension providing the knowledge base at `~/.pi/agent/kb/`.
+1. **`@keb/bridge`** — Standalone WebSocket server that bridges the extension to pi-kb. Written in JS with full JSDoc type annotations.
+2. **`@keb/extension`** — React side panel + TypeScript service worker. Built with Vite.
+3. **`pi-kb`** — pi extension providing the knowledge base at `~/.pi/agent/kb/`.
 
 ## Prerequisites
 
 - [pi](https://github.com/earendil-works/pi-coding-agent) installed and in your `$PATH`
 - [pi-kb](https://github.com/dheerapat/pi-kb) extension installed in pi
-- [pnpm](https://pnpm.io) ≥ 10
-- Node.js ≥ 18
 
 ## Installation
 
-### 1. Install dependencies & build
+### 0. Prerequisites
+
+Install `pi`, configure your preferred LLM provider, and install the `pi-kb` extension:
 
 ```bash
+curl -fsSL https://pi.dev/install.sh | sh
+# then inside pi, set up your LLM provider via /login
+pi install git:github.com/dheerapat/pi-kb
+```
+
+### 1. Clone the repo, install dependencies & build
+
+```bash
+git clone https://github.com/auto-medica-labs/keb.git
 cd keb
 pnpm install
 pnpm build
@@ -47,12 +56,18 @@ The bridge runs until you press `Ctrl+C`. Keep it running while using the extens
 
 ### 3. Load the extension in Chrome
 
+**Option A — Local build (from source)**
+
 1. Open `chrome://extensions`
 2. Enable **Developer mode**
 3. Click **Load unpacked**
 4. Select the `packages/extension/dist/` directory
 
 The extension icon will appear in your toolbar.
+
+**Option B — Chrome Web Store**
+
+Install [Keb from the Chrome Web Store](https://chromewebstore.google.com/detail/keb/caofpejajfnmpbfmgidgfkglmjbiakhf) like any other extension. You still need to start the bridge server yourself.
 
 ## Scripts
 

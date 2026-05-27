@@ -2,7 +2,14 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { FilePlusCorner, BookSearch, Library } from "lucide-react";
-import { WSClient, type ConnectionStatus, type BridgeEvent, type SyncResult } from "../lib/ws";
+import { nanoid } from "nanoid";
+import {
+  WSClient,
+  type ConnectionStatus,
+  type BridgeEvent,
+  type OperationCallbacks,
+  type SyncResult,
+} from "../lib/ws";
 import {
   setKBState,
   getConfig,
@@ -19,12 +26,19 @@ import Footer from "./components/Footer";
 
 type ActiveTab = "add" | "query" | "browse";
 
-// Unified timeline — interleaves tool events and text deltas (used by both tabs)
-type TimelineEntry = { type: "tool"; text: string; cls: string } | { type: "text"; text: string };
+// Unified timeline — interleaves tool events and text deltas
+export type TimelineEntry =
+  | { type: "tool"; text: string; cls: string }
+  | { type: "text"; text: string };
 
-type QueryEntry = {
-  question: string;
+/** A single in-flight or completed operation (add, query, or repair). */
+export type ActiveOperation = {
+  id: string;
+  type: "add" | "query" | "repair";
   timeline: TimelineEntry[];
+  /** Display label (URL for add, question for query). */
+  label: string;
+  done: boolean;
 };
 
 export default function App() {
@@ -35,42 +49,138 @@ export default function App() {
   const [conceptCount, setConceptCount] = useState(0);
   const [pendingCount, setPendingCount] = useState(0);
   const [agentStatus, setAgentStatus] = useState<"compiling" | "repairing" | "thinking" | "">("");
-  const [addTimeline, setAddTimeline] = useState<TimelineEntry[]>([]);
-  const [isAdding, setIsAdding] = useState(false);
-  const [addDone, setAddDone] = useState(false);
-  const [queryResults, setQueryResults] = useState<QueryEntry[]>([]);
-  const [isQuerying, setIsQuerying] = useState(false);
+
+  // Operations-driven state — each concurrent operation has its own card
+  const [operations, setOperations] = useState<ActiveOperation[]>([]);
 
   const wsRef = useRef<WSClient | null>(null);
   const doneTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Refs for latest state (avoids stale closure in WS callbacks)
-  const isAddingRef = useRef(false);
-  const isQueryingRef = useRef(false);
-  const addTimelineRef = useRef<TimelineEntry[]>([]);
-  const queryResultsRef = useRef<QueryEntry[]>([]);
+  const operationsRef = useRef<ActiveOperation[]>([]);
 
-  // ── Helpers: update timeline from WS events ────────────────────────
+  // ── Operation helpers ───────────────────────────────────────────
 
-  function addToolToTimeline(text: string, cls: string) {
-    setAddTimeline((prev) => [...prev, { type: "tool", text, cls }]);
+  /** Append a tool entry to a specific operation's timeline. */
+  function appendToolToOperation(opId: string, text: string, cls: string) {
+    setOperations((prev) =>
+      prev.map((op) =>
+        op.id === opId ? { ...op, timeline: [...op.timeline, { type: "tool", text, cls }] } : op,
+      ),
+    );
   }
 
-  function appendTextToTimeline(delta: string) {
-    setAddTimeline((prev) => {
-      const last = prev[prev.length - 1];
-      if (last?.type === "text") {
-        // Append to the current text block
-        const updated = [...prev];
-        updated[updated.length - 1] = { type: "text", text: last.text + delta };
-        return updated;
-      }
-      // Start a new text block after a tool event
-      return [...prev, { type: "text", text: delta }];
-    });
+  /** Append text delta to a specific operation's timeline. */
+  function appendTextToOperation(opId: string, delta: string) {
+    setOperations((prev) =>
+      prev.map((op) => {
+        if (op.id !== opId) return op;
+        const tline = [...op.timeline];
+        const last = tline[tline.length - 1];
+        if (last?.type === "text") {
+          tline[tline.length - 1] = { type: "text", text: last.text + delta };
+        } else {
+          tline.push({ type: "text", text: delta });
+        }
+        return { ...op, timeline: tline };
+      }),
+    );
   }
 
-  // ── Initialize WS client (runs once) ──────────────────────────────
+  /** Mark an operation as done. */
+  function markOperationDone(opId: string, command: string) {
+    setOperations((prev) =>
+      prev.map((op) => {
+        if (op.id !== opId) return op;
+        const label =
+          command === "add"
+            ? ("Compilation complete. Re-syncing..." as const)
+            : command === "repair"
+              ? ("Repair complete. Re-syncing..." as const)
+              : null;
+        const tline: TimelineEntry[] = label
+          ? [
+              ...op.timeline,
+              { type: "tool" as const, text: label, cls: "text-green-400 font-semibold" },
+            ]
+          : op.timeline;
+        return { ...op, timeline: tline, done: true };
+      }),
+    );
+  }
+
+  /** Mark an operation as errored. */
+  function markOperationError(opId: string, message: string) {
+    setOperations((prev) =>
+      prev.map((op) =>
+        op.id === opId
+          ? {
+              ...op,
+              timeline: [
+                ...op.timeline,
+                { type: "tool", text: `Error: ${message}`, cls: "text-red-400" },
+              ],
+              done: true,
+            }
+          : op,
+      ),
+    );
+  }
+
+  /** Build per-operation callbacks for a given operation ID. */
+  function createOperationCallbacks(opId: string): OperationCallbacks {
+    return {
+      onEvent: (event: BridgeEvent) => {
+        const etype = event.type;
+
+        // ── Text deltas ──
+        if (etype === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
+          appendTextToOperation(opId, event.assistantMessageEvent.delta || "");
+          return;
+        }
+
+        // ── Tool execution events ──
+        if (etype === "tool_execution_start") {
+          const toolName = event.toolName || "unknown tool";
+          appendToolToOperation(opId, `Running ${toolName}...`, "text-yellow-400");
+          return;
+        }
+
+        if (etype === "tool_execution_end") {
+          const toolName = event.toolName || "unknown tool";
+          appendToolToOperation(opId, `Finished ${toolName}`, "text-green-400");
+          return;
+        }
+      },
+      onDone: (command: string) => {
+        markOperationDone(opId, command);
+
+        if (command === "add" || command === "repair") {
+          // Re-sync KB state after add/repair
+          setTimeout(() => {
+            wsRef.current?.sync();
+          }, 500);
+          setAgentStatus("");
+
+          if (command === "add" && doneTimeoutRef.current) {
+            clearTimeout(doneTimeoutRef.current);
+            doneTimeoutRef.current = null;
+          }
+        }
+
+        if (command === "query") {
+          setAgentStatus("");
+        }
+      },
+      onError: (message: string) => {
+        markOperationError(opId, message);
+        toast.error(message);
+        setAgentStatus("");
+      },
+    };
+  }
+
+  // ── Initialize WS client (runs once) ──────────────────────────
 
   const initWS = useCallback(() => {
     const client = new WSClient({
@@ -81,21 +191,24 @@ export default function App() {
         } else if (status === "disconnected") {
           toast.error("Disconnected from Keb bridge server");
         } else if (status === "max_retries") {
-          toast.error("Bridge server not running. Start bridge server & reopen extension to retry.");
+          toast.error(
+            "Bridge server not running. Start bridge server & reopen extension to retry.",
+          );
         }
       },
-      onEvent: (event: BridgeEvent) => handleBridgeEvent(event),
-      onSyncResult: (data: SyncResult) => handleSyncResult(data),
-      onDone: (command: string) => handleDone(command),
+      // Fallback: events without operationId (shouldn't happen with new bridge)
+      onEvent: (_event: BridgeEvent) => {},
+      onDone: (_command: string) => {},
       onError: (message: string) => {
         toast.error(message);
       },
+      onSyncResult: (data: SyncResult) => handleSyncResult(data),
     });
     wsRef.current = client;
     return client;
   }, []);
 
-  // ── Connect on mount ──────────────────────────────────────────────
+  // ── Connect on mount ──────────────────────────────────────────
 
   useEffect(() => {
     (async () => {
@@ -124,88 +237,13 @@ export default function App() {
     };
   }, [initWS]);
 
-  // ── Keep refs in sync with state every render ─────────────────────
+  // ── Keep refs in sync with state every render ─────────────────
 
-  isAddingRef.current = isAdding;
-  isQueryingRef.current = isQuerying;
-  addTimelineRef.current = addTimeline;
-  queryResultsRef.current = queryResults;
+  useEffect(() => {
+    operationsRef.current = operations;
+  }, [operations]);
 
-  // ── Bridge event handler (always reads latest values via refs) ────
-
-  function handleBridgeEvent(event: BridgeEvent) {
-    const etype = event.type;
-
-    // ── Text deltas (streaming LLM output) ──
-    if (etype === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
-      const delta = event.assistantMessageEvent.delta || "";
-
-      if (isAddingRef.current) {
-        appendTextToTimeline(delta);
-      } else if (isQueryingRef.current) {
-        setQueryResults((prev) => {
-          const updated = [...prev];
-          const last = updated[updated.length - 1];
-          if (!last) return prev;
-          const tline = [...last.timeline];
-          const lastEntry = tline[tline.length - 1];
-          if (lastEntry?.type === "text") {
-            tline[tline.length - 1] = { type: "text", text: lastEntry.text + delta };
-          } else {
-            tline.push({ type: "text", text: delta });
-          }
-          updated[updated.length - 1] = { ...last, timeline: tline };
-          return updated;
-        });
-      }
-      return;
-    }
-
-    // ── Tool execution events ──
-    if (etype === "tool_execution_start") {
-      const toolName = event.toolName || "unknown tool";
-      if (isAddingRef.current) {
-        addToolToTimeline(`Running ${toolName}...`, "text-yellow-400");
-      } else if (isQueryingRef.current) {
-        setQueryResults((prev) => {
-          const updated = [...prev];
-          const last = updated[updated.length - 1];
-          if (!last) return prev;
-          updated[updated.length - 1] = {
-            ...last,
-            timeline: [
-              ...last.timeline,
-              { type: "tool", text: `Running ${toolName}...`, cls: "text-yellow-500" },
-            ],
-          };
-          return updated;
-        });
-      }
-      return;
-    }
-
-    if (etype === "tool_execution_end") {
-      const toolName = event.toolName || "unknown tool";
-      if (isAddingRef.current) {
-        addToolToTimeline(`Finished ${toolName}`, "text-green-400");
-      } else if (isQueryingRef.current) {
-        setQueryResults((prev) => {
-          const updated = [...prev];
-          const last = updated[updated.length - 1];
-          if (!last) return prev;
-          updated[updated.length - 1] = {
-            ...last,
-            timeline: [
-              ...last.timeline,
-              { type: "tool", text: `Finished ${toolName}`, cls: "text-green-500" },
-            ],
-          };
-          return updated;
-        });
-      }
-      return;
-    }
-  }
+  // ── Sync result handler ───────────────────────────────────────
 
   function handleSyncResult(data: SyncResult) {
     setKBState(data).then(() => {
@@ -218,86 +256,78 @@ export default function App() {
     });
   }
 
-  function handleDone(command: string) {
-    if (command === "add") {
-      setAddDone(true);
-      addToolToTimeline("Compilation complete. Re-syncing...", "text-green-400 font-semibold");
-      setTimeout(() => {
-        wsRef.current?.sync();
-      }, 500);
-      setIsAdding(false);
-      setAgentStatus("");
-
-      // Auto-reset the check icon after 2s so the button reverts to "Fetch & Add"
-      if (doneTimeoutRef.current) clearTimeout(doneTimeoutRef.current);
-      doneTimeoutRef.current = setTimeout(() => {
-        setAddDone(false);
-        doneTimeoutRef.current = null;
-      }, 2000);
-    }
-
-    if (command === "repair") {
-      addToolToTimeline("Repair complete. Re-syncing...", "text-green-400 font-semibold");
-      setTimeout(() => {
-        wsRef.current?.sync();
-      }, 500);
-      setIsAdding(false);
-      setAgentStatus("");
-    }
-
-    if (command === "query") {
-      setIsQuerying(false);
-      setAgentStatus("");
-    }
-  }
+  // ── Action handlers ───────────────────────────────────────────
 
   function handleAdd(url: string) {
-    if (!wsRef.current?.send({ type: "add", url })) {
-      toast.error("Not connected to KB bridge");
-      return;
-    }
-    // Clear any pending done timeout so the button reverts immediately
     if (doneTimeoutRef.current) {
       clearTimeout(doneTimeoutRef.current);
       doneTimeoutRef.current = null;
     }
-    setIsAdding(true);
-    setAddDone(false);
-    setAddTimeline([
-      { type: "tool", text: `Adding: ${url}`, cls: "text-blue-400" },
-      { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
-    ]);
+
     setAgentStatus("compiling");
+
+    const operationId = nanoid();
+    const op: ActiveOperation = {
+      id: operationId,
+      type: "add",
+      label: url,
+      timeline: [
+        { type: "tool", text: `Adding: ${url}`, cls: "text-blue-400" },
+        { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
+      ],
+      done: false,
+    };
+
+    // Replace previous add/repair ops, keep query ops untouched
+    setOperations((prev) => [...prev.filter((o) => o.type === "query"), op]);
+    wsRef.current?.add(url, createOperationCallbacks(operationId), operationId);
   }
 
   function handleRepair() {
-    if (!wsRef.current?.send({ type: "repair" })) {
-      toast.error("Not connected to KB bridge");
-      return;
-    }
     if (doneTimeoutRef.current) {
       clearTimeout(doneTimeoutRef.current);
       doneTimeoutRef.current = null;
     }
-    setIsAdding(true);
-    setAddDone(false);
-    setAddTimeline([
-      { type: "tool", text: "Repairing interrupted compilations...", cls: "text-blue-400" },
-      { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
-    ]);
+
     setAgentStatus("repairing");
-    // Switch to add tab so the user can see repair progress
     setActiveTab("add");
+
+    const operationId = nanoid();
+    const op: ActiveOperation = {
+      id: operationId,
+      type: "repair",
+      timeline: [
+        {
+          type: "tool",
+          text: "Repairing interrupted compilations...",
+          cls: "text-blue-400",
+        },
+        { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
+      ],
+      label: "Repair",
+      done: false,
+    };
+
+    // Replace previous add/repair ops, keep query ops untouched
+    setOperations((prev) => [...prev.filter((o) => o.type === "query"), op]);
+    wsRef.current?.repair(createOperationCallbacks(operationId), operationId);
   }
 
   function handleQuery(text: string) {
-    if (!wsRef.current?.send({ type: "query", text })) {
-      toast.error("Not connected to KB bridge");
-      return;
-    }
-    setIsQuerying(true);
-    setQueryResults([{ question: text, timeline: [] }]);
     setAgentStatus("thinking");
+
+    const operationId = nanoid();
+    const op: ActiveOperation = {
+      id: operationId,
+      type: "query",
+      timeline: [],
+      label: text,
+      done: false,
+    };
+
+    // Replace previous query ops, keep add/repair ops untouched
+    setOperations((prev) => [...prev.filter((o) => o.type !== "query"), op]);
+    wsRef.current?.query(text, createOperationCallbacks(operationId), operationId);
   }
 
   function handleSwitchWorkspace(name: string) {
@@ -306,6 +336,13 @@ export default function App() {
     setConfig({ workspace: name });
     wsRef.current?.sync();
   }
+
+  // ── Derived state for panels ──────────────────────────────────
+
+  const addOperations = operations.filter((op) => op.type === "add" || op.type === "repair");
+  const queryOperations = operations.filter((op) => op.type === "query");
+
+  // ── Render ────────────────────────────────────────────────────
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
@@ -346,17 +383,14 @@ export default function App() {
         <div className="flex-1 min-h-0 overflow-hidden p-4">
           <TabsContent value="add" className="h-full mt-0">
             <AddPanel
-              isAdding={isAdding}
-              isDone={addDone}
-              timeline={addTimeline}
+              operations={addOperations}
               connected={connectionStatus === "connected"}
               onAdd={handleAdd}
             />
           </TabsContent>
           <TabsContent value="query" className="h-full mt-0">
             <QueryPanel
-              isQuerying={isQuerying}
-              results={queryResults}
+              operations={queryOperations}
               connected={connectionStatus === "connected"}
               onQuery={handleQuery}
             />

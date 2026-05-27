@@ -76,15 +76,15 @@ export default function BrowsePanel() {
                   key={name}
                   className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
                 >
-                  <FileText className="size-4 flex-shrink-0 text-muted-foreground" />
+                  <FileText className="size-4 shrink-0 text-muted-foreground" />
                   <span className="text-sm font-medium text-primary">{escapeHtml(name)}</span>
                   {pendingDocs.has(name) && (
                     <span title="Compilation interrupted — pending">
-                      <TriangleAlert className="size-3.5 text-amber-500 flex-shrink-0" />
+                      <TriangleAlert className="size-3.5 text-amber-500 shrink-0" />
                     </span>
                   )}
                   {summaries[name].source && (
-                    <span className="text-[11px] text-muted-foreground ml-auto truncate max-w-[120px]">
+                    <span className="text-[11px] text-muted-foreground ml-auto truncate max-w-30">
                       {escapeHtml(summaries[name].source)}
                     </span>
                   )}

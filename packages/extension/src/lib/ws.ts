@@ -2,13 +2,18 @@
 //
 // Manages the WebSocket connection to the pi-kb bridge server,
 // handling reconnection, message routing, and typed events.
+//
+// Each operation (add/query/repair) gets a unique operationId (nanoid).
+// The server echoes it back in responses so multiple concurrent
+// operations can be routed independently.
 
+import { nanoid } from "nanoid";
 import type { RegistryEntry, Summary, Concept } from "./store";
 
 export type WSMessage =
-  | { type: "add"; url: string; workspace?: string }
-  | { type: "query"; text: string; workspace?: string }
-  | { type: "repair"; workspace?: string }
+  | { type: "add"; url: string; operationId: string; workspace?: string }
+  | { type: "query"; text: string; operationId: string; workspace?: string }
+  | { type: "repair"; operationId: string; workspace?: string }
   | { type: "sync"; workspace?: string };
 
 export type BridgeEvent = {
@@ -19,11 +24,11 @@ export type BridgeEvent = {
 };
 
 export type WSResponse =
-  | { type: "event"; data: BridgeEvent }
-  | { type: "sync_result"; data: SyncResult }
-  | { type: "done"; command: string }
-  | { type: "error"; message: string }
-  | { type: "stderr"; text: string };
+  | { type: "event"; operationId?: string; data: BridgeEvent }
+  | { type: "sync_result"; operationId?: string; data: SyncResult }
+  | { type: "done"; operationId?: string; command: string }
+  | { type: "error"; operationId?: string; message: string }
+  | { type: "stderr"; operationId?: string; text: string };
 
 export interface SyncResult {
   registry: Record<string, RegistryEntry>;
@@ -33,12 +38,26 @@ export interface SyncResult {
   workspaces: string[];
 }
 
-export type ConnectionStatus = "connected" | "disconnected" | "connecting" | "reconnecting" | "max_retries";
+export type ConnectionStatus =
+  | "connected"
+  | "disconnected"
+  | "connecting"
+  | "reconnecting"
+  | "max_retries";
 
+/** Per-operation callbacks — fired for a specific add/query/repair. */
+export interface OperationCallbacks {
+  onEvent: (event: BridgeEvent) => void;
+  onDone: (command: string) => void;
+  onError: (message: string) => void;
+}
+
+/** Global callbacks — status changes and sync results (no operationId). */
 export interface WSCallbacks {
   onStatusChange: (status: ConnectionStatus) => void;
-  onEvent: (event: BridgeEvent) => void;
   onSyncResult: (data: SyncResult) => void;
+  /** Fallback for events/done/error without an operationId. */
+  onEvent: (event: BridgeEvent) => void;
   onDone: (command: string) => void;
   onError: (message: string) => void;
 }
@@ -55,6 +74,9 @@ export class WSClient {
   private retryCount: number = 0;
   private intentionalClose: boolean = false;
 
+  /** Active operations waiting for responses. */
+  private operations = new Map<string, OperationCallbacks>();
+
   constructor(callbacks: WSCallbacks) {
     this.callbacks = callbacks;
   }
@@ -66,6 +88,8 @@ export class WSClient {
   getWorkspace(): string {
     return this.workspace;
   }
+
+  // ── Connection lifecycle ──────────────────────────────────────────
 
   connect() {
     if (
@@ -116,9 +140,66 @@ export class WSClient {
       this.ws.close();
       this.ws = null;
     }
+    this.operations.clear();
   }
 
+  // ── Operation methods (return operationId) ────────────────────────
+
+  /**
+   * Start an 'add' operation.
+   * @param operationId - Optional pre-generated ID (from nanoid). Generated if omitted.
+   */
+  add(url: string, callbacks: OperationCallbacks, operationId?: string): string {
+    const id = operationId || nanoid();
+    this.operations.set(id, callbacks);
+    if (!this._send({ type: "add", operationId: id, url })) {
+      callbacks.onError("Not connected to KB bridge");
+      this.operations.delete(id);
+    }
+    return id;
+  }
+
+  /**
+   * Start a 'query' operation.
+   * @param operationId - Optional pre-generated ID.
+   */
+  query(text: string, callbacks: OperationCallbacks, operationId?: string): string {
+    const id = operationId || nanoid();
+    this.operations.set(id, callbacks);
+    if (!this._send({ type: "query", operationId: id, text })) {
+      callbacks.onError("Not connected to KB bridge");
+      this.operations.delete(id);
+    }
+    return id;
+  }
+
+  /**
+   * Start a 'repair' operation.
+   * @param operationId - Optional pre-generated ID.
+   */
+  repair(callbacks: OperationCallbacks, operationId?: string): string {
+    const id = operationId || nanoid();
+    this.operations.set(id, callbacks);
+    if (!this._send({ type: "repair", operationId: id })) {
+      callbacks.onError("Not connected to KB bridge");
+      this.operations.delete(id);
+    }
+    return id;
+  }
+
+  // ── Low-level send (for sync, no operationId) ─────────────────────
+
   send(data: WSMessage): boolean {
+    return this._send(data);
+  }
+
+  sync() {
+    this.send({ type: "sync", workspace: this.workspace });
+  }
+
+  // ── Internal ──────────────────────────────────────────────────────
+
+  private _send(data: WSMessage): boolean {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return false;
     }
@@ -126,11 +207,31 @@ export class WSClient {
     return true;
   }
 
-  sync() {
-    this.send({ type: "sync", workspace: this.workspace });
-  }
-
   private handleMessage(msg: WSResponse) {
+    const opId = msg.operationId;
+
+    // ── Route to per-operation callbacks if we have them ──────────
+    if (opId && this.operations.has(opId)) {
+      const op = this.operations.get(opId)!;
+      switch (msg.type) {
+        case "event":
+          op.onEvent(msg.data);
+          return;
+        case "done":
+          op.onDone(msg.command);
+          this.operations.delete(opId);
+          return;
+        case "error":
+          op.onError(msg.message);
+          this.operations.delete(opId);
+          return;
+        case "stderr":
+          console.warn("[keb] Bridge stderr:", msg.text);
+          return;
+      }
+    }
+
+    // ── Fallback: global callbacks (sync_result, orphan messages) ──
     switch (msg.type) {
       case "event":
         this.callbacks.onEvent(msg.data);
@@ -151,6 +252,8 @@ export class WSClient {
     }
   }
 
+  // ── Reconnection ──────────────────────────────────────────────────
+
   private scheduleReconnect() {
     if (this.intentionalClose) return;
     if (this.reconnectTimer) return;
@@ -163,7 +266,9 @@ export class WSClient {
 
     this.retryCount++;
     const delay = BASE_RECONNECT_DELAY * Math.pow(2, this.retryCount - 1); // 2s, 4s, 8s
-    console.log(`[keb] Reconnecting in ${delay}ms (attempt ${this.retryCount}/${MAX_RECONNECT_RETRIES})`);
+    console.log(
+      `[keb] Reconnecting in ${delay}ms (attempt ${this.retryCount}/${MAX_RECONNECT_RETRIES})`,
+    );
     this.callbacks.onStatusChange("reconnecting");
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;

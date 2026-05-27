@@ -21,19 +21,14 @@ interface HeaderProps {
 const statusColors: Record<ConnectionStatus, string> = {
   connected: "bg-green-500 shadow-[0_0_6px_var(--color-green-500)]",
   disconnected: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
-  connecting:
-    "bg-yellow-500 shadow-[0_0_6px_var(--color-yellow-500)] animate-pulse",
+  connecting: "bg-yellow-500 shadow-[0_0_6px_var(--color-yellow-500)] animate-pulse",
   reconnecting: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
   max_retries: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
 };
 
 const KB_WORKSPACES_KEY = "kb:workspaces";
 
-export default function Header({
-  connectionStatus,
-  workspace,
-  onSwitchWorkspace,
-}: HeaderProps) {
+export default function Header({ connectionStatus, workspace, onSwitchWorkspace }: HeaderProps) {
   const [workspaces, setWorkspaces] = useState<string[]>(["default"]);
   const [isNarrow, setIsNarrow] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -78,10 +73,7 @@ export default function Header({
 
   // Listen for storage changes (workspaces arrive via sync after connection)
   useEffect(() => {
-    const onChanged = (
-      changes: Record<string, chrome.storage.StorageChange>,
-      area: string,
-    ) => {
+    const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area === "local" && changes[KB_WORKSPACES_KEY]) {
         refreshWorkspaces();
       }
@@ -97,16 +89,17 @@ export default function Header({
   );
 
   return (
-    <header ref={headerRef} className="flex justify-between items-center px-3 py-2.5 bg-card shrink-0">
+    <header
+      ref={headerRef}
+      className="flex justify-between items-center px-3 py-2.5 bg-card shrink-0"
+    >
       <div className="flex items-center gap-2">
         <img
           src="https://r2.mdevd.co/asset/logo_transparent.png"
           alt="logo"
           className="size-5 object-contain"
         />
-        <span className="font-semibold text-sm">
-          {isNarrow ? "Keb" : "Keb — Knowledge Bases"}
-        </span>
+        <span className="font-semibold text-sm">{isNarrow ? "Keb" : "Keb — Knowledge Bases"}</span>
         <Select
           value={workspace}
           items={workspaceItems}
@@ -127,13 +120,9 @@ export default function Header({
         </Select>
       </div>
       <div className="flex items-center gap-1.5">
-        <span
-          className={`size-2 rounded-full shrink-0 ${statusColors[connectionStatus]}`}
-        />
+        <span className={`size-2 rounded-full shrink-0 ${statusColors[connectionStatus]}`} />
         {connectionStatus === "max_retries" ? (
-          <span className="text-[11px] text-destructive leading-tight text-right">
-            OFFLINE
-          </span>
+          <span className="text-[11px] text-destructive leading-tight text-right">OFFLINE</span>
         ) : (
           <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
             {connectionStatus}

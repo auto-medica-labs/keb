@@ -63,11 +63,12 @@ import { safeStringify, log } from "../lib/utils.js";
  *
  * @param {string} promptText - The pi prompt to execute (e.g. "/kb-add https://...")
  * @param {'add'|'query'|'repair'} command - Operation type (used for logging)
- * @param {SpawnCallbacks} callbacks - Output wiring
+ * @param {SpawnCallbacks & { operationId?: string }} callbacks - Output wiring + optional operationId
  * @returns {import('node:child_process').ChildProcess} The spawned child process
  */
 export function spawnPi(promptText, command, callbacks) {
-  log(`spawn: pi --mode rpc --no-session → ${command}: ${promptText.slice(0, 80)}...`);
+  const opTag = callbacks.operationId ? ` [${callbacks.operationId}]` : "";
+  log(`spawn: pi --mode rpc --no-session → ${command}${opTag}: ${promptText.slice(0, 80)}...`);
 
   const child = spawn("pi", ["--mode", "rpc", "--no-session", "--no-builtin-tools"], {
     stdio: ["pipe", "pipe", "pipe"],
@@ -81,7 +82,12 @@ export function spawnPi(promptText, command, callbacks) {
   });
 
   child.on("exit", (code, signal) => {
-    log(`child exit: ${command} (code=${code}, signal=${signal})`);
+    log(`child exit: ${command}${opTag} (code=${code}, signal=${signal})`);
+    // If the child was killed externally (e.g. SIGTERM), notify via onDone
+    // so the client can clean up. Only fire if agent_end wasn't already emitted.
+    if (signal && callbacks.onDone) {
+      callbacks.onDone();
+    }
   });
 
   // stdout → parse JSON lines, forward events

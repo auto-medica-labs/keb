@@ -129,11 +129,20 @@ The bridge listens on `ws://127.0.0.1:9876` and accepts JSON messages:
 
 | Message | Fields | Description |
 |---------|--------|-------------|
-| `add` | `url`, `workspace?` | Compile a URL into the knowledge base |
-| `query` | `text`, `workspace?` | Query the knowledge base |
+| `add` | `operationId`, `url`, `workspace?` | Compile a URL into the knowledge base |
+| `query` | `operationId`, `text`, `workspace?` | Query the knowledge base |
+| `repair` | `operationId`, `workspace?` | Re-compile interrupted documents |
 | `sync` | `workspace?` | Full state dump (registry, index, summaries, concepts, workspaces) |
 
-Responses include typed events (`text_delta`, `tool_execution_start`, `tool_execution_end`, `agent_end`) streamed in real time, plus a `done` message when the operation completes.
+Every `add`/`query`/`repair` message includes a client-generated `operationId` (nanoid). The bridge echoes it back in all responses so the client can correlate streaming events with the originating request.
+
+Responses include typed events (`text_delta`, `tool_execution_start`, `tool_execution_end`, `agent_end`) streamed in real time, plus a `done` / `error` message when the operation completes. All response frames carry the same `operationId` as the request.
+
+### Concurrent Operations
+
+The bridge supports multiple concurrent operations over a single WebSocket connection. Each operation (add, query, repair) spawns an independent pi RPC process and is tracked by its `operationId` in a `Map<operationId, ChildProcess>`. Starting a new operation no longer kills in-progress ones — the client routes streamed events to the correct UI card via the echoed `operationId`.
+
+**Client-side:** each tab (Add, Consult) tracks only its latest operation of that type. Starting a new add wipes the previous add's timeline; starting a new query wipes the previous query's timeline. Cross-tab concurrency works: an add can compile while a query streams its answer, each in its own tab.
 
 ## Lint Rules
 

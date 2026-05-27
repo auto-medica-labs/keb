@@ -41,7 +41,7 @@ export default function Footer({
   onRepair,
 }: FooterProps) {
   return (
-    <footer className="flex justify-between items-center px-3 py-1.5 border-t bg-card text-[11px] text-muted-foreground flex-shrink-0">
+    <footer className="flex justify-between items-center px-3 py-1.5 border-t bg-card text-[11px] text-muted-foreground shrink-0">
       <span className="flex items-center gap-2">
         <span className="inline-flex items-center gap-1 whitespace-nowrap">
           <BarChart3 className="size-3" />
@@ -50,8 +50,13 @@ export default function Footer({
         {pendingCount > 0 && (
           <button
             onClick={onRepair}
-            className="inline-flex items-center gap-1 whitespace-nowrap text-amber-500 hover:text-amber-400 underline cursor-pointer transition-colors"
-            title="Repair interrupted compilations"
+            disabled={agentStatus !== ""}
+            className="inline-flex items-center gap-1 whitespace-nowrap text-amber-500 hover:text-amber-400 underline cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
+            title={
+              agentStatus !== ""
+                ? "Wait for current operation to finish"
+                : "Repair interrupted compilations"
+            }
           >
             <TriangleAlert className="size-3" />
             {pendingCount} pending

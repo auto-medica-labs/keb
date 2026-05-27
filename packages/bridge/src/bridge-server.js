@@ -38,6 +38,7 @@ import { handleSync } from "./handlers/sync-handler.js";
 /**
  * @typedef {Object} BridgeAddMessage
  * @property {'add'} type
+ * @property {string} operationId
  * @property {string} url
  * @property {string} [workspace]
  */
@@ -45,6 +46,7 @@ import { handleSync } from "./handlers/sync-handler.js";
 /**
  * @typedef {Object} BridgeQueryMessage
  * @property {'query'} type
+ * @property {string} operationId
  * @property {string} text
  * @property {string} [workspace]
  */
@@ -58,6 +60,7 @@ import { handleSync } from "./handlers/sync-handler.js";
 /**
  * @typedef {Object} BridgeRepairMessage
  * @property {'repair'} type
+ * @property {string} operationId
  * @property {string} [workspace]
  */
 
@@ -157,20 +160,24 @@ function startBridge(port, host) {
   wss.on("connection", (ws) => {
     log(`🔗 Chrome extension connected`);
 
-    /** @type {import('node:child_process').ChildProcess|null} */
-    let activeChild = null;
+    /** @type {Map<string, import('node:child_process').ChildProcess>} */
+    const activeChildren = new Map();
 
-    /** Kill the active child process and clean up tracking. */
-    function killActiveChild() {
-      if (activeChild) {
-        activeChild.kill();
-        childProcesses.delete(activeChild);
-        activeChild = null;
+    /** Kill all active child processes for this connection. */
+    function killAllChildren() {
+      for (const [, child] of activeChildren) {
+        try {
+          child.kill("SIGTERM");
+        } catch {
+          /* ignore */
+        }
+        childProcesses.delete(child);
       }
+      activeChildren.clear();
     }
 
     ws.on("message", (/** @type {import('ws').RawData} */ raw) => {
-      /** @type {BridgeMessage} */
+      /** @type {BridgeMessage & { operationId?: string }} */
       let msg;
       try {
         msg = JSON.parse(raw.toString());
@@ -179,18 +186,20 @@ function startBridge(port, host) {
         return;
       }
 
+      const operationId =
+        msg.operationId || `srv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
       const workspace = msg.workspace && msg.workspace !== "default" ? msg.workspace : undefined;
 
       switch (msg.type) {
         // ── Command actions (add / repair) ──────────────────────────
         case "add": {
           if (!msg.url) {
-            ws.send(safeStringify({ type: "error", message: "Missing 'url' field" }));
+            ws.send(safeStringify({ type: "error", operationId, message: "Missing 'url' field" }));
             return;
           }
-          killActiveChild();
           const child = handleCommand({
             ws,
+            operationId,
             command: "add",
             url: msg.url,
             workspace,
@@ -198,24 +207,32 @@ function startBridge(port, host) {
             spawn: spawnPi,
           });
           if (child) {
-            activeChild = child;
+            activeChildren.set(operationId, child);
             childProcesses.add(child);
+            child.on("exit", () => {
+              activeChildren.delete(operationId);
+              childProcesses.delete(child);
+            });
           }
           break;
         }
 
         case "repair": {
-          killActiveChild();
           const child = handleCommand({
             ws,
+            operationId,
             command: "repair",
             workspace,
             kbStore,
             spawn: spawnPi,
           });
           if (child) {
-            activeChild = child;
+            activeChildren.set(operationId, child);
             childProcesses.add(child);
+            child.on("exit", () => {
+              activeChildren.delete(operationId);
+              childProcesses.delete(child);
+            });
           }
           break;
         }
@@ -223,13 +240,16 @@ function startBridge(port, host) {
         // ── Query action ────────────────────────────────────────────
         case "query": {
           if (!msg.text) {
-            ws.send(safeStringify({ type: "error", message: "Missing 'text' field" }));
+            ws.send(safeStringify({ type: "error", operationId, message: "Missing 'text' field" }));
             return;
           }
-          killActiveChild();
-          const child = handleQuery({ ws, text: msg.text, workspace, spawn: spawnPi });
-          activeChild = child;
+          const child = handleQuery({ ws, operationId, text: msg.text, workspace, spawn: spawnPi });
+          activeChildren.set(operationId, child);
           childProcesses.add(child);
+          child.on("exit", () => {
+            activeChildren.delete(operationId);
+            childProcesses.delete(child);
+          });
           break;
         }
 
@@ -249,6 +269,7 @@ function startBridge(port, host) {
           ws.send(
             safeStringify({
               type: "error",
+              operationId,
               message: `Unknown type: ${/** @type {{type: string}} */ (msg).type}`,
             }),
           );
@@ -257,7 +278,7 @@ function startBridge(port, host) {
 
     ws.on("close", () => {
       log(`🔌 Chrome extension disconnected`);
-      killActiveChild();
+      killAllChildren();
     });
 
     ws.on("error", (/** @type {Error} */ err) => {

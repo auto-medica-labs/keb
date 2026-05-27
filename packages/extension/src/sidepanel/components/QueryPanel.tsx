@@ -4,22 +4,15 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Loader2, Wrench, CheckCircle2 } from "lucide-react";
 import MarkdownRenderer from "@/components/MarkdownRenderer";
-
-type TimelineEntry = { type: "tool"; text: string; cls: string } | { type: "text"; text: string };
-
-type QueryEntry = {
-  question: string;
-  timeline: TimelineEntry[];
-};
+import type { ActiveOperation } from "../App";
 
 interface QueryPanelProps {
-  isQuerying: boolean;
-  results: QueryEntry[];
+  operations: ActiveOperation[];
   connected: boolean;
   onQuery: (text: string) => void;
 }
 
-export default function QueryPanel({ isQuerying, results, connected, onQuery }: QueryPanelProps) {
+export default function QueryPanel({ operations, connected, onQuery }: QueryPanelProps) {
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -31,9 +24,12 @@ export default function QueryPanel({ isQuerying, results, connected, onQuery }: 
     inputRef.current?.focus();
   }
 
+  const hasInProgress = operations.some((op) => !op.done);
+  const hasAnyOps = operations.length > 0;
+
   return (
     <div className="flex flex-col h-full gap-3">
-      <div className="flex-shrink-0">
+      <div className="shrink-0">
         <label className="text-xs text-muted-foreground font-medium block mb-1.5">
           Ask the knowledge base
         </label>
@@ -45,24 +41,24 @@ export default function QueryPanel({ isQuerying, results, connected, onQuery }: 
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
-            disabled={isQuerying}
+            disabled={hasInProgress}
             className="flex-1 h-9 text-sm"
           />
           <Button
             onClick={handleSubmit}
-            disabled={!connected || !text.trim() || isQuerying}
+            disabled={!connected || !text.trim() || hasInProgress}
             className="h-9"
           >
-            {isQuerying ? <Loader2 className="size-4 animate-spin" /> : "Ask"}
+            {hasInProgress ? <Loader2 className="size-4 animate-spin" /> : "Ask"}
           </Button>
         </div>
       </div>
 
-      {results.length > 0 && (
+      {hasAnyOps && (
         <div className="flex-1 min-h-0 border rounded-md bg-muted/50 flex flex-col">
           {/* Status header */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b flex-shrink-0">
-            {isQuerying ? (
+          <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
+            {hasInProgress ? (
               <>
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
                 <span className="text-xs text-muted-foreground">
@@ -80,24 +76,24 @@ export default function QueryPanel({ isQuerying, results, connected, onQuery }: 
           {/* Scrollable timeline */}
           <ScrollArea className="flex-1 min-h-0">
             <div className="p-3 leading-relaxed space-y-1">
-              {results.map((r, i) => (
-                <div key={i}>
+              {operations.map((op) => (
+                <div key={op.id}>
                   {/* Question */}
                   <div className="bg-accent border-l-2 border-primary rounded-r-md px-3 py-2 text-sm font-medium mb-2">
-                    {r.question}
+                    {op.label}
                   </div>
 
                   {/* Timeline — chronological interleave of tool calls & agent output */}
-                  {r.timeline.map((entry, j) =>
+                  {op.timeline.map((entry, j) =>
                     entry.type === "tool" ? (
                       <div
                         key={j}
                         className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}
                       >
                         {entry.cls.includes("green") ? (
-                          <CheckCircle2 className="size-3 flex-shrink-0" />
+                          <CheckCircle2 className="size-3 shrink-0" />
                         ) : (
-                          <Wrench className="size-3 flex-shrink-0" />
+                          <Wrench className="size-3 shrink-0" />
                         )}
                         {entry.text}
                       </div>

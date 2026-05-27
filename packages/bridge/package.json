@@ -9,6 +9,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "nanoid": "^5.1.11",
     "ws": "^8.21.0"
   },
   "devDependencies": {

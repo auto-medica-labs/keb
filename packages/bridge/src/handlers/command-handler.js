@@ -18,6 +18,7 @@ import { safeStringify, log, isUrl, findByUrl } from "../lib/utils.js";
  *
  * @param {object} opts
  * @param {import('ws').WebSocket} opts.ws       - Connected extension client
+ * @param {string} opts.operationId              - Client-assigned operation ID for correlation
  * @param {'add'|'repair'} opts.command           - Which command to execute
  * @param {string} [opts.url]                     - URL for 'add' commands
  * @param {string|undefined} opts.workspace       - Target workspace
@@ -25,12 +26,19 @@ import { safeStringify, log, isUrl, findByUrl } from "../lib/utils.js";
  * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn - pi process spawner
  * @returns {import('node:child_process').ChildProcess|null} Spawned child, or null if short-circuited
  */
-export function handleCommand({ ws, command, url, workspace, kbStore, spawn }) {
+export function handleCommand({ ws, operationId, command, url, workspace, kbStore, spawn }) {
   if (command === "add") {
-    return handleAdd({ ws, url: /** @type {string} */ (url), workspace, kbStore, spawn });
+    return handleAdd({
+      ws,
+      operationId,
+      url: /** @type {string} */ (url),
+      workspace,
+      kbStore,
+      spawn,
+    });
   }
   if (command === "repair") {
-    return handleRepair({ ws, workspace, kbStore, spawn });
+    return handleRepair({ ws, operationId, workspace, kbStore, spawn });
   }
   return null;
 }
@@ -55,7 +63,17 @@ export function handleCommand({ ws, command, url, workspace, kbStore, spawn }) {
  * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn
  * @returns {import('node:child_process').ChildProcess|null}
  */
-function handleAdd({ ws, url, workspace, kbStore, spawn }) {
+/**
+ * @param {object} opts
+ * @param {import('ws').WebSocket} opts.ws
+ * @param {string} opts.operationId
+ * @param {string} opts.url
+ * @param {string|undefined} opts.workspace
+ * @param {import('../ports/kb-store.js').KbStore} opts.kbStore
+ * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn
+ * @returns {import('node:child_process').ChildProcess|null}
+ */
+function handleAdd({ ws, operationId, url, workspace, kbStore, spawn }) {
   // Dedup check for HTTP URLs: scan registry before spawning pi
   if (isUrl(url)) {
     const reg = kbStore.readRegistry(workspace);
@@ -68,6 +86,7 @@ function handleAdd({ ws, url, workspace, kbStore, spawn }) {
         ws.send(
           safeStringify({
             type: "event",
+            operationId,
             data: {
               type: "message_update",
               assistantMessageEvent: {
@@ -77,7 +96,7 @@ function handleAdd({ ws, url, workspace, kbStore, spawn }) {
             },
           }),
         );
-        ws.send(safeStringify({ type: "done", command: "add" }));
+        ws.send(safeStringify({ type: "done", operationId, command: "add" }));
         return null;
       }
 
@@ -91,17 +110,18 @@ function handleAdd({ ws, url, workspace, kbStore, spawn }) {
   const prompt = workspace ? `/kb-add -w ${workspace} ${url}` : `/kb-add ${url}`;
 
   return spawn(prompt, "add", {
+    operationId,
     onEvent: (event) => {
-      ws.send(safeStringify({ type: "event", data: event }));
+      ws.send(safeStringify({ type: "event", operationId, data: event }));
     },
     onDone: () => {
-      ws.send(safeStringify({ type: "done", command: "add" }));
+      ws.send(safeStringify({ type: "done", operationId, command: "add" }));
     },
     onStderr: (text) => {
-      ws.send(safeStringify({ type: "stderr", text }));
+      ws.send(safeStringify({ type: "stderr", operationId, text }));
     },
     onError: (message) => {
-      ws.send(safeStringify({ type: "error", message }));
+      ws.send(safeStringify({ type: "error", operationId, message }));
     },
   });
 }
@@ -122,7 +142,16 @@ function handleAdd({ ws, url, workspace, kbStore, spawn }) {
  * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn
  * @returns {import('node:child_process').ChildProcess|null}
  */
-function handleRepair({ ws, workspace, kbStore, spawn }) {
+/**
+ * @param {object} opts
+ * @param {import('ws').WebSocket} opts.ws
+ * @param {string} opts.operationId
+ * @param {string|undefined} opts.workspace
+ * @param {import('../ports/kb-store.js').KbStore} opts.kbStore
+ * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn
+ * @returns {import('node:child_process').ChildProcess|null}
+ */
+function handleRepair({ ws, operationId, workspace, kbStore, spawn }) {
   const reg = kbStore.readRegistry(workspace);
   const pendingCount = Object.values(reg).filter((e) => e.compiled === false).length;
 
@@ -130,6 +159,7 @@ function handleRepair({ ws, workspace, kbStore, spawn }) {
     ws.send(
       safeStringify({
         type: "event",
+        operationId,
         data: {
           type: "message_update",
           assistantMessageEvent: {
@@ -141,7 +171,7 @@ function handleRepair({ ws, workspace, kbStore, spawn }) {
         },
       }),
     );
-    ws.send(safeStringify({ type: "done", command: "repair" }));
+    ws.send(safeStringify({ type: "done", operationId, command: "repair" }));
     return null;
   }
 
@@ -150,17 +180,18 @@ function handleRepair({ ws, workspace, kbStore, spawn }) {
   const prompt = workspace ? `/kb-repair -w ${workspace}` : `/kb-repair`;
 
   return spawn(prompt, "repair", {
+    operationId,
     onEvent: (event) => {
-      ws.send(safeStringify({ type: "event", data: event }));
+      ws.send(safeStringify({ type: "event", operationId, data: event }));
     },
     onDone: () => {
-      ws.send(safeStringify({ type: "done", command: "repair" }));
+      ws.send(safeStringify({ type: "done", operationId, command: "repair" }));
     },
     onStderr: (text) => {
-      ws.send(safeStringify({ type: "stderr", text }));
+      ws.send(safeStringify({ type: "stderr", operationId, text }));
     },
     onError: (message) => {
-      ws.send(safeStringify({ type: "error", message }));
+      ws.send(safeStringify({ type: "error", operationId, message }));
     },
   });
 }

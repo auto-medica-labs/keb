@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Keb",
-  "version": "0.0.3",
-  "description": "A personal knowledge base that compiles markdown documents and URLs into structured, interlinked wiki pages using your LLM",
+  "version": "0.0.4",
+  "description": "A personal knowledge base that compiles markdown documents and URLs into structured, interlinked wiki pages using your LLM.",
   "permissions": ["storage", "sidePanel", "contextMenus", "tabs", "scripting"],
   "host_permissions": ["<all_urls>"],
   "icons": {

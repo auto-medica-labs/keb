@@ -220,13 +220,36 @@ export default function App() {
     const client = initWS();
     client.connect();
 
-    chrome.runtime.onMessage.addListener((msg: { type: string; url?: string }) => {
-      if (msg.type === "add-url-from-context" && msg.url) {
-        setActiveTab("add");
-        localStorage.setItem("kb:context-url", msg.url);
-        window.dispatchEvent(new Event("kb:context-url"));
-      }
-    });
+    chrome.runtime.onMessage.addListener(
+      (msg: { type: string; url?: string; storageKey?: string }) => {
+        if (msg.type === "add-url-from-context" && msg.url) {
+          setActiveTab("add");
+          localStorage.setItem("kb:context-url", msg.url);
+          window.dispatchEvent(new Event("kb:context-url"));
+        }
+
+        // Handle captured page content from context menu
+        if (msg.type === "add-content-from-context" && msg.storageKey) {
+          (async () => {
+            const stored = await chrome.storage.local.get(msg.storageKey!);
+            const data = stored[msg.storageKey!] as
+              | { html: string; title: string; url: string }
+              | undefined;
+            // Clean up storage immediately
+            chrome.storage.local.remove(msg.storageKey!);
+
+            if (!data || !data.html) {
+              console.warn("[keb] No captured content found in storage");
+              return;
+            }
+
+            setActiveTab("add");
+            // Auto-start the add-content operation
+            handleAddContent(data.html, data.url, data.title);
+          })();
+        }
+      },
+    );
 
     return () => {
       client.disconnect();
@@ -281,6 +304,46 @@ export default function App() {
     // Replace previous add/repair ops, keep query ops untouched
     setOperations((prev) => [...prev.filter((o) => o.type === "query"), op]);
     wsRef.current?.add(url, createOperationCallbacks(operationId), operationId);
+  }
+
+  function handleAddContent(html: string, pageUrl: string, pageTitle: string) {
+    if (doneTimeoutRef.current) {
+      clearTimeout(doneTimeoutRef.current);
+      doneTimeoutRef.current = null;
+    }
+
+    setAgentStatus("compiling");
+
+    const label = pageTitle || pageUrl || "Page content";
+    const operationId = nanoid();
+
+    // Truncate label if too long
+    const shortLabel = label.length > 30 ? label.slice(0, 30) + "..." : label;
+
+    const op: ActiveOperation = {
+      id: operationId,
+      type: "add",
+      label,
+      timeline: [
+        {
+          type: "tool",
+          text: `adding content: "${shortLabel}"`,
+          cls: "text-blue-400",
+        },
+        { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
+      ],
+      done: false,
+    };
+
+    // Replace previous add/repair ops, keep query ops untouched
+    setOperations((prev) => [...prev.filter((o) => o.type === "query"), op]);
+    wsRef.current?.addContent(
+      html,
+      pageUrl,
+      pageTitle,
+      createOperationCallbacks(operationId),
+      operationId,
+    );
   }
 
   function handleRepair() {

@@ -3,7 +3,8 @@
   "name": "Keb",
   "version": "0.0.3",
   "description": "A personal knowledge base that compiles markdown documents and URLs into structured, interlinked wiki pages using your LLM",
-  "permissions": ["storage", "sidePanel", "contextMenus", "tabs"],
+  "permissions": ["storage", "sidePanel", "contextMenus", "tabs", "scripting"],
+  "host_permissions": ["<all_urls>"],
   "icons": {
     "16": "icons/icon-16.png",
     "48": "icons/icon-48.png",

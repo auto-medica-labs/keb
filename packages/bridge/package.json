@@ -9,6 +9,7 @@
     "typecheck": "tsc -b"
   },
   "dependencies": {
+    "@kreuzberg/html-to-markdown-node": "^3.4.0",
     "nanoid": "^5.1.11",
     "ws": "^8.21.0"
   },

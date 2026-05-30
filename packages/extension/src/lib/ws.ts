@@ -12,6 +12,14 @@ import type { RegistryEntry, Summary, Concept } from "./store";
 
 export type WSMessage =
   | { type: "add"; url: string; operationId: string; workspace?: string }
+  | {
+      type: "add-content";
+      html: string;
+      url?: string;
+      title?: string;
+      operationId: string;
+      workspace?: string;
+    }
   | { type: "query"; text: string; operationId: string; workspace?: string }
   | { type: "repair"; operationId: string; workspace?: string }
   | { type: "sync"; workspace?: string };
@@ -153,6 +161,28 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "add", operationId: id, url })) {
+      callbacks.onError("Not connected to KB bridge");
+      this.operations.delete(id);
+    }
+    return id;
+  }
+
+  /**
+   * Start an 'add-content' operation (captured page HTML).
+   * Sends raw page HTML to the bridge, which converts it to markdown
+   * and compiles it via /kb-add-content.
+   * @param operationId - Optional pre-generated ID.
+   */
+  addContent(
+    html: string,
+    url: string,
+    title: string,
+    callbacks: OperationCallbacks,
+    operationId?: string,
+  ): string {
+    const id = operationId || nanoid();
+    this.operations.set(id, callbacks);
+    if (!this._send({ type: "add-content", operationId: id, html, url, title })) {
       callbacks.onError("Not connected to KB bridge");
       this.operations.delete(id);
     }

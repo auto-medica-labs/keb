@@ -29,6 +29,7 @@ import { createFilesystemKbStore } from "./adapters/filesystem-kb-store.js";
 import { spawnPi } from "./adapters/pi-rpc-spawner.js";
 import { handleQuery } from "./handlers/query-handler.js";
 import { handleCommand } from "./handlers/command-handler.js";
+import { handleAddContent } from "./handlers/add-content-handler.js";
 import { handleSync } from "./handlers/sync-handler.js";
 
 // ---------------------------------------------------------------------------
@@ -65,7 +66,17 @@ import { handleSync } from "./handlers/sync-handler.js";
  */
 
 /**
- * @typedef {BridgeAddMessage|BridgeQueryMessage|BridgeSyncMessage|BridgeRepairMessage} BridgeMessage
+ * @typedef {Object} BridgeAddContentMessage
+ * @property {'add-content'} type
+ * @property {string} operationId
+ * @property {string} html
+ * @property {string} [url]
+ * @property {string} [title]
+ * @property {string} [workspace]
+ */
+
+/**
+ * @typedef {BridgeAddMessage|BridgeQueryMessage|BridgeSyncMessage|BridgeRepairMessage|BridgeAddContentMessage} BridgeMessage
  */
 
 // ---------------------------------------------------------------------------
@@ -224,6 +235,38 @@ function startBridge(port, host) {
             command: "repair",
             workspace,
             kbStore,
+            spawn: spawnPi,
+          });
+          if (child) {
+            activeChildren.set(operationId, child);
+            childProcesses.add(child);
+            child.on("exit", () => {
+              activeChildren.delete(operationId);
+              childProcesses.delete(child);
+            });
+          }
+          break;
+        }
+
+        // ── Add-content action (captured page HTML) ──────────────────
+        case "add-content": {
+          if (!msg.html) {
+            ws.send(
+              safeStringify({
+                type: "error",
+                operationId,
+                message: "Missing 'html' field",
+              }),
+            );
+            return;
+          }
+          const child = handleAddContent({
+            ws,
+            operationId,
+            html: msg.html,
+            url: msg.url,
+            title: msg.title,
+            workspace,
             spawn: spawnPi,
           });
           if (child) {

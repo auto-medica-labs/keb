@@ -3,7 +3,7 @@ import { BarChart3, TriangleAlert, Cog, Search } from "lucide-react";
 interface FooterProps {
   docCount: number;
   conceptCount: number;
-  pendingCount: number;
+  hasPending: boolean;
   agentStatus: "compiling" | "repairing" | "thinking" | "";
   onRepair: () => void;
 }
@@ -36,7 +36,7 @@ function AgentStatusLabel({ status }: { status: FooterProps["agentStatus"] }) {
 export default function Footer({
   docCount,
   conceptCount,
-  pendingCount,
+  hasPending,
   agentStatus,
   onRepair,
 }: FooterProps) {
@@ -47,7 +47,7 @@ export default function Footer({
           <BarChart3 className="size-3" />
           {docCount} docs · {conceptCount} concepts
         </span>
-        {pendingCount > 0 && (
+        {hasPending && (
           <button
             onClick={onRepair}
             disabled={agentStatus !== ""}
@@ -59,7 +59,7 @@ export default function Footer({
             }
           >
             <TriangleAlert className="size-3" />
-            {pendingCount} pending
+            pending
           </button>
         )}
       </span>

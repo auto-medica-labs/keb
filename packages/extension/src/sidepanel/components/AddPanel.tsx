@@ -2,8 +2,8 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, CheckCircle2, Wrench } from "lucide-react";
-import MarkdownRenderer from "@/components/MarkdownRenderer";
+import { Loader2, CheckCircle2 } from "lucide-react";
+import OperationTimeline from "./OperationTimeline";
 import type { ActiveOperation } from "../App";
 
 interface AddPanelProps {
@@ -133,34 +133,4 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
   );
 }
 
-/** Renders the timeline entries for a single operation (no outer card border). */
-function OperationTimeline({ operation }: { operation: ActiveOperation }) {
-  const { timeline } = operation;
 
-  return (
-    <div>
-      {/* Timeline entries */}
-      {timeline.map((entry, i) =>
-        entry.type === "tool" ? (
-          <div
-            key={i}
-            className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}${i > 0 && timeline[i - 1].type === "text" ? " mt-3" : ""}`}
-          >
-            {entry.cls.includes("green") ? (
-              <CheckCircle2 className="size-3 shrink-0" />
-            ) : entry.cls.includes("red") ? (
-              <Wrench className="size-3 shrink-0 text-red-400" />
-            ) : (
-              <Wrench className="size-3 shrink-0" />
-            )}
-            {entry.text}
-          </div>
-        ) : (
-          <div key={i} className="py-2 border-b border-border last:border-b-0">
-            <MarkdownRenderer text={entry.text} />
-          </div>
-        ),
-      )}
-    </div>
-  );
-}

@@ -2,8 +2,8 @@ import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, Wrench, CheckCircle2 } from "lucide-react";
-import MarkdownRenderer from "@/components/MarkdownRenderer";
+import { Loader2, CheckCircle2 } from "lucide-react";
+import OperationTimeline from "./OperationTimeline";
 import type { ActiveOperation } from "../App";
 
 interface QueryPanelProps {
@@ -84,27 +84,7 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
                   </div>
 
                   {/* Timeline — chronological interleave of tool calls & agent output */}
-                  {op.timeline.map((entry, j) =>
-                    entry.type === "tool" ? (
-                      <div
-                        key={j}
-                        className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}${j > 0 && op.timeline[j - 1].type === "text" ? " mt-3" : ""}`}
-                      >
-                        {entry.cls.includes("green") ? (
-                          <CheckCircle2 className="size-3 shrink-0" />
-                        ) : entry.cls.includes("red") ? (
-                          <Wrench className="size-3 shrink-0 text-red-400" />
-                        ) : (
-                          <Wrench className="size-3 shrink-0" />
-                        )}
-                        {entry.text}
-                      </div>
-                    ) : (
-                      <div key={j} className="py-2 border-b border-border last:border-b-0">
-                        <MarkdownRenderer text={entry.text} />
-                      </div>
-                    ),
-                  )}
+                  <OperationTimeline operation={op} />
                 </div>
               ))}
             </div>

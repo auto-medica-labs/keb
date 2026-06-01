@@ -54,7 +54,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("add");
   const [docCount, setDocCount] = useState(0);
   const [conceptCount, setConceptCount] = useState(0);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [hasPending, setHasPending] = useState(false);
   const [agentStatus, setAgentStatus] = useState<"compiling" | "repairing" | "thinking" | "">("");
 
   // ── Auth / config state ───────────────────────────────────────
@@ -186,10 +186,10 @@ export default function App() {
     setKBState(data).then(() => {
       setDocCount(Object.keys(data.summaries || {}).length);
       setConceptCount(Object.keys(data.concepts || {}).length);
-      const pending = Object.values(data.registry || {}).filter(
+      const pending = Object.values(data.registry || {}).some(
         (e: RegistryEntry) => !isEntryCompiled(e),
-      ).length;
-      setPendingCount(pending);
+      );
+      setHasPending(pending);
       // In hosted mode, server returns workspaces including the auth user's
       if (bridgeMode === "hosted" && data.workspaces?.length) {
         // Auto-switch workspace to the authenticated user's (server enforces this)
@@ -576,7 +576,7 @@ export default function App() {
       <Footer
         docCount={docCount}
         conceptCount={conceptCount}
-        pendingCount={pendingCount}
+        hasPending={hasPending}
         agentStatus={agentStatus}
         onRepair={handleRepair}
       />

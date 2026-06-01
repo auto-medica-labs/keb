@@ -6,10 +6,11 @@
   "scripts": {
     "dev": "pnpm --filter @keb/extension dev",
     "build": "pnpm --filter @keb/extension --filter @keb/landing build",
+    "build:pi-kb": "pnpm --filter @keb/bridge build:pi-kb",
     "typecheck": "pnpm --filter './packages/*' typecheck",
     "preview": "pnpm --filter @keb/extension preview",
-    "bridge": "pnpm --filter @keb/bridge start",
-    "bridge:dev": "pnpm --filter @keb/bridge dev",
+    "bridge": "pnpm --filter @keb/bridge build:pi-kb && pnpm --filter @keb/bridge start",
+    "bridge:dev": "pnpm --filter @keb/bridge build:pi-kb && pnpm --filter @keb/bridge dev",
     "lint": "oxlint",
     "format": "oxfmt --write packages",
     "format:check": "oxfmt --check packages"

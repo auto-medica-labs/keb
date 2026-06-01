@@ -146,7 +146,7 @@ Install [Keb from the Chrome Web Store](https://chromewebstore.google.com/detail
 | `pnpm dev` | Vite dev server for UI development |
 | `pnpm bridge` | Start the WebSocket bridge server |
 | `pnpm bridge:dev` | Start bridge with auto-restart on changes |
-| `pnpm build:pi-kb` | Compile pi-kb standalone adapter (runs automatically before bridge start) |
+| `pnpm build:pi-kb` | Compile pi-kb standalone adapter (automatically runs before `pnpm bridge` and `pnpm bridge:dev`) |
 | `pnpm typecheck` | Type-check both packages (tsc + JSDoc) |
 | `pnpm lint` | Lint with oxlint (no-unused-vars, no-explicit-any) |
 | `pnpm format` | Auto-format all files with oxfmt |

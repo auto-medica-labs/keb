@@ -85,7 +85,7 @@ import { FilesystemStore } from "../../../pi-kb/dist/standalone/extensions/kb/ad
 cd packages/pi-kb
 git pull origin main          # get latest
 cd ../bridge
-npm run build:pi-kb            # recompile standalone adapter
+pnpm build:pi-kb            # recompile standalone adapter
 # commit the updated submodule pointer in the keb repo
 ```
 
@@ -124,13 +124,14 @@ Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses J
 git clone --recurse-submodules https://github.com/auto-medica-labs/keb.git
 cd keb
 pnpm install
-pnpm build          # builds extension + compiles pi-kb standalone
+pnpm build          # builds extension
+pnpm build:pi-kb    # compiles pi-kb standalone adapter
 ```
 
 ### Day-to-day
 
 ```bash
-# Bridge dev (auto-restarts on file changes)
+# Bridge dev (auto-restarts on file changes, builds pi-kb automatically)
 pnpm bridge:dev
 
 # Extension dev (Vite HMR)
@@ -143,6 +144,8 @@ pnpm typecheck
 pnpm lint
 pnpm format
 ```
+
+`pnpm bridge` and `pnpm bridge:dev` are defined in the root `package.json` and run `build:pi-kb` before starting the bridge. The bridge package itself has no `prestart`/`predev` hooks — the root orchestrates both steps.
 
 ### Before committing
 
@@ -247,7 +250,7 @@ The Dockerfile has four stages:
 ## Troubleshooting
 
 ### `Cannot find module '.../filesystem-store.js'`
-Run `npm run build:pi-kb` to compile the submodule. This runs automatically on `npm start` but you may need to run it manually after a fresh clone.
+Run `pnpm build:pi-kb` to compile the submodule. This runs automatically via `pnpm bridge` but you may need to run it manually after a fresh clone.
 
 ### `MODULE_TYPELESS_PACKAGE_JSON` warning
 The compiled standalone output needs a `package.json` with `{"type":"module"}`. The `build:pi-kb` script creates this automatically.

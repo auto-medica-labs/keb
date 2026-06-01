@@ -9,15 +9,21 @@ import {
   type BridgeEvent,
   type OperationCallbacks,
   type SyncResult,
+  type WSClientConfig,
 } from "../lib/ws";
 import {
   setKBState,
   getConfig,
   setConfig,
+  getBridgeConfig,
+  setBridgeConfig,
   isEntryCompiled,
   type RegistryEntry,
+  type BridgeMode,
 } from "../lib/store";
 import Header from "./components/Header";
+import AuthPanel from "./components/AuthPanel";
+import SettingsPanel from "./components/SettingsPanel";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddPanel from "./components/AddPanel";
 import QueryPanel from "./components/QueryPanel";
@@ -42,6 +48,7 @@ export type ActiveOperation = {
 };
 
 export default function App() {
+  // ── UI state ──────────────────────────────────────────────────
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const [workspace, setWorkspaceState] = useState("default");
   const [activeTab, setActiveTab] = useState<ActiveTab>("add");
@@ -50,7 +57,15 @@ export default function App() {
   const [pendingCount, setPendingCount] = useState(0);
   const [agentStatus, setAgentStatus] = useState<"compiling" | "repairing" | "thinking" | "">("");
 
-  // Operations-driven state — each concurrent operation has its own card
+  // ── Auth / config state ───────────────────────────────────────
+  const [bridgeMode, setBridgeMode] = useState<BridgeMode>("local");
+  const [bridgeUrl, setBridgeUrl] = useState("ws://127.0.0.1:9876");
+  const [authToken, setAuthToken] = useState<string | undefined>(undefined);
+  const [username, setUsername] = useState<string | undefined>(undefined);
+  const [showSettings, setShowSettings] = useState(false);
+  const [appLoading, setAppLoading] = useState(true);
+
+  // ── Operations state ──────────────────────────────────────────
   const [operations, setOperations] = useState<ActiveOperation[]>([]);
 
   const wsRef = useRef<WSClient | null>(null);
@@ -59,9 +74,11 @@ export default function App() {
   // Refs for latest state (avoids stale closure in WS callbacks)
   const operationsRef = useRef<ActiveOperation[]>([]);
 
+  // ── Derived: does the user need to authenticate? ──────────────
+  const needsAuth = bridgeMode === "hosted" && !authToken;
+
   // ── Operation helpers ───────────────────────────────────────────
 
-  /** Append a tool entry to a specific operation's timeline. */
   function appendToolToOperation(opId: string, text: string, cls: string) {
     setOperations((prev) =>
       prev.map((op) =>
@@ -70,7 +87,6 @@ export default function App() {
     );
   }
 
-  /** Append text delta to a specific operation's timeline. */
   function appendTextToOperation(opId: string, delta: string) {
     setOperations((prev) =>
       prev.map((op) => {
@@ -87,7 +103,6 @@ export default function App() {
     );
   }
 
-  /** Mark an operation as done. */
   function markOperationDone(opId: string, command: string) {
     setOperations((prev) =>
       prev.map((op) => {
@@ -109,7 +124,6 @@ export default function App() {
     );
   }
 
-  /** Mark an operation as errored. */
   function markOperationError(opId: string, message: string) {
     setOperations((prev) =>
       prev.map((op) =>
@@ -127,25 +141,19 @@ export default function App() {
     );
   }
 
-  /** Build per-operation callbacks for a given operation ID. */
   function createOperationCallbacks(opId: string): OperationCallbacks {
     return {
       onEvent: (event: BridgeEvent) => {
         const etype = event.type;
-
-        // ── Text deltas ──
         if (etype === "message_update" && event.assistantMessageEvent?.type === "text_delta") {
           appendTextToOperation(opId, event.assistantMessageEvent.delta || "");
           return;
         }
-
-        // ── Tool execution events ──
         if (etype === "tool_execution_start") {
           const toolName = event.toolName || "unknown tool";
           appendToolToOperation(opId, `Running ${toolName}...`, "text-yellow-400");
           return;
         }
-
         if (etype === "tool_execution_end") {
           const toolName = event.toolName || "unknown tool";
           appendToolToOperation(opId, `Finished ${toolName}`, "text-green-400");
@@ -154,23 +162,15 @@ export default function App() {
       },
       onDone: (command: string) => {
         markOperationDone(opId, command);
-
         if (command === "add" || command === "repair") {
-          // Re-sync KB state after add/repair
-          setTimeout(() => {
-            wsRef.current?.sync();
-          }, 500);
+          setTimeout(() => wsRef.current?.sync(), 500);
           setAgentStatus("");
-
           if (command === "add" && doneTimeoutRef.current) {
             clearTimeout(doneTimeoutRef.current);
             doneTimeoutRef.current = null;
           }
         }
-
-        if (command === "query") {
-          setAgentStatus("");
-        }
+        if (command === "query") setAgentStatus("");
       },
       onError: (message: string) => {
         markOperationError(opId, message);
@@ -179,92 +179,6 @@ export default function App() {
       },
     };
   }
-
-  // ── Initialize WS client (runs once) ──────────────────────────
-
-  const initWS = useCallback(() => {
-    const client = new WSClient({
-      onStatusChange: (status) => {
-        setConnectionStatus(status);
-        if (status === "connected") {
-          toast.success("Connected to Keb bridge server");
-        } else if (status === "disconnected") {
-          toast.error("Disconnected from Keb bridge server");
-        } else if (status === "max_retries") {
-          toast.error(
-            "Bridge server not running. Start bridge server & reopen extension to retry.",
-          );
-        }
-      },
-      // Fallback: events without operationId (shouldn't happen with new bridge)
-      onEvent: (_event: BridgeEvent) => {},
-      onDone: (_command: string) => {},
-      onError: (message: string) => {
-        toast.error(message);
-      },
-      onSyncResult: (data: SyncResult) => handleSyncResult(data),
-    });
-    wsRef.current = client;
-    return client;
-  }, []);
-
-  // ── Connect on mount ──────────────────────────────────────────
-
-  useEffect(() => {
-    (async () => {
-      const config = await getConfig();
-      if (config.workspace && config.workspace !== "default") {
-        setWorkspaceState(config.workspace);
-      }
-    })();
-    const client = initWS();
-    client.connect();
-
-    chrome.runtime.onMessage.addListener(
-      (msg: { type: string; url?: string; storageKey?: string }) => {
-        if (msg.type === "add-url-from-context" && msg.url) {
-          setActiveTab("add");
-          localStorage.setItem("kb:context-url", msg.url);
-          window.dispatchEvent(new Event("kb:context-url"));
-        }
-
-        // Handle captured page content from context menu
-        if (msg.type === "add-content-from-context" && msg.storageKey) {
-          (async () => {
-            const stored = await chrome.storage.local.get(msg.storageKey!);
-            const data = stored[msg.storageKey!] as
-              | { html: string; title: string; url: string }
-              | undefined;
-            // Clean up storage immediately
-            chrome.storage.local.remove(msg.storageKey!);
-
-            if (!data || !data.html) {
-              console.warn("[keb] No captured content found in storage");
-              return;
-            }
-
-            setActiveTab("add");
-            // Auto-start the add-content operation
-            handleAddContent(data.html, data.url, data.title);
-          })();
-        }
-      },
-    );
-
-    return () => {
-      client.disconnect();
-      if (doneTimeoutRef.current) {
-        clearTimeout(doneTimeoutRef.current);
-        doneTimeoutRef.current = null;
-      }
-    };
-  }, [initWS]);
-
-  // ── Keep refs in sync with state every render ─────────────────
-
-  useEffect(() => {
-    operationsRef.current = operations;
-  }, [operations]);
 
   // ── Sync result handler ───────────────────────────────────────
 
@@ -276,7 +190,182 @@ export default function App() {
         (e: RegistryEntry) => !isEntryCompiled(e),
       ).length;
       setPendingCount(pending);
+      // In hosted mode, server returns workspaces including the auth user's
+      if (bridgeMode === "hosted" && data.workspaces?.length) {
+        // Auto-switch workspace to the authenticated user's (server enforces this)
+      }
     });
+  }
+
+  // ── Bridge config helpers ─────────────────────────────────────
+
+  /** Build WSClientConfig from current auth/config state. */
+  function getWSConfig(): WSClientConfig {
+    return {
+      mode: bridgeMode,
+      bridgeUrl,
+      token: authToken,
+    };
+  }
+
+  /** Store updated bridge config and sync state. React state is set
+   *  synchronously; chrome.storage is persisted in the background. */
+  function persistBridgeConfig(updates: Partial<{ mode: BridgeMode; bridgeUrl: string; token?: string; username?: string }>) {
+    // Update React state immediately so UI responds without waiting for storage I/O
+    if (updates.mode !== undefined) setBridgeMode(updates.mode);
+    if (updates.bridgeUrl !== undefined) setBridgeUrl(updates.bridgeUrl);
+    // Use `in` instead of `!== undefined` so explicitly setting to undefined (logout) works
+    if ("token" in updates) setAuthToken(updates.token);
+    if ("username" in updates) setUsername(updates.username);
+    // Persist to chrome.storage in the background
+    setBridgeConfig(updates);
+  }
+
+  // ── Create WS client and connect ──────────────────────────────
+
+  const connectWithConfig = useCallback(
+    (config: WSClientConfig) => {
+      // Disconnect existing
+      if (wsRef.current) wsRef.current.disconnect();
+
+      const client = new WSClient(
+        {
+          onStatusChange: (status) => {
+            setConnectionStatus(status);
+            if (status === "connected") {
+              toast.success("Connected to Keb bridge server");
+            } else if (status === "disconnected") {
+              toast.error("Disconnected from Keb bridge server");
+            } else if (status === "max_retries") {
+              toast.error("Bridge server not running. Start bridge server & reopen extension to retry.");
+            }
+          },
+          onAuthOk: (uname: string) => {
+            setUsername(uname);
+            persistBridgeConfig({ username: uname });
+          },
+          onAuthError: (message: string) => {
+            toast.error(`Auth failed: ${message}`);
+            // Clear token so user sees auth screen again
+            persistBridgeConfig({ token: undefined, username: undefined });
+          },
+          onEvent: (_event: BridgeEvent) => {},
+          onDone: (_command: string) => {},
+          onError: (message: string) => toast.error(message),
+          onSyncResult: (data: SyncResult) => handleSyncResult(data),
+        },
+        config,
+      );
+
+      wsRef.current = client;
+      client.connect();
+    },
+    [],
+  );
+
+  // ── Initialization ────────────────────────────────────────────
+
+  useEffect(() => {
+    (async () => {
+      // Load saved KB config (workspace)
+      const kbConfig = await getConfig();
+      if (kbConfig.workspace && kbConfig.workspace !== "default") {
+        setWorkspaceState(kbConfig.workspace);
+      }
+
+      // Load bridge config
+      const bc = await getBridgeConfig();
+      setBridgeMode(bc.mode || "local");
+      setBridgeUrl(bc.bridgeUrl || "ws://127.0.0.1:9876");
+      if (bc.token) setAuthToken(bc.token);
+      if (bc.username) setUsername(bc.username);
+
+      setAppLoading(false);
+    })();
+  }, []);
+
+  // ── Connect after config is loaded ────────────────────────────
+
+  useEffect(() => {
+    if (appLoading) return;
+
+    // Don't connect if hosted mode and no token — user needs to auth first
+    if (bridgeMode === "hosted" && !authToken) return;
+
+    const config = getWSConfig();
+    connectWithConfig(config);
+
+    // ── Runtime message listener (context menu) ───────────────
+    const msgListener = (msg: { type: string; url?: string; storageKey?: string }) => {
+      if (msg.type === "add-url-from-context" && msg.url) {
+        setActiveTab("add");
+        localStorage.setItem("kb:context-url", msg.url);
+        window.dispatchEvent(new Event("kb:context-url"));
+      }
+      if (msg.type === "add-content-from-context" && msg.storageKey) {
+        (async () => {
+          const stored = await chrome.storage.local.get(msg.storageKey!);
+          const data = stored[msg.storageKey!] as
+            | { html: string; title: string; url: string }
+            | undefined;
+          chrome.storage.local.remove(msg.storageKey!);
+          if (!data || !data.html) {
+            console.warn("[keb] No captured content found in storage");
+            return;
+          }
+          setActiveTab("add");
+          handleAddContent(data.html, data.url, data.title);
+        })();
+      }
+    };
+    chrome.runtime.onMessage.addListener(msgListener);
+
+    return () => {
+      chrome.runtime.onMessage.removeListener(msgListener);
+      wsRef.current?.disconnect();
+      if (doneTimeoutRef.current) {
+        clearTimeout(doneTimeoutRef.current);
+        doneTimeoutRef.current = null;
+      }
+    };
+  }, [appLoading, bridgeMode, authToken, bridgeUrl, connectWithConfig]);
+
+  // ── Keep refs in sync ────────────────────────────────────────
+
+  useEffect(() => {
+    operationsRef.current = operations;
+  }, [operations]);
+
+  // ── Auth handler (called by AuthPanel) ────────────────────────
+
+  function handleAuthenticated(token: string, uname: string) {
+    persistBridgeConfig({ token, username: uname });
+    // The useEffect watching authToken will trigger connectWithConfig
+  }
+
+  // ── Settings handlers ─────────────────────────────────────────
+
+  function handleModeChange(newMode: BridgeMode) {
+    // No-op if already in this mode (avoids unnecessary disconnect)
+    if (newMode === bridgeMode) return;
+
+    // Disconnect existing WS before switching modes
+    wsRef.current?.disconnect();
+
+    if (newMode === "local") {
+      persistBridgeConfig({ mode: "local", token: undefined, username: undefined });
+    } else {
+      persistBridgeConfig({ mode: "hosted" });
+    }
+  }
+
+  function handleLogout() {
+    persistBridgeConfig({ token: undefined, username: undefined });
+    wsRef.current?.disconnect();
+  }
+
+  function handleSwitchToLocal() {
+    handleModeChange("local");
   }
 
   // ── Action handlers ───────────────────────────────────────────
@@ -286,7 +375,6 @@ export default function App() {
       clearTimeout(doneTimeoutRef.current);
       doneTimeoutRef.current = null;
     }
-
     setAgentStatus("compiling");
 
     const operationId = nanoid();
@@ -300,8 +388,6 @@ export default function App() {
       ],
       done: false,
     };
-
-    // Replace previous add/repair ops, keep query ops untouched
     setOperations((prev) => [...prev.filter((o) => o.type === "query"), op]);
     wsRef.current?.add(url, createOperationCallbacks(operationId), operationId);
   }
@@ -311,13 +397,10 @@ export default function App() {
       clearTimeout(doneTimeoutRef.current);
       doneTimeoutRef.current = null;
     }
-
     setAgentStatus("compiling");
 
     const label = pageTitle || pageUrl || "Page content";
     const operationId = nanoid();
-
-    // Truncate label if too long
     const shortLabel = label.length > 30 ? label.slice(0, 30) + "..." : label;
 
     const op: ActiveOperation = {
@@ -325,17 +408,11 @@ export default function App() {
       type: "add",
       label,
       timeline: [
-        {
-          type: "tool",
-          text: `adding content: "${shortLabel}"`,
-          cls: "text-blue-400",
-        },
+        { type: "tool", text: `adding content: "${shortLabel}"`, cls: "text-blue-400" },
         { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
       ],
       done: false,
     };
-
-    // Replace previous add/repair ops, keep query ops untouched
     setOperations((prev) => [...prev.filter((o) => o.type === "query"), op]);
     wsRef.current?.addContent(
       html,
@@ -351,7 +428,6 @@ export default function App() {
       clearTimeout(doneTimeoutRef.current);
       doneTimeoutRef.current = null;
     }
-
     setAgentStatus("repairing");
     setActiveTab("add");
 
@@ -360,18 +436,12 @@ export default function App() {
       id: operationId,
       type: "repair",
       timeline: [
-        {
-          type: "tool",
-          text: "Repairing interrupted compilations...",
-          cls: "text-blue-400",
-        },
+        { type: "tool", text: "Repairing interrupted compilations...", cls: "text-blue-400" },
         { type: "tool", text: `Workspace: ${workspace}`, cls: "text-blue-400" },
       ],
       label: "Repair",
       done: false,
     };
-
-    // Replace previous add/repair ops, keep query ops untouched
     setOperations((prev) => [...prev.filter((o) => o.type === "query"), op]);
     wsRef.current?.repair(createOperationCallbacks(operationId), operationId);
   }
@@ -387,33 +457,73 @@ export default function App() {
       label: text,
       done: false,
     };
-
-    // Replace previous query ops, keep add/repair ops untouched
     setOperations((prev) => [...prev.filter((o) => o.type !== "query"), op]);
     wsRef.current?.query(text, createOperationCallbacks(operationId), operationId);
   }
 
   function handleSwitchWorkspace(name: string) {
+    // In hosted mode, workspace switching is disabled (server enforces it)
+    if (bridgeMode === "hosted") return;
     setWorkspaceState(name);
     wsRef.current?.setWorkspace(name);
     setConfig({ workspace: name });
     wsRef.current?.sync();
   }
 
-  // ── Derived state for panels ──────────────────────────────────
+  // ── Derived state ─────────────────────────────────────────────
 
   const addOperations = operations.filter((op) => op.type === "add" || op.type === "repair");
   const queryOperations = operations.filter((op) => op.type === "query");
 
-  // ── Render ────────────────────────────────────────────────────
+  // ── Loading screen ────────────────────────────────────────────
+
+  if (appLoading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-background">
+        <span className="text-sm text-muted-foreground">Loading...</span>
+      </div>
+    );
+  }
+
+  // ── Auth screen (hosted mode, no token) ───────────────────────
+
+  if (needsAuth) {
+    return (
+      <div className="h-screen bg-background text-foreground overflow-hidden">
+        <Toaster position="bottom-center" />
+        <AuthPanel
+          mode={bridgeMode}
+          bridgeUrl={bridgeUrl}
+          onAuthenticated={handleAuthenticated}
+          onSwitchToLocal={handleSwitchToLocal}
+        />
+      </div>
+    );
+  }
+
+  // ── Main app UI ───────────────────────────────────────────────
 
   return (
     <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
       <Toaster position="bottom-center" />
+
+      {/* Settings overlay */}
+      {showSettings && (
+        <SettingsPanel
+          config={{ mode: bridgeMode, bridgeUrl, token: authToken, username }}
+          onModeChange={handleModeChange}
+          onLogout={handleLogout}
+          onClose={() => setShowSettings(false)}
+        />
+      )}
+
       <Header
         connectionStatus={connectionStatus}
         workspace={workspace}
+        mode={bridgeMode}
+        username={username}
         onSwitchWorkspace={handleSwitchWorkspace}
+        onOpenSettings={() => setShowSettings(true)}
       />
       <Tabs
         value={activeTab}

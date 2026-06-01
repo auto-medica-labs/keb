@@ -103,25 +103,46 @@ git submodule update --init --recursive
 
 ### 2. Start the bridge server
 
+The bridge has two modes. Default is **local mode** (no auth needed).
+
+#### Quick start (local mode)
+
 ```bash
 pnpm bridge
 # or: pnpm bridge:dev  (auto-restarts on file changes)
 ```
 
-The first run compiles pi-kb's standalone adapter automatically. The bridge runs until you press `Ctrl+C`. Keep it running while using the extension.
+The first run compiles pi-kb's standalone adapter automatically. Keep it running while using the extension.
 
-#### Hosted mode (multi-user)
+#### Configuration
 
-Set a `JWT_SECRET` and the bridge enables HTTP auth endpoints:
+To customize the bridge (change mode, set LLM keys, etc.), create a `.env` file from the example:
 
 ```bash
 cp packages/bridge/.env.example packages/bridge/.env
-# Edit .env: set JWT_SECRET, ANTHROPIC_API_KEY, PI_DEFAULT_PROVIDER, etc.
-JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
-HOST=0.0.0.0 JWT_SECRET=$JWT_SECRET node packages/bridge/src/bridge-server.js
+# edit packages/bridge/.env with your keys and settings
 ```
 
-Users can then sign up at `POST /api/signup` and login at `POST /api/login`. Each user gets an isolated workspace created automatically.
+The bridge auto-loads `packages/bridge/.env` if it exists. Key settings:
+
+| Variable | Default | Description |
+|---|---|---|
+| `KEB_MODE` | `local` | `local` (no auth) or `hosted` (auth required) |
+| `ANTHROPIC_API_KEY` | — | LLM provider API key |
+| `JWT_SECRET` | random | JWT signing secret (set for hosted mode) |
+| `PORT` | `9876` | HTTP + WebSocket listen port |
+| `HOST` | `127.0.0.1` | Listen address |
+
+#### Hosted mode (multi-user with auth)
+
+In your `.env`, set:
+
+```bash
+KEB_MODE=hosted
+JWT_SECRET=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+```
+
+Then run `pnpm bridge` as usual. Users can sign up at `POST /api/signup` and login at `POST /api/login`. Each user gets an isolated workspace.
 
 ### 3. Load the extension in Chrome
 
@@ -205,14 +226,17 @@ keb/
 │       └── src/
 │           ├── components/ui/    # shadcn/ui components
 │           ├── lib/
-│           │   ├── store.ts      # chrome.storage.local cache
+│           │   ├── store.ts      # chrome.storage.local cache + bridge config
 │           │   ├── utils.ts      # cn(), slugify, normalizeUrl, hashing
-│           │   └── ws.ts         # WebSocket client class
+│           │   ├── ws.ts         # WebSocket client (local + hosted modes)
+│           │   └── api.ts        # HTTP client for login/signup/me
 │           ├── sidepanel/
 │           │   ├── main.tsx      # React entry point
-│           │   ├── App.tsx       # Main app (WS connection, state, tabs)
+│           │   ├── App.tsx       # Main app (auth flow, WS connection, state, tabs)
 │           │   └── components/
 │           │       ├── Header.tsx
+│           │       ├── AuthPanel.tsx     # Login / signup form
+│           │       ├── SettingsPanel.tsx  # Mode toggle, bridge URL, logout
 │           │       ├── AddPanel.tsx
 │           │       ├── QueryPanel.tsx
 │           │       ├── BrowsePanel.tsx
@@ -221,9 +245,10 @@ keb/
 │           └── index.css         # Global styles (Tailwind + shadcn theme)
 ```
 
-## HTTP API (hosted mode)
+## HTTP API (hosted mode only)
 
-When `JWT_SECRET` is configured, the bridge exposes these endpoints on the same port as the WebSocket:
+When `KEB_MODE=hosted`, the bridge exposes these endpoints on the same port as the WebSocket.
+In local mode all HTTP routes return 404.
 
 | Endpoint | Method | Body | Response |
 |---|---|---|---|
@@ -242,9 +267,11 @@ When `JWT_SECRET` is configured, the bridge exposes these endpoints on the same 
 
 ## WebSocket Protocol
 
-The bridge listens on `ws://127.0.0.1:9876` and accepts JSON messages:
+The bridge listens on `ws://127.0.0.1:9876` by default and accepts JSON messages.
 
-### Auth (required first message in hosted mode)
+### Auth (hosted mode only)
+
+In hosted mode, the first message must be:
 
 ```json
 { "type": "auth", "token": "<jwt>" }
@@ -252,17 +279,19 @@ The bridge listens on `ws://127.0.0.1:9876` and accepts JSON messages:
 
 Response: `{"type":"auth_ok", "username":"alice"}` or error + close.
 
-### KB Operations (after auth)
+In local mode, no auth message is needed — clients can send any operation immediately.
+
+### KB Operations
 
 | Message | Fields | Description |
 |---|---|---|
-| `add` | `operationId`, `url` | Compile a URL into the knowledge base |
-| `add-content` | `operationId`, `html`, `url?`, `title?` | Compile captured page HTML |
-| `query` | `operationId`, `text` | Query the knowledge base |
-| `repair` | `operationId` | Re-compile interrupted documents |
-| `sync` | _(none)_ | Full state dump (registry, index, summaries, concepts, workspaces) |
+| `add` | `operationId`, `url`, `workspace?` | Compile a URL into the knowledge base |
+| `add-content` | `operationId`, `html`, `url?`, `title?`, `workspace?` | Compile captured page HTML |
+| `query` | `operationId`, `text`, `workspace?` | Query the knowledge base |
+| `repair` | `operationId`, `workspace?` | Re-compile interrupted documents |
+| `sync` | `workspace?` | Full state dump (registry, index, summaries, concepts, workspaces) |
 
-> **Note:** In hosted mode, the `workspace` field is **ignored** — the server enforces the authenticated username as the workspace for all operations. In single-user mode (no auth), `workspace` is optional and defaults to the default workspace.
+> **Note:** In hosted mode, the `workspace` field is **ignored** — the server enforces the authenticated username as the workspace for all operations. In local mode, `workspace` is optional and defaults to the default workspace.
 
 Every `add`/`query`/`repair` message includes a client-generated `operationId` (nanoid). The bridge echoes it back in all responses so the client can correlate streaming events with the originating request.
 

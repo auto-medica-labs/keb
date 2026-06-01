@@ -5,6 +5,7 @@
 
 const KEYS = {
   config: "kb:config",
+  bridgeConfig: "kb:bridgeConfig",
   registry: "kb:registry",
   index: "kb:index",
   summaries: "kb:summaries",
@@ -18,6 +19,19 @@ const KEYS = {
 export interface ConnectionState {
   connected: boolean;
   lastSync: string | null;
+}
+
+export type BridgeMode = "local" | "hosted";
+
+export interface BridgeConfig {
+  /** Bridge operation mode. Defaults to "local" on first run. */
+  mode: BridgeMode;
+  /** Bridge server URL (default: ws://127.0.0.1:9876). */
+  bridgeUrl: string;
+  /** JWT token (hosted mode only). Cleared on logout. */
+  token?: string;
+  /** Authenticated username (hosted mode only). */
+  username?: string;
 }
 
 export interface KBConfig {
@@ -118,7 +132,26 @@ export async function getWorkspaces(): Promise<string[]> {
   return (ws as string[]) || [];
 }
 
-// ── Config ───────────────────────────────────────────────────────────────
+// ── Bridge config ────────────────────────────────────────────────────────
+
+const DEFAULT_BRIDGE_CONFIG: BridgeConfig = {
+  mode: "local",
+  bridgeUrl: "ws://127.0.0.1:9876",
+};
+
+export async function getBridgeConfig(): Promise<BridgeConfig> {
+  const { [KEYS.bridgeConfig]: cfg } = await chrome.storage.local.get(KEYS.bridgeConfig);
+  return (cfg as BridgeConfig) || { ...DEFAULT_BRIDGE_CONFIG };
+}
+
+export async function setBridgeConfig(cfg: Partial<BridgeConfig>): Promise<void> {
+  const current = await getBridgeConfig();
+  await chrome.storage.local.set({
+    [KEYS.bridgeConfig]: { ...current, ...cfg },
+  });
+}
+
+// ── Config (workspace) ───────────────────────────────────────────────────
 
 export async function getConfig(): Promise<KBConfig> {
   const { [KEYS.config]: cfg } = await chrome.storage.local.get(KEYS.config);

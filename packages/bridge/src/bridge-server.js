@@ -2,25 +2,29 @@
 // @ts-check
 
 /**
- * bridge-server.js — Hosted WebSocket + HTTP bridge for Keb.
+ * bridge-server.js — WebSocket + HTTP bridge for Keb.
  *
- * Runs a combined HTTP + WebSocket server. HTTP handles auth endpoints
- * (signup, login, /me). WebSocket handles KB operations (add, query, sync,
- * repair, add-content). Each WebSocket connection is authenticated via JWT;
- * the authenticated username is enforced as the workspace for all operations.
+ * Runs a combined HTTP + WebSocket server. Two modes:
+ *
+ *   local  (default) — No auth. Workspace sent by client. HTTP auth
+ *                       endpoints are disabled. Good for personal use.
+ *
+ *   hosted — HTTP handles auth endpoints (signup, login, /me).
+ *            WebSocket requires JWT auth. Workspace is enforced
+ *            from the authenticated username.
  *
  * Architecture (port & adapter):
  *   Ports          Adapters                Handlers
  *   ────────────   ─────────────────────   ─────────────────────
  *   KbStore   ←    FilesystemKbStore   ←   SyncHandler
- *   UserStore ←    JsonUserStore       ←   AuthHandler (HTTP)
+ *   UserStore ←    JsonUserStore       ←   AuthHandler (HTTP, hosted only)
  *   (spawnPi) ←    PiRpcSpawner        ←   QueryHandler
  *                                      ←   CommandHandler
  *
  * Usage:
- *   node bridge-server.js                    # start (HOST=127.0.0.1 PORT=9876)
+ *   node bridge-server.js                    # local mode (HOST=127.0.0.1 PORT=9876)
+ *   KEB_MODE=hosted JWT_SECRET=... node bridge-server.js  # hosted mode
  *   HOST=0.0.0.0 PORT=9876 node bridge-server.js  # all interfaces
- *   JWT_SECRET=... node bridge-server.js     # production: set JWT secret
  *
  * The server runs until Ctrl+C.
  */
@@ -46,6 +50,7 @@ import { handleSync } from "./handlers/sync-handler.js";
  * @typedef {Object} BridgeAuthMessage
  * @property {'auth'} type
  * @property {string} token - JWT from /api/login or /api/signup
+ * @property {string} [workspace] - Ignored (only present for union type compatibility)
  */
 
 /**
@@ -103,6 +108,13 @@ const PORT =
 /** @type {string} */
 const HOST = process.env.HOST || "127.0.0.1";
 
+/**
+ * Bridge mode: "local" (no auth) or "hosted" (auth required).
+ * Defaults to "local" for backward compatibility.
+ * @type {'local' | 'hosted'}
+ */
+const MODE = process.env.KEB_MODE === "hosted" ? "hosted" : "local";
+
 // ---------------------------------------------------------------------------
 // Bootstrap adapters
 // ---------------------------------------------------------------------------
@@ -122,29 +134,30 @@ const authHandler = createAuthHandler({ userStore });
 /**
  * Start the combined HTTP + WebSocket bridge server.
  *
- * HTTP paths:
- *   POST /api/signup  — create account + workspace, return JWT
- *   POST /api/login   — authenticate, return JWT
- *   GET  /api/me      — verify token, return user info
+ * In hosted mode:
+ *   HTTP:  POST /api/signup  |  POST /api/login  |  GET /api/me
+ *   WS:    first message must be { type: "auth", token: "<jwt>" }
+ *          workspace is enforced from authenticated username.
  *
- * WebSocket (upgrade on any path):
- *   First message must be { type: "auth", token: "<jwt>" }
- *   Subsequent messages enforce workspace = authenticated username.
+ * In local mode:
+ *   HTTP:  all routes return 404 (no auth endpoints)
+ *   WS:    no auth required, workspace sent by client in each message.
  *
  * @param {number} port - TCP port to listen on
  * @param {string} host - IP address to bind to
  */
 function startBridge(port, host) {
   const httpServer = createServer(async (req, res) => {
-    // Try auth routes first
-    const handled = await authHandler(req, res);
+    // Auth endpoints only active in hosted mode
+    if (MODE === "hosted") {
+      const handled = await authHandler(req, res);
+      if (handled) return;
+    }
 
     // If not an auth route, return 404 (WebSocket upgrade is handled
     // by the ws library attaching to the same httpServer, not here)
-    if (!handled) {
-      res.writeHead(404, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: "Not found" }));
-    }
+    res.writeHead(404, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Not found" }));
   });
 
   // Attach WebSocket server to the same HTTP server
@@ -233,34 +246,46 @@ function startBridge(port, host) {
         return;
       }
 
-      // ── Auth must be the first message ─────────────────────
-      if (!authComplete) {
-        if (msg.type !== "auth" || !msg.token) {
-          ws.send(
-            safeStringify({
-              type: "error",
-              message: "Authentication required. Send { type: 'auth', token: '<jwt>' } first.",
-            }),
-          );
-          ws.close(4001, "Authentication required");
+      // ── Auth required only in hosted mode ───────────────────
+      if (MODE === "hosted") {
+        if (!authComplete) {
+          if (msg.type !== "auth" || !msg.token) {
+            ws.send(
+              safeStringify({
+                type: "error",
+                message: "Authentication required. Send { type: 'auth', token: '<jwt>' } first.",
+              }),
+            );
+            ws.close(4001, "Authentication required");
+            return;
+          }
+
+          try {
+            const { username } = verifyToken(/** @type {BridgeAuthMessage} */ (msg).token);
+            authenticatedUser = username;
+            authComplete = true;
+            log(`🔐 User authenticated: ${username}`);
+            ws.send(safeStringify({ type: "auth_ok", username }));
+          } catch {
+            ws.send(safeStringify({ type: "error", message: "Invalid or expired token." }));
+            ws.close(4001, "Invalid token");
+          }
           return;
         }
-
-        try {
-          const { username } = verifyToken(/** @type {BridgeAuthMessage} */ (msg).token);
-          authenticatedUser = username;
-          authComplete = true;
-          log(`🔐 User authenticated: ${username}`);
-          ws.send(safeStringify({ type: "auth_ok", username }));
-        } catch {
-          ws.send(safeStringify({ type: "error", message: "Invalid or expired token." }));
-          ws.close(4001, "Invalid token");
-        }
-        return;
+      } else {
+        // Local mode: always auth-complete, no token needed
+        authComplete = true;
       }
 
-      // ── All subsequent messages use authenticatedUser as workspace ──
-      const workspace = /** @type {string} */ (authenticatedUser);
+      // ── Determine workspace ──────────────────────────────────
+      // Hosted: enforced from authenticated username
+      // Local:  client-specified, fallback to "default"
+      const workspace =
+        MODE === "hosted"
+          ? /** @type {string} */ (authenticatedUser)
+          : msg.workspace && msg.workspace !== "default"
+            ? msg.workspace
+            : undefined;
       const operationId =
         msg.operationId || `srv-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
 
@@ -402,8 +427,14 @@ function startBridge(port, host) {
 
   httpServer.listen(port, host, () => {
     log(`✅ Bridge listening on http://${host}:${port}`);
-    log(`   HTTP:  POST /api/signup  |  POST /api/login  |  GET /api/me`);
-    log(`   WS:    ws://${host}:${port}  (auth required)`);
+    if (MODE === "hosted") {
+      log(`   Mode:  hosted (auth required)`);
+      log(`   HTTP:  POST /api/signup  |  POST /api/login  |  GET /api/me`);
+      log(`   WS:    auth with JWT token`);
+    } else {
+      log(`   Mode:  local (no auth)`);
+    }
+    log(`   WS:    ws://${host}:${port}`);
     log(`   Press Ctrl+C to stop.`);
   });
 }

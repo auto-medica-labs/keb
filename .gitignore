@@ -5,3 +5,5 @@ dist/
 dist/standalone/
 /packages/pi-kb/dist/
 !/packages/pi-kb/dist/standalone/package.json
+.env
+packages/bridge/.env

@@ -6,8 +6,8 @@ Keb is a Chrome extension + bridge server that turns web pages into a personal k
 
 | Package | Language | Description |
 |---|---|---|
-| `packages/bridge` | JS + JSDoc | HTTP + WebSocket server. Spawns `pi` child processes for LLM work. |
-| `packages/extension` | TypeScript + React | Chrome side panel (Manifest V3). Built with Vite + Tailwind + shadcn/ui. |
+| `packages/bridge` | JS + JSDoc | HTTP + WebSocket server. Supports local mode (no auth) and hosted mode (JWT auth). Spawns `pi` child processes for LLM work. |
+| `packages/extension` | TypeScript + React | Chrome side panel (Manifest V3). Supports local and hosted bridge modes with built-in login/signup. Built with Vite + Tailwind + shadcn/ui. |
 | `packages/pi-kb` | TypeScript | **Git submodule** → `github.com/dheerapat/pi-kb`. The knowledge base pi extension. Bridge imports its `FilesystemStore` for filesystem reads. |
 
 The root `package.json` orchestrates both packages via `pnpm`.
@@ -96,7 +96,7 @@ Update `tsconfig.build-pi-kb.json`'s `include` array. Only add files that have *
 ## Key files and responsibilities
 
 ### `bridge-server.js`
-Composition root. Creates adapters, starts HTTP + WebSocket server. Routes WebSocket messages to handlers. Enforces auth and workspace isolation in hosted mode.
+Composition root. Creates adapters, starts HTTP + WebSocket server. Routes WebSocket messages to handlers. Supports two modes via `KEB_MODE` env var: `local` (no auth, workspace from client) and `hosted` (JWT auth, workspace enforced from username).
 
 ### `lib/auth.js`
 JWT sign/verify (`generateToken`, `verifyToken`), bcrypt password hashing (`hashPassword`, `comparePassword`), username validation (`validateUsername` — slugifies, enforces 3-30 chars `[a-z0-9-]`), password validation (`validatePassword` — min 8 chars).
@@ -116,6 +116,23 @@ Stores users at `~/.pi/agent/kb/users.json`. Format: `{"username": {"passwordHas
 ### `adapters/pi-rpc-spawner.js`
 Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses JSONL stdout, forwards events via callbacks. The caller sends a prompt over stdin.
 
+### Extension key files
+
+#### `lib/ws.ts`
+WebSocket client (WSClient class). Supports local mode (direct connect) and hosted mode (JWT auth handshake first). Configurable bridge URL. Sends workspace with every message in local mode.
+
+#### `lib/api.ts`
+HTTP client for bridge auth endpoints. `signup()`, `login()`, `getMe()`. Used by AuthPanel in hosted mode.
+
+#### `sidepanel/components/AuthPanel.tsx`
+Login/signup form. Validates username (3-30 chars, `[a-z0-9-]`) and password (8+ chars). Toggles between login and signup. Calls bridge HTTP API. Stores JWT on success.
+
+#### `sidepanel/components/SettingsPanel.tsx`
+Settings overlay. Mode toggle (local/hosted), bridge URL input, save & reconnect, sign out button.
+
+#### `sidepanel/App.tsx`
+Main application shell. On startup, loads bridge config from storage. If hosted mode without token, shows AuthPanel. If local mode or hosted with token, connects WS and shows tabs. Manages settings overlay visibility.
+
 ## Development workflow
 
 ### First time
@@ -126,6 +143,9 @@ cd keb
 pnpm install
 pnpm build          # builds extension
 pnpm build:pi-kb    # compiles pi-kb standalone adapter
+
+# Create .env from example (optional — defaults to local mode)
+cp packages/bridge/.env.example packages/bridge/.env
 ```
 
 ### Day-to-day
@@ -164,11 +184,18 @@ pnpm build:pi-kb    # recompile standalone adapter
 ### Testing auth endpoints manually
 
 ```bash
-JWT_SECRET=test-secret node packages/bridge/src/bridge-server.js &
+# Create .env if you haven't already
+cp packages/bridge/.env.example packages/bridge/.env
+# edit packages/bridge/.env: set KEB_MODE=hosted and JWT_SECRET
+
+# Start bridge (auto-loads .env)
+pnpm bridge &
+
 # Signup
 curl -X POST http://127.0.0.1:9876/api/signup \
   -H "Content-Type: application/json" \
   -d '{"username":"alice","password":"password123"}'
+
 # Login
 curl -X POST http://127.0.0.1:9876/api/login \
   -H "Content-Type: application/json" \
@@ -191,11 +218,13 @@ curl -X POST http://127.0.0.1:9876/api/login \
 - React components in `src/sidepanel/components/`.
 - shadcn/ui components in `src/components/ui/` (generated, don't edit manually).
 - State management: `chrome.storage.local` for persistence (see `lib/store.ts`), React state for UI.
+- Auth: `lib/api.ts` calls bridge HTTP endpoints (login/signup/me). `components/AuthPanel.tsx` provides the login/signup form. `components/SettingsPanel.tsx` lets users switch between local and hosted modes.
 
 ## Environment variables
 
 | Variable | Required | Default | Purpose |
 |---|---|---|---|
+| `KEB_MODE` | No | `local` | Bridge mode: `local` (no auth) or `hosted` (auth required) |
 | `JWT_SECRET` | For hosted mode | Random per-process | JWT signing secret |
 | `ANTHROPIC_API_KEY` | Yes | — | LLM provider API key |
 | `PI_DEFAULT_PROVIDER` | Recommended | — | e.g. `anthropic` |
@@ -209,22 +238,22 @@ See `.env.example` for all supported LLM providers.
 
 ```
 Client → Bridge:
-  { type: "auth", token: "<jwt>" }           ← first message (hosted mode)
-  { type: "add", operationId, url }
-  { type: "add-content", operationId, html, url?, title? }
-  { type: "query", operationId, text }
-  { type: "repair", operationId }
-  { type: "sync" }
+  { type: "auth", token: "<jwt>" }           ← first message (hosted mode only)
+  { type: "add", operationId, url, workspace? }
+  { type: "add-content", operationId, html, url?, title?, workspace? }
+  { type: "query", operationId, text, workspace? }
+  { type: "repair", operationId, workspace? }
+  { type: "sync", workspace? }
 
 Bridge → Client:
-  { type: "auth_ok", username }              ← auth success
+  { type: "auth_ok", username }              ← auth success (hosted mode)
   { type: "event", operationId, data }       ← streaming event
   { type: "done", operationId, command }     ← operation complete
   { type: "error", operationId, message }    ← error
   { type: "sync_result", data }              ← sync response
 ```
 
-In hosted mode, `workspace` is **ignored** from the client — the server enforces the authenticated username. All `add`/`query`/`repair`/`add-content`/`sync` operations use the authenticated user's workspace.
+In hosted mode, `workspace` is **ignored** from the client — the server enforces the authenticated username. All operations use the authenticated user's workspace. In local mode, `workspace` can be sent by the client and defaults to `"default"` if omitted.
 
 ## Docker
 

@@ -88,10 +88,12 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
                     entry.type === "tool" ? (
                       <div
                         key={j}
-                        className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}`}
+                        className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}${j > 0 && op.timeline[j - 1].type === "text" ? " mt-3" : ""}`}
                       >
                         {entry.cls.includes("green") ? (
                           <CheckCircle2 className="size-3 shrink-0" />
+                        ) : entry.cls.includes("red") ? (
+                          <Wrench className="size-3 shrink-0 text-red-400" />
                         ) : (
                           <Wrench className="size-3 shrink-0" />
                         )}

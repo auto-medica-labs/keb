@@ -7,15 +7,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { getWorkspaces } from "../../lib/store";
+import { getWorkspaces, type BridgeMode } from "../../lib/store";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { Settings, User } from "lucide-react";
 
 const NARROW_BREAKPOINT = 500;
 
 interface HeaderProps {
   connectionStatus: ConnectionStatus;
   workspace: string;
+  mode: BridgeMode;
+  username?: string;
   onSwitchWorkspace: (name: string) => void;
+  onOpenSettings: () => void;
 }
 
 const statusColors: Record<ConnectionStatus, string> = {
@@ -28,7 +32,14 @@ const statusColors: Record<ConnectionStatus, string> = {
 
 const KB_WORKSPACES_KEY = "kb:workspaces";
 
-export default function Header({ connectionStatus, workspace, onSwitchWorkspace }: HeaderProps) {
+export default function Header({
+  connectionStatus,
+  workspace,
+  mode,
+  username,
+  onSwitchWorkspace,
+  onOpenSettings,
+}: HeaderProps) {
   const [workspaces, setWorkspaces] = useState<string[]>(["default"]);
   const [isNarrow, setIsNarrow] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
@@ -45,18 +56,18 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
     });
   }, []);
 
-  // Fetch on mount
+  // Fetch on mount (local mode only)
   useEffect(() => {
-    refreshWorkspaces();
+    if (mode !== "hosted") refreshWorkspaces();
     mountedRef.current = true;
-  }, [refreshWorkspaces]);
+  }, [refreshWorkspaces, mode]);
 
-  // Refresh when connection is (re-)established, since sync may have just completed
+  // Refresh when connection is (re-)established (local mode only)
   useEffect(() => {
-    if (connectionStatus === "connected" && mountedRef.current) {
+    if (mode !== "hosted" && connectionStatus === "connected" && mountedRef.current) {
       refreshWorkspaces();
     }
-  }, [connectionStatus, refreshWorkspaces]);
+  }, [connectionStatus, refreshWorkspaces, mode]);
 
   // Resize observer to detect narrow panel
   useEffect(() => {
@@ -73,6 +84,7 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
 
   // Listen for storage changes (workspaces arrive via sync after connection)
   useEffect(() => {
+    if (mode === "hosted") return;
     const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
       if (area === "local" && changes[KB_WORKSPACES_KEY]) {
         refreshWorkspaces();
@@ -80,7 +92,7 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
     };
     chrome.storage.onChanged.addListener(onChanged);
     return () => chrome.storage.onChanged.removeListener(onChanged);
-  }, [refreshWorkspaces]);
+  }, [refreshWorkspaces, mode]);
 
   // Base UI Select requires an `items` prop on the root for internal state management
   const workspaceItems = useMemo(
@@ -100,26 +112,43 @@ export default function Header({ connectionStatus, workspace, onSwitchWorkspace 
           className="size-5 object-contain"
         />
         <span className="font-semibold text-sm">{isNarrow ? "Keb" : "Keb — Knowledge Bases"}</span>
-        <Select
-          value={workspace}
-          items={workspaceItems}
-          onValueChange={(value) => value && onSwitchWorkspace(value)}
-        >
-          <SelectTrigger className="h-7 w-32 text-xs border-border ml-1">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {workspaces.map((ws) => (
-                <SelectItem key={ws} value={ws}>
-                  {ws}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
+        {/* Workspace selector — only in local mode (hosted enforces username) */}
+        {mode !== "hosted" && (
+          <Select
+            value={workspace}
+            items={workspaceItems}
+            onValueChange={(value) => value && onSwitchWorkspace(value)}
+          >
+            <SelectTrigger className="h-7 w-32 text-xs border-border ml-1">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {workspaces.map((ws) => (
+                  <SelectItem key={ws} value={ws}>
+                    {ws}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        )}
+        {/* Username badge — only in hosted mode */}
+        {mode === "hosted" && username && (
+          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground ml-1">
+            <User className="size-3" />
+            {username}
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-1.5">
+        <button
+          onClick={onOpenSettings}
+          className="p-0.5 rounded hover:bg-muted transition-colors"
+          aria-label="Settings"
+        >
+          <Settings className="size-3.5 text-muted-foreground" />
+        </button>
         <span className={`size-2 rounded-full shrink-0 ${statusColors[connectionStatus]}`} />
         {connectionStatus === "max_retries" ? (
           <span className="text-[11px] text-destructive leading-tight text-right">OFFLINE</span>

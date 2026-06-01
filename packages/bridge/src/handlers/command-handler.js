@@ -107,7 +107,7 @@ function handleAdd({ ws, operationId, url, workspace, kbStore, spawn }) {
     }
   }
 
-  const prompt = workspace ? `/kb-add -w ${workspace} ${url}` : `/kb-add ${url}`;
+  const prompt = workspace ? `/kb-add -f -w ${workspace} ${url}` : `/kb-add -f ${url}`;
 
   return spawn(prompt, "add", {
     operationId,

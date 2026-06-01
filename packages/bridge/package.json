@@ -5,8 +5,8 @@
   "type": "module",
   "scripts": {
     "build:pi-kb": "node scripts/build-pi-kb.js",
-    "start": "node src/bridge-server.js",
-    "dev": "node --watch src/bridge-server.js",
+    "start": "if [ -f .env ]; then node --env-file=.env src/bridge-server.js; else node src/bridge-server.js; fi",
+    "dev": "if [ -f .env ]; then node --env-file=.env --watch src/bridge-server.js; else node --watch src/bridge-server.js; fi",
     "typecheck": "tsc -b"
   },
   "dependencies": {

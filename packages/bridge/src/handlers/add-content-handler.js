@@ -81,8 +81,8 @@ export function handleAddContent({ ws, operationId, html, url, title, workspace,
 
   // ── 3. Spawn pi with /kb-add-content ────────────────────────────
   const prompt = workspace
-    ? `/kb-add-content -w ${workspace} ${fullContent}`
-    : `/kb-add-content ${fullContent}`;
+    ? `/kb-add-content -f -w ${workspace} ${fullContent}`
+    : `/kb-add-content -f ${fullContent}`;
 
   return spawn(prompt, "add", {
     operationId,

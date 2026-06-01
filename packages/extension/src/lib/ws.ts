@@ -3,14 +3,20 @@
 // Manages the WebSocket connection to the pi-kb bridge server,
 // handling reconnection, message routing, and typed events.
 //
+// Supports two modes:
+//   local  — No auth. Workspace sent by client. Direct connect.
+//   hosted — JWT auth required. First message is { type: "auth", token }.
+//            Workspace is enforced server-side from the JWT username.
+//
 // Each operation (add/query/repair) gets a unique operationId (nanoid).
 // The server echoes it back in responses so multiple concurrent
 // operations can be routed independently.
 
 import { nanoid } from "nanoid";
-import type { RegistryEntry, Summary, Concept } from "./store";
+import type { RegistryEntry, Summary, Concept, BridgeMode } from "./store";
 
 export type WSMessage =
+  | { type: "auth"; token: string }
   | { type: "add"; url: string; operationId: string; workspace?: string }
   | {
       type: "add-content";
@@ -32,6 +38,7 @@ export type BridgeEvent = {
 };
 
 export type WSResponse =
+  | { type: "auth_ok"; username: string }
   | { type: "event"; operationId?: string; data: BridgeEvent }
   | { type: "sync_result"; operationId?: string; data: SyncResult }
   | { type: "done"; operationId?: string; command: string }
@@ -60,17 +67,27 @@ export interface OperationCallbacks {
   onError: (message: string) => void;
 }
 
-/** Global callbacks — status changes and sync results (no operationId). */
+/** Global callbacks — status changes, auth results, and sync results. */
 export interface WSCallbacks {
   onStatusChange: (status: ConnectionStatus) => void;
   onSyncResult: (data: SyncResult) => void;
+  /** Called when the bridge confirms auth (hosted mode). */
+  onAuthOk: (username: string) => void;
+  /** Called when auth fails (hosted mode). */
+  onAuthError: (message: string) => void;
   /** Fallback for events/done/error without an operationId. */
   onEvent: (event: BridgeEvent) => void;
   onDone: (command: string) => void;
   onError: (message: string) => void;
 }
 
-const WS_URL = "ws://127.0.0.1:9876";
+export interface WSClientConfig {
+  mode: BridgeMode;
+  bridgeUrl: string;
+  token?: string;
+}
+
+const DEFAULT_BRIDGE_URL = "ws://127.0.0.1:9876";
 const BASE_RECONNECT_DELAY = 2000;
 const MAX_RECONNECT_RETRIES = 3;
 
@@ -81,12 +98,35 @@ export class WSClient {
   private workspace: string = "default";
   private retryCount: number = 0;
   private intentionalClose: boolean = false;
+  private mode: BridgeMode;
+  private bridgeUrl: string;
+  private token: string | undefined;
+  private authComplete: boolean = false;
+  private username: string | undefined;
 
   /** Active operations waiting for responses. */
   private operations = new Map<string, OperationCallbacks>();
 
-  constructor(callbacks: WSCallbacks) {
+  constructor(callbacks: WSCallbacks, config: WSClientConfig) {
     this.callbacks = callbacks;
+    this.mode = config.mode;
+    this.bridgeUrl = config.bridgeUrl || DEFAULT_BRIDGE_URL;
+    this.token = config.token;
+  }
+
+  /** Update config (e.g. after login, or mode switch). Triggers reconnect if needed. */
+  updateConfig(config: Partial<WSClientConfig>) {
+    if (config.mode !== undefined) this.mode = config.mode;
+    if (config.bridgeUrl !== undefined) this.bridgeUrl = config.bridgeUrl;
+    if (config.token !== undefined) this.token = config.token;
+  }
+
+  getMode(): BridgeMode {
+    return this.mode;
+  }
+
+  getUsername(): string | undefined {
+    return this.username;
   }
 
   setWorkspace(ws: string) {
@@ -107,15 +147,30 @@ export class WSClient {
       return;
     }
 
+    if (this.mode === "hosted" && !this.token) {
+      console.warn("[keb] Hosted mode but no token — skipping connect");
+      return;
+    }
+
+    this.authComplete = false;
     this.callbacks.onStatusChange("connecting");
 
-    this.ws = new WebSocket(WS_URL);
+    this.ws = new WebSocket(this.bridgeUrl);
 
     this.ws.onopen = () => {
       console.log("[keb] WS connected");
       this.retryCount = 0;
       this.intentionalClose = false;
       this.clearReconnectTimer();
+
+      // ── Hosted mode: send auth first ────────────────────────
+      if (this.mode === "hosted" && this.token) {
+        this._send({ type: "auth", token: this.token });
+        return;
+      }
+
+      // ── Local mode: proceed directly ─────────────────────────
+      this.authComplete = true;
       this.callbacks.onStatusChange("connected");
       this.send({ type: "sync", workspace: this.workspace });
     };
@@ -233,11 +288,37 @@ export class WSClient {
     if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
       return false;
     }
-    this.ws.send(JSON.stringify({ ...data, workspace: this.workspace }));
+    // In local mode, attach workspace. In hosted mode, server ignores it.
+    this.ws.send(
+      JSON.stringify(
+        "workspace" in data || this.mode === "hosted"
+          ? data
+          : { ...data, workspace: this.workspace },
+      ),
+    );
     return true;
   }
 
   private handleMessage(msg: WSResponse) {
+    // ── Auth response (hosted mode) ──────────────────────────────
+    if (msg.type === "auth_ok") {
+      this.authComplete = true;
+      this.username = msg.username;
+      this.callbacks.onStatusChange("connected");
+      this.callbacks.onAuthOk(msg.username);
+      // Now that we're authenticated, request the sync
+      this.send({ type: "sync" });
+      return;
+    }
+
+    // ── Auth error from bridge ───────────────────────────────────
+    // (error without operationId after auth attempt = auth failure)
+    if (!this.authComplete && msg.type === "error" && !msg.operationId) {
+      this.callbacks.onAuthError(msg.message);
+      this.ws?.close();
+      return;
+    }
+
     const opId = msg.operationId;
 
     // ── Route to per-operation callbacks if we have them ──────────

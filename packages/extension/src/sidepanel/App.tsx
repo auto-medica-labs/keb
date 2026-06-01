@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
 import { FilePlusCorner, BookSearch, Library } from "lucide-react";
@@ -55,7 +55,6 @@ export default function App() {
   const [docCount, setDocCount] = useState(0);
   const [conceptCount, setConceptCount] = useState(0);
   const [hasPending, setHasPending] = useState(false);
-  const [agentStatus, setAgentStatus] = useState<"compiling" | "repairing" | "thinking" | "">("");
 
   // ── Auth / config state ───────────────────────────────────────
   const [bridgeMode, setBridgeMode] = useState<BridgeMode>("local");
@@ -164,18 +163,15 @@ export default function App() {
         markOperationDone(opId, command);
         if (command === "add" || command === "repair") {
           setTimeout(() => wsRef.current?.sync(), 500);
-          setAgentStatus("");
           if (command === "add" && doneTimeoutRef.current) {
             clearTimeout(doneTimeoutRef.current);
             doneTimeoutRef.current = null;
           }
         }
-        if (command === "query") setAgentStatus("");
       },
       onError: (message: string) => {
         markOperationError(opId, message);
         toast.error(message);
-        setAgentStatus("");
       },
     };
   }
@@ -375,7 +371,6 @@ export default function App() {
       clearTimeout(doneTimeoutRef.current);
       doneTimeoutRef.current = null;
     }
-    setAgentStatus("compiling");
 
     const operationId = nanoid();
     const op: ActiveOperation = {
@@ -397,7 +392,6 @@ export default function App() {
       clearTimeout(doneTimeoutRef.current);
       doneTimeoutRef.current = null;
     }
-    setAgentStatus("compiling");
 
     const label = pageTitle || pageUrl || "Page content";
     const operationId = nanoid();
@@ -428,7 +422,6 @@ export default function App() {
       clearTimeout(doneTimeoutRef.current);
       doneTimeoutRef.current = null;
     }
-    setAgentStatus("repairing");
     setActiveTab("add");
 
     const operationId = nanoid();
@@ -447,7 +440,6 @@ export default function App() {
   }
 
   function handleQuery(text: string) {
-    setAgentStatus("thinking");
 
     const operationId = nanoid();
     const op: ActiveOperation = {
@@ -474,6 +466,20 @@ export default function App() {
 
   const addOperations = operations.filter((op) => op.type === "add" || op.type === "repair");
   const queryOperations = operations.filter((op) => op.type === "query");
+
+  const agentStatus = useMemo(() => {
+    if (activeTab === "add" || activeTab === "browse") {
+      const inc = addOperations.filter((op) => !op.done);
+      if (inc.some((op) => op.type === "repair")) return "repairing";
+      if (inc.some((op) => op.type === "add")) return "compiling";
+      return "";
+    }
+    if (activeTab === "query") {
+      if (queryOperations.some((op) => !op.done)) return "thinking";
+      return "";
+    }
+    return "";
+  }, [activeTab, addOperations, queryOperations]);
 
   // ── Loading screen ────────────────────────────────────────────
 

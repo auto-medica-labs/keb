@@ -236,7 +236,12 @@ function startBridge(port, host) {
       // ── Auth must be the first message ─────────────────────
       if (!authComplete) {
         if (msg.type !== "auth" || !msg.token) {
-          ws.send(safeStringify({ type: "error", message: "Authentication required. Send { type: 'auth', token: '<jwt>' } first." }));
+          ws.send(
+            safeStringify({
+              type: "error",
+              message: "Authentication required. Send { type: 'auth', token: '<jwt>' } first.",
+            }),
+          );
           ws.close(4001, "Authentication required");
           return;
         }

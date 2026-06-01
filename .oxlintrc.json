@@ -11,5 +11,6 @@
   "rules": {
     "eslint/no-unused-vars": "error",
     "typescript/no-explicit-any": "error"
-  }
+  },
+  "ignorePatterns": ["packages/pi-kb"]
 }

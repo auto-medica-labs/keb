@@ -107,9 +107,15 @@ export function createPiKbStore() {
             for (const line of fm.split("\n")) {
               const t = line.trim();
               if (t.startsWith("source:"))
-                source = t.slice("source:".length).trim().replace(/^["']|["']$/g, "");
+                source = t
+                  .slice("source:".length)
+                  .trim()
+                  .replace(/^["']|["']$/g, "");
               else if (t.startsWith("date_added:"))
-                added = t.slice("date_added:".length).trim().replace(/^["']|["']$/g, "");
+                added = t
+                  .slice("date_added:".length)
+                  .trim()
+                  .replace(/^["']|["']$/g, "");
             }
           }
         }

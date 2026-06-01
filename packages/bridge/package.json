@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:pi-kb": "tsc -p tsconfig.build-pi-kb.json && node -e \"require('fs').writeFileSync('../pi-kb/dist/standalone/package.json', JSON.stringify({type:'module'})+String.fromCharCode(10))\"",
+    "build:pi-kb": "node scripts/build-pi-kb.js",
     "start": "node src/bridge-server.js",
     "dev": "node --watch src/bridge-server.js",
     "typecheck": "tsc -b"

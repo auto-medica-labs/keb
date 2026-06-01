@@ -1,0 +1,3 @@
+[submodule "packages/pi-kb"]
+	path = packages/pi-kb
+	url = https://github.com/dheerapat/pi-kb.git

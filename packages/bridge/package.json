@@ -4,16 +4,23 @@
   "private": true,
   "type": "module",
   "scripts": {
+    "build:pi-kb": "tsc -p tsconfig.build-pi-kb.json && node -e \"require('fs').writeFileSync('../pi-kb/dist/standalone/package.json', JSON.stringify({type:'module'})+String.fromCharCode(10))\"",
+    "prestart": "npm run build:pi-kb",
     "start": "node src/bridge-server.js",
+    "predev": "npm run build:pi-kb",
     "dev": "node --watch src/bridge-server.js",
     "typecheck": "tsc -b"
   },
   "dependencies": {
     "@kreuzberg/html-to-markdown-node": "^3.4.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
     "nanoid": "^5.1.11",
     "ws": "^8.21.0"
   },
   "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.0.0",
     "typescript": "~5.8.3"

@@ -74,9 +74,25 @@ WORKDIR /app
 # Copy only the bridge package manifest
 COPY packages/bridge/package.json /app/bridge/package.json
 
-# Install production dependencies (only `ws` at runtime)
+# Install ALL dependencies (including devDeps like typescript for pi-kb build)
 WORKDIR /app/bridge
-RUN npm install --omit=dev
+RUN npm install
+
+# ---------------------------------------------------------------------------
+# pi-kb standalone build layer — compile adapter files
+# ---------------------------------------------------------------------------
+FROM deps-layer AS pi-kb-build
+
+# Copy the pi-kb source files needed for compilation (preserve dir structure)
+COPY packages/pi-kb/extensions /app/pi-kb/extensions
+
+# Copy the bridge's pi-kb build tsconfig
+COPY packages/bridge/tsconfig.build-pi-kb.json /app/bridge/tsconfig.build-pi-kb.json
+
+# Compile pi-kb standalone adapter to JS
+WORKDIR /app/bridge
+RUN npx tsc -p tsconfig.build-pi-kb.json && \
+    node -e "require('fs').writeFileSync('../pi-kb/dist/standalone/package.json', JSON.stringify({type:'module'})+String.fromCharCode(10))"
 
 # ---------------------------------------------------------------------------
 # Final stage — minimal runtime image
@@ -104,13 +120,18 @@ RUN ln -sf ../lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js /usr/
 # packages list. The entrypoint merges PI_DEFAULT_* env vars into this.
 COPY --from=pi-layer /root/.pi/agent /root/.pi/agent
 
-# Copy bridge node_modules from deps-layer
-COPY --from=deps-layer /app/bridge/node_modules /app/bridge/node_modules
+# Copy bridge node_modules (production) from deps-layer
+# Use a fresh npm install --omit=dev to keep the image small
+COPY packages/bridge/package.json /app/bridge/package.json
+WORKDIR /app/bridge
+RUN npm install --omit=dev
+
+# Copy pi-kb compiled standalone output from pi-kb-build stage
+COPY --from=pi-kb-build /app/pi-kb/dist/standalone /app/pi-kb/dist/standalone
 
 # Copy entrypoint and bridge source code
 COPY packages/bridge/entrypoint.sh /app/bridge/entrypoint.sh
 COPY packages/bridge/src /app/bridge/src
-COPY packages/bridge/package.json /app/bridge/package.json
 
 WORKDIR /app/bridge
 

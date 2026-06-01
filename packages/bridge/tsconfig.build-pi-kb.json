@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ES2022",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": false,
+    "sourceMap": false,
+    "rootDir": "../pi-kb",
+    "outDir": "../pi-kb/dist/standalone"
+  },
+  "include": [
+    "../pi-kb/extensions/kb/adapters/filesystem-store.ts",
+    "../pi-kb/extensions/kb/ports/types.ts",
+    "../pi-kb/extensions/kb/utils.ts"
+  ]
+}

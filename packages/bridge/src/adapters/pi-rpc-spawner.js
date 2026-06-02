@@ -68,9 +68,10 @@ import { safeStringify, log } from "../lib/utils.js";
  */
 export function spawnPi(promptText, command, callbacks) {
   const opTag = callbacks.operationId ? ` [${callbacks.operationId}]` : "";
-  log(`spawn: pi --mode rpc --no-session → ${command}${opTag}: ${promptText.slice(0, 80)}...`);
+  const args = ["--mode", "rpc", "--no-session", "--no-builtin-tools", "--system-prompt", "", "--no-context-files", "--no-skills"];
+  log(`spawn: pi ${args.join(" ")} → ${command}${opTag}: ${promptText.slice(0, 80)}...`);
 
-  const child = spawn("pi", ["--mode", "rpc", "--no-session", "--no-builtin-tools"], {
+  const child = spawn("pi", args, {
     stdio: ["pipe", "pipe", "pipe"],
   });
 

@@ -34,7 +34,7 @@ import { WebSocketServer } from "ws";
 import { safeStringify, log } from "./lib/utils.js";
 import { verifyToken } from "./lib/auth.js";
 import { createPiKbStore } from "./adapters/pi-kb-store.js";
-import { createJsonUserStore } from "./adapters/user-store-json.js";
+import { createSqliteUserStore } from "./adapters/user-store-sqlite.js";
 import { createAuthHandler } from "./handlers/auth-handler.js";
 import { spawnPi } from "./adapters/pi-rpc-spawner.js";
 import { handleQuery } from "./handlers/query-handler.js";
@@ -123,7 +123,7 @@ const MODE = process.env.KEB_MODE === "hosted" ? "hosted" : "local";
 const kbStore = createPiKbStore();
 
 /** @type {import('./ports/user-store.js').UserStore} */
-const userStore = createJsonUserStore();
+const userStore = createSqliteUserStore();
 
 const authHandler = createAuthHandler({ userStore });
 

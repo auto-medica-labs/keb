@@ -12,12 +12,14 @@
   "dependencies": {
     "@kreuzberg/html-to-markdown-node": "^3.4.0",
     "bcryptjs": "^2.4.3",
+    "better-sqlite3": "^12.10.0",
     "jsonwebtoken": "^9.0.2",
     "nanoid": "^5.1.11",
     "ws": "^8.21.0"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/better-sqlite3": "^7.6.13",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^22.0.0",
     "@types/ws": "^8.0.0",

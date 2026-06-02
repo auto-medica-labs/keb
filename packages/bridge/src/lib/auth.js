@@ -16,16 +16,42 @@ import { randomBytes } from "node:crypto";
 // JWT secret
 // ---------------------------------------------------------------------------
 
-const JWT_SECRET =
-  process.env.JWT_SECRET ||
-  (() => {
-    const fallback = randomBytes(32).toString("hex");
-    console.warn(
-      `[auth] ⚠️  JWT_SECRET not set — using random per-process secret.\n` +
-        `        Set JWT_SECRET in .env for production. Sessions will not survive restarts.`,
+const MODE = process.env.KEB_MODE;
+
+/**
+ * JWT signing secret.
+ *
+ *   hosted mode — MUST be set via JWT_SECRET env var. Crashes on startup
+ *                  if missing (random secrets invalidate all sessions on
+ *                  restart, breaking the user experience).
+ *   local mode  — Falls back to a random per-process secret for convience.
+ */
+/** @type {string} */
+let JWT_SECRET;
+
+if (MODE === "hosted") {
+  if (!process.env.JWT_SECRET) {
+    console.error(
+      "[auth] ❌ FATAL: JWT_SECRET is required in hosted mode.\n" +
+        "        Set JWT_SECRET in .env and restart.",
     );
-    return fallback;
-  })();
+    process.exit(1);
+  }
+  JWT_SECRET = process.env.JWT_SECRET;
+} else {
+  // local mode: random per-process secret is fine (there are no user
+  // accounts or persisted tokens)
+  JWT_SECRET =
+    process.env.JWT_SECRET ||
+    (() => {
+      const fallback = randomBytes(32).toString("hex");
+      console.warn(
+        `[auth] ⚠️  JWT_SECRET not set — using random per-process secret.\n` +
+          `        Sessions will not survive restarts.`,
+      );
+      return fallback;
+    })();
+}
 
 /** JWT expiration: 30 days */
 const JWT_EXPIRES_IN = "30d";

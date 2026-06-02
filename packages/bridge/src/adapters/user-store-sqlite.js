@@ -97,13 +97,14 @@ export function createSqliteUserStore() {
       try {
         stmtInsert.run(username, passwordHash, createdAt);
       } catch (err) {
-        if (
-          err instanceof Error &&
-          "code" in err &&
-          (/** @type {{code: string}} */ (err).code === "SQLITE_CONSTRAINT_UNIQUE" ||
-            /** @type {{code: string}} */ (err).code === "SQLITE_CONSTRAINT_PRIMARYKEY")
-        ) {
-          throw new Error(`Username "${username}" is already taken.`);
+        if (err instanceof Error && "code" in err) {
+          const sqliteErr = /** @type {{code: string}} */ (err);
+          if (
+            sqliteErr.code === "SQLITE_CONSTRAINT_UNIQUE" ||
+            sqliteErr.code === "SQLITE_CONSTRAINT_PRIMARYKEY"
+          ) {
+            throw new Error(`Username "${username}" is already taken.`);
+          }
         }
         throw err;
       }
@@ -118,9 +119,10 @@ export function createSqliteUserStore() {
      * @returns {Promise<import('../ports/user-store.js').UserRecord|null>}
      */
     async findUser(username) {
-      const row = /** @type {{ username: string; passwordHash: string; createdAt: string }|undefined} */ (
-        stmtFind.get(username)
-      );
+      const row =
+        /** @type {{ username: string; passwordHash: string; createdAt: string }|undefined} */ (
+          stmtFind.get(username)
+        );
       return row ?? null;
     },
 

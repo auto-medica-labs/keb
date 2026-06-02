@@ -67,10 +67,10 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
   const hasAnyOps = operations.length > 0;
 
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex h-full flex-col gap-3">
       {/* URL input — shrink to content */}
       <div className="shrink-0">
-        <label className="text-xs text-muted-foreground font-medium block mb-1.5">URL</label>
+        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">URL</label>
         <div className="flex gap-2">
           <Input
             ref={inputRef}
@@ -80,7 +80,7 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
             onChange={(e) => setUrl(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             disabled={hasInProgress}
-            className="flex-1 h-9 text-sm"
+            className="h-9 flex-1 text-sm"
           />
           <Button
             onClick={handleSubmit}
@@ -101,9 +101,9 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
 
       {/* Progress / timeline area — fills remaining space */}
       {hasAnyOps && (
-        <div className="flex-1 min-h-0 border rounded-md bg-muted/50 flex flex-col">
+        <div className="flex min-h-0 flex-1 flex-col rounded-md border bg-muted/50">
           {/* Status header */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
+          <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
             {hasInProgress ? (
               <>
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
@@ -114,14 +114,14 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
             ) : (
               <>
                 <CheckCircle2 className="size-3.5 text-green-500" />
-                <span className="text-xs text-green-500 font-medium">Complete!</span>
+                <span className="text-xs font-medium text-green-500">Complete!</span>
               </>
             )}
           </div>
 
           {/* Scrollable timeline — one card per operation */}
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-3 leading-relaxed space-y-3">
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="space-y-3 p-3 leading-relaxed">
               {operations.map((op) => (
                 <OperationTimeline key={op.id} operation={op} />
               ))}
@@ -132,5 +132,3 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
     </div>
   );
 }
-
-

@@ -15,16 +15,16 @@ export default function SettingsPanel({
   onClose,
 }: SettingsPanelProps) {
   return (
-    <div className="absolute inset-0 z-50 bg-background flex flex-col">
+    <div className="absolute inset-0 z-50 flex flex-col bg-background">
       {/* Header */}
-      <div className="flex items-center justify-between px-3 py-2.5 border-b shrink-0">
+      <div className="flex shrink-0 items-center justify-between border-b px-3 py-2.5">
         <div className="flex items-center gap-2">
           <Settings className="size-4 text-muted-foreground" />
-          <span className="font-semibold text-sm">Settings</span>
+          <span className="text-sm font-semibold">Settings</span>
         </div>
         <button
           onClick={onClose}
-          className="p-1 rounded hover:bg-muted transition-colors"
+          className="rounded p-1 transition-colors hover:bg-muted"
           aria-label="Close settings"
         >
           <X className="size-4" />
@@ -32,55 +32,52 @@ export default function SettingsPanel({
       </div>
 
       {/* Content */}
-      <div className="flex-1 p-4 space-y-5 overflow-y-auto">
+      <div className="flex-1 space-y-5 overflow-y-auto p-4">
         {/* Mode */}
-        <div className="space-y-2">
-          <label className="text-xs font-medium text-muted-foreground">Bridge Mode</label>
-          <div className="flex gap-2">
-            <button
-              onClick={() => onModeChange("local")}
-              className={`flex-1 px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
-                config.mode === "local"
-                  ? "bg-primary/10 border-primary text-primary"
-                  : "border-border hover:bg-muted"
-              }`}
-            >
-              <Monitor className="size-4 mx-auto mb-1" />
-              Local
-              <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">
-                No login required
-              </span>
-            </button>
-            <button
-              onClick={() => onModeChange("hosted")}
-              className={`flex-1 px-3 py-2 rounded-md text-xs font-medium border transition-colors ${
-                config.mode === "hosted"
-                  ? "bg-primary/10 border-primary text-primary"
-                  : "border-border hover:bg-muted"
-              }`}
-            >
-              <Globe className="size-4 mx-auto mb-1" />
-              Hosted
-              <span className="block text-[10px] font-normal text-muted-foreground mt-0.5">
-                Login required
-              </span>
-            </button>
-          </div>
+        <label className="text-xs font-medium text-muted-foreground">Bridge Mode</label>
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={() => onModeChange("local")}
+            className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
+              config.mode === "local"
+                ? "bg-primary/10 border-primary text-primary"
+                : "border-border hover:bg-muted"
+            }`}
+          >
+            <Monitor className="mx-auto mb-1 size-4" />
+            Local
+            <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+              No login required
+            </span>
+          </button>
+          <button
+            onClick={() => onModeChange("hosted")}
+            className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
+              config.mode === "hosted"
+                ? "bg-primary/10 border-primary text-primary"
+                : "border-border hover:bg-muted"
+            }`}
+          >
+            <Globe className="mx-auto mb-1 size-4" />
+            Hosted
+            <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+              Login required
+            </span>
+          </button>
         </div>
 
         {/* Sign out (hosted mode only) */}
         {config.mode === "hosted" && config.username && (
-          <div className="pt-3 border-t border-border space-y-2">
+          <div className="space-y-2 border-t border-border pt-3">
             <p className="text-xs text-muted-foreground">
-              Signed in as{" "}
-              <span className="font-medium text-foreground">{config.username}</span>
+              Signed in as <span className="font-medium text-foreground">{config.username}</span>
             </p>
             <button
               onClick={() => {
                 onLogout();
                 onClose();
               }}
-              className="w-full flex items-center justify-center gap-2 h-9 rounded-md text-xs font-medium border border-destructive/30 text-destructive hover:bg-destructive/10 transition-colors"
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-destructive/30 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
             >
               <LogOut className="size-4" />
               Sign Out

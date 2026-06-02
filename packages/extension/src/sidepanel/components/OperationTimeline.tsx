@@ -28,7 +28,7 @@ export default function OperationTimeline({ operation }: OperationTimelineProps)
             {entry.text}
           </div>
         ) : (
-          <div key={i} className="py-2 border-b border-border last:border-b-0">
+          <div key={i} className="border-b border-border py-2 last:border-b-0">
             <MarkdownRenderer text={entry.text} />
           </div>
         ),

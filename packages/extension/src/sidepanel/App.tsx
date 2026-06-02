@@ -206,7 +206,9 @@ export default function App() {
 
   /** Store updated bridge config and sync state. React state is set
    *  synchronously; chrome.storage is persisted in the background. */
-  function persistBridgeConfig(updates: Partial<{ mode: BridgeMode; bridgeUrl: string; token?: string; username?: string }>) {
+  function persistBridgeConfig(
+    updates: Partial<{ mode: BridgeMode; bridgeUrl: string; token?: string; username?: string }>,
+  ) {
     // Update React state immediately so UI responds without waiting for storage I/O
     if (updates.mode !== undefined) setBridgeMode(updates.mode);
     if (updates.bridgeUrl !== undefined) setBridgeUrl(updates.bridgeUrl);
@@ -219,45 +221,44 @@ export default function App() {
 
   // ── Create WS client and connect ──────────────────────────────
 
-  const connectWithConfig = useCallback(
-    (config: WSClientConfig) => {
-      // Disconnect existing
-      if (wsRef.current) wsRef.current.disconnect();
+  const connectWithConfig = useCallback((config: WSClientConfig) => {
+    // Disconnect existing
+    if (wsRef.current) wsRef.current.disconnect();
 
-      const client = new WSClient(
-        {
-          onStatusChange: (status) => {
-            setConnectionStatus(status);
-            if (status === "connected") {
-              toast.success("Connected to Keb bridge server");
-            } else if (status === "disconnected") {
-              toast.error("Disconnected from Keb bridge server");
-            } else if (status === "max_retries") {
-              toast.error("Bridge server not running. Start bridge server & reopen extension to retry.");
-            }
-          },
-          onAuthOk: (uname: string) => {
-            setUsername(uname);
-            persistBridgeConfig({ username: uname });
-          },
-          onAuthError: (message: string) => {
-            toast.error(`Auth failed: ${message}`);
-            // Clear token so user sees auth screen again
-            persistBridgeConfig({ token: undefined, username: undefined });
-          },
-          onEvent: (_event: BridgeEvent) => {},
-          onDone: (_command: string) => {},
-          onError: (message: string) => toast.error(message),
-          onSyncResult: (data: SyncResult) => handleSyncResult(data),
+    const client = new WSClient(
+      {
+        onStatusChange: (status) => {
+          setConnectionStatus(status);
+          if (status === "connected") {
+            toast.success("Connected to Keb bridge server");
+          } else if (status === "disconnected") {
+            toast.error("Disconnected from Keb bridge server");
+          } else if (status === "max_retries") {
+            toast.error(
+              "Bridge server not running. Start bridge server & reopen extension to retry.",
+            );
+          }
         },
-        config,
-      );
+        onAuthOk: (uname: string) => {
+          setUsername(uname);
+          persistBridgeConfig({ username: uname });
+        },
+        onAuthError: (message: string) => {
+          toast.error(`Auth failed: ${message}`);
+          // Clear token so user sees auth screen again
+          persistBridgeConfig({ token: undefined, username: undefined });
+        },
+        onEvent: (_event: BridgeEvent) => {},
+        onDone: (_command: string) => {},
+        onError: (message: string) => toast.error(message),
+        onSyncResult: (data: SyncResult) => handleSyncResult(data),
+      },
+      config,
+    );
 
-      wsRef.current = client;
-      client.connect();
-    },
-    [],
-  );
+    wsRef.current = client;
+    client.connect();
+  }, []);
 
   // ── Initialization ────────────────────────────────────────────
 
@@ -440,7 +441,6 @@ export default function App() {
   }
 
   function handleQuery(text: string) {
-
     const operationId = nanoid();
     const op: ActiveOperation = {
       id: operationId,
@@ -485,7 +485,7 @@ export default function App() {
 
   if (appLoading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-background">
+      <div className="flex h-screen items-center justify-center bg-background">
         <span className="text-sm text-muted-foreground">Loading...</span>
       </div>
     );
@@ -495,7 +495,7 @@ export default function App() {
 
   if (needsAuth) {
     return (
-      <div className="h-screen bg-background text-foreground overflow-hidden">
+      <div className="h-screen overflow-hidden bg-background text-foreground">
         <Toaster position="bottom-center" />
         <AuthPanel
           mode={bridgeMode}
@@ -510,7 +510,7 @@ export default function App() {
   // ── Main app UI ───────────────────────────────────────────────
 
   return (
-    <div className="flex flex-col h-screen bg-background text-foreground overflow-hidden">
+    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
       <Toaster position="bottom-center" />
 
       {/* Settings overlay */}
@@ -534,47 +534,47 @@ export default function App() {
       <Tabs
         value={activeTab}
         onValueChange={(v) => setActiveTab(v as ActiveTab)}
-        className="flex flex-col flex-1 min-h-0"
+        className="flex min-h-0 flex-1 flex-col"
       >
-        <TabsList variant="line" className="w-full rounded-none h-auto px-3">
+        <TabsList variant="line" className="h-auto w-full rounded-none px-3">
           <TabsTrigger
             value="add"
-            className="flex-1 rounded-none py-2.5 text-xs font-medium gap-1.5"
+            className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
           >
             <FilePlusCorner className="size-4" />
             Add Knowledge
           </TabsTrigger>
           <TabsTrigger
             value="query"
-            className="flex-1 rounded-none py-2.5 text-xs font-medium gap-1.5"
+            className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
           >
             <BookSearch className="size-4" />
             Consult
           </TabsTrigger>
           <TabsTrigger
             value="browse"
-            className="flex-1 rounded-none py-2.5 text-xs font-medium gap-1.5"
+            className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
           >
             <Library className="size-4" />
             Browse
           </TabsTrigger>
         </TabsList>
-        <div className="flex-1 min-h-0 overflow-hidden p-4">
-          <TabsContent value="add" className="h-full mt-0">
+        <div className="min-h-0 flex-1 overflow-hidden p-4">
+          <TabsContent value="add" className="mt-0 h-full">
             <AddPanel
               operations={addOperations}
               connected={connectionStatus === "connected"}
               onAdd={handleAdd}
             />
           </TabsContent>
-          <TabsContent value="query" className="h-full mt-0">
+          <TabsContent value="query" className="mt-0 h-full">
             <QueryPanel
               operations={queryOperations}
               connected={connectionStatus === "connected"}
               onQuery={handleQuery}
             />
           </TabsContent>
-          <TabsContent value="browse" className="h-full mt-0">
+          <TabsContent value="browse" className="mt-0 h-full">
             <BrowsePanel />
           </TabsContent>
         </div>

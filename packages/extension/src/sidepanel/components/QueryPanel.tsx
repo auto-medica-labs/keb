@@ -28,9 +28,9 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
   const hasAnyOps = operations.length > 0;
 
   return (
-    <div className="flex flex-col h-full gap-3">
+    <div className="flex h-full flex-col gap-3">
       <div className="shrink-0">
-        <label className="text-xs text-muted-foreground font-medium block mb-1.5">
+        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
           Ask the knowledge base
         </label>
         <div className="flex gap-2">
@@ -42,7 +42,7 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
             disabled={hasInProgress}
-            className="flex-1 h-9 text-sm"
+            className="h-9 flex-1 text-sm"
           />
           <Button
             onClick={handleSubmit}
@@ -55,9 +55,9 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
       </div>
 
       {hasAnyOps && (
-        <div className="flex-1 min-h-0 border rounded-md bg-muted/50 flex flex-col">
+        <div className="flex min-h-0 flex-1 flex-col rounded-md border bg-muted/50">
           {/* Status header */}
-          <div className="flex items-center gap-2 px-3 py-2 border-b shrink-0">
+          <div className="flex shrink-0 items-center gap-2 border-b px-3 py-2">
             {hasInProgress ? (
               <>
                 <Loader2 className="size-3.5 animate-spin text-muted-foreground" />
@@ -68,18 +68,18 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
             ) : (
               <>
                 <CheckCircle2 className="size-3.5 text-green-500" />
-                <span className="text-xs text-green-500 font-medium">Complete!</span>
+                <span className="text-xs font-medium text-green-500">Complete!</span>
               </>
             )}
           </div>
 
           {/* Scrollable timeline */}
-          <ScrollArea className="flex-1 min-h-0">
-            <div className="p-3 leading-relaxed space-y-1">
+          <ScrollArea className="min-h-0 flex-1">
+            <div className="space-y-1 p-3 leading-relaxed">
               {operations.map((op) => (
                 <div key={op.id}>
                   {/* Question */}
-                  <div className="bg-accent border-l-2 border-primary rounded-r-md px-3 py-2 text-sm font-medium mb-2">
+                  <div className="mb-2 rounded-r-md border-l-2 border-primary bg-accent px-3 py-2 text-sm font-medium">
                     {op.label}
                   </div>
 

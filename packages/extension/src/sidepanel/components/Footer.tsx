@@ -41,7 +41,7 @@ export default function Footer({
   onRepair,
 }: FooterProps) {
   return (
-    <footer className="flex justify-between items-center px-3 py-1.5 border-t bg-card text-[11px] text-muted-foreground shrink-0">
+    <footer className="flex shrink-0 items-center justify-between border-t bg-card px-3 py-1.5 text-[11px] text-muted-foreground">
       <span className="flex items-center gap-2">
         <span className="inline-flex items-center gap-1 whitespace-nowrap">
           <BarChart3 className="size-3" />
@@ -51,7 +51,7 @@ export default function Footer({
           <button
             onClick={onRepair}
             disabled={agentStatus !== ""}
-            className="inline-flex items-center gap-1 whitespace-nowrap text-amber-500 hover:text-amber-400 underline cursor-pointer transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
+            className="inline-flex cursor-pointer items-center gap-1 whitespace-nowrap text-amber-500 underline transition-colors hover:text-amber-400 disabled:cursor-not-allowed disabled:no-underline disabled:opacity-40"
             title={
               agentStatus !== ""
                 ? "Wait for current operation to finish"

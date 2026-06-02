@@ -103,7 +103,7 @@ export default function Header({
   return (
     <header
       ref={headerRef}
-      className="flex justify-between items-center px-3 py-2.5 bg-card shrink-0"
+      className="flex shrink-0 items-center justify-between bg-card px-3 py-2.5"
     >
       <div className="flex items-center gap-2">
         <img
@@ -111,7 +111,7 @@ export default function Header({
           alt="logo"
           className="size-5 object-contain"
         />
-        <span className="font-semibold text-sm">{isNarrow ? "Keb" : "Keb — Knowledge Bases"}</span>
+        <span className="text-sm font-semibold">{isNarrow ? "Keb" : "Keb — Knowledge Bases"}</span>
         {/* Workspace selector — only in local mode (hosted enforces username) */}
         {mode !== "hosted" && (
           <Select
@@ -119,7 +119,7 @@ export default function Header({
             items={workspaceItems}
             onValueChange={(value) => value && onSwitchWorkspace(value)}
           >
-            <SelectTrigger className="h-7 w-32 text-xs border-border ml-1">
+            <SelectTrigger className="ml-1 h-7 w-32 border-border text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -135,7 +135,7 @@ export default function Header({
         )}
         {/* Username badge — only in hosted mode */}
         {mode === "hosted" && username && (
-          <span className="inline-flex items-center gap-1 text-xs text-muted-foreground ml-1">
+          <span className="ml-1 inline-flex items-center gap-1 text-xs text-muted-foreground">
             <User className="size-3" />
             {username}
           </span>
@@ -144,16 +144,16 @@ export default function Header({
       <div className="flex items-center gap-1.5">
         <button
           onClick={onOpenSettings}
-          className="p-0.5 rounded hover:bg-muted transition-colors"
+          className="rounded p-0.5 transition-colors hover:bg-muted"
           aria-label="Settings"
         >
           <Settings className="size-3.5 text-muted-foreground" />
         </button>
-        <span className={`size-2 rounded-full shrink-0 ${statusColors[connectionStatus]}`} />
+        <span className={`size-2 shrink-0 rounded-full ${statusColors[connectionStatus]}`} />
         {connectionStatus === "max_retries" ? (
-          <span className="text-[11px] text-destructive leading-tight text-right">OFFLINE</span>
+          <span className="text-right text-[11px] leading-tight text-destructive">OFFLINE</span>
         ) : (
-          <span className="text-[11px] text-muted-foreground uppercase tracking-wider">
+          <span className="text-[11px] tracking-wider text-muted-foreground uppercase">
             {connectionStatus}
           </span>
         )}

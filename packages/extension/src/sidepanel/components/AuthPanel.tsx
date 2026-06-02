@@ -62,14 +62,14 @@ export default function AuthPanel({
   const isLogin = screen === "login";
 
   return (
-    <div className="flex flex-col items-center justify-center h-full px-6">
+    <div className="flex h-full flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-5">
         {/* Logo + title */}
-        <div className="text-center space-y-2">
+        <div className="space-y-2 text-center">
           <img
             src="https://r2.mdevd.co/asset/logo_transparent.png"
             alt="Keb"
-            className="size-10 mx-auto object-contain"
+            className="mx-auto size-10 object-contain"
           />
           <h1 className="text-lg font-semibold">Keb — Knowledge Bases</h1>
           <p className="text-xs text-muted-foreground">
@@ -79,7 +79,7 @@ export default function AuthPanel({
 
         {/* Error */}
         {error && (
-          <div className="bg-destructive/10 text-destructive text-xs px-3 py-2 rounded-md border border-destructive/20">
+          <div className="rounded-md border border-destructive/20 bg-destructive/10 px-3 py-2 text-xs text-destructive">
             {error}
           </div>
         )}
@@ -122,7 +122,7 @@ export default function AuthPanel({
             <p className="text-[10px] text-muted-foreground">At least 8 characters</p>
           </div>
 
-          <Button type="submit" disabled={loading} className="w-full h-9" size="default">
+          <Button type="submit" disabled={loading} className="h-9 w-full" size="default">
             {loading ? (
               <Loader2 className="size-4 animate-spin" />
             ) : isLogin ? (
@@ -147,18 +147,18 @@ export default function AuthPanel({
               setScreen(isLogin ? "signup" : "login");
               setError("");
             }}
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+            className="text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
           >
             {isLogin ? "Don't have an account? Sign up" : "Already have an account? Sign in"}
           </button>
         </div>
 
         {/* Switch to local mode */}
-        <div className="text-center pt-2 border-t border-border">
+        <div className="border-t border-border pt-2 text-center">
           <button
             type="button"
             onClick={onSwitchToLocal}
-            className="text-xs text-muted-foreground hover:text-foreground underline underline-offset-2 transition-colors"
+            className="text-xs text-muted-foreground underline underline-offset-2 transition-colors hover:text-foreground"
           >
             Use local mode instead
           </button>

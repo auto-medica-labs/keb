@@ -54,8 +54,8 @@ export default function BrowsePanel() {
 
   if (summNames.length === 0 && concSlugs.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
-        <p className="text-muted-foreground text-sm text-center">
+      <div className="flex h-full items-center justify-center">
+        <p className="text-center text-sm text-muted-foreground">
           No documents yet. Add a URL to get started.
         </p>
       </div>
@@ -67,24 +67,24 @@ export default function BrowsePanel() {
       <div className="space-y-4">
         {summNames.length > 0 && (
           <div>
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            <h3 className="mb-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
               Documents
             </h3>
             <div className="space-y-0.5">
               {summNames.map((name) => (
                 <div
                   key={name}
-                  className="flex items-center gap-2 px-3 py-2 rounded-md hover:bg-accent cursor-pointer transition-colors"
+                  className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent"
                 >
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
                   <span className="text-sm font-medium text-primary">{escapeHtml(name)}</span>
                   {pendingDocs.has(name) && (
                     <span title="Compilation interrupted — pending">
-                      <TriangleAlert className="size-3.5 text-amber-500 shrink-0" />
+                      <TriangleAlert className="size-3.5 shrink-0 text-amber-500" />
                     </span>
                   )}
                   {summaries[name].source && (
-                    <span className="text-[11px] text-muted-foreground ml-auto truncate max-w-30">
+                    <span className="ml-auto max-w-30 truncate text-[11px] text-muted-foreground">
                       {escapeHtml(summaries[name].source)}
                     </span>
                   )}
@@ -97,7 +97,7 @@ export default function BrowsePanel() {
         {concSlugs.length > 0 && (
           <div>
             {summNames.length > 0 && <Separator />}
-            <h3 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2 mt-4">
+            <h3 className="mt-4 mb-2 text-xs font-medium tracking-wider text-muted-foreground uppercase">
               Concepts
             </h3>
             <div className="flex flex-wrap gap-1.5">

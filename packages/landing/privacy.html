@@ -3,10 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta
-      name="description"
-      content="Keb Privacy Policy — No data collection, fully local, open source."
-    />
+    <meta name="description" content="Keb Privacy Policy" />
     <title>Keb — Privacy Policy</title>
     <link rel="icon" type="image/png" href="asset/favicon.png" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -102,7 +99,12 @@
         <div class="logo-group">
           <a
             href="/"
-            style="display: flex; align-items: center; gap: 0.75rem; text-decoration: none"
+            style="
+              display: flex;
+              align-items: center;
+              gap: 0.75rem;
+              text-decoration: none;
+            "
           >
             <img
               src="https://r2.mdevd.co/asset/auto-medica-lab-full-transparent.png"
@@ -115,10 +117,16 @@
             <li><a href="/#how-it-works">How It Works</a></li>
             <li><a href="/#features">Features</a></li>
             <li><a href="/#why">Why Keb?</a></li>
-            <li><a href="https://github.com/auto-medica-labs/keb">GitHub</a></li>
+            <li>
+              <a href="https://github.com/auto-medica-labs/keb">GitHub</a>
+            </li>
           </ul>
         </div>
-        <button class="theme-toggle" id="themeToggle" aria-label="Toggle dark mode">
+        <button
+          class="theme-toggle"
+          id="themeToggle"
+          aria-label="Toggle dark mode"
+        >
           <i data-lucide="sun"></i>
         </button>
       </div>
@@ -135,47 +143,143 @@
           <h1>Privacy Policy</h1>
 
           <p>
-            Keb operates entirely on your machine. We do not collect, store, transmit, or share any
-            personal data, browsing history, or usage information.
+            Keb is designed with privacy as a core principle. We never collect
+            sensitive personal information such as your real name, email
+            address, home address, or payment details. This policy explains what
+            limited data we do handle and under what circumstances.
           </p>
 
-          <h2>No Data Collection</h2>
+          <h2>Two Modes of Operation</h2>
           <p>
-            Keb never sends data to any server we operate. All processing happens locally in your
-            browser and on your own machine.
+            Keb can run in two modes — <strong>local</strong> (fully offline, no
+            data leaves your machine except to your chosen LLM provider) and
+            <strong>hosted</strong> (requires a lightweight account for
+            multi-device sync and convenience).
           </p>
 
-          <h2>Self-Hosted Bridge</h2>
+          <h2>Information We Collect (Hosted Mode)</h2>
+          <p>When you use hosted mode, we collect only:</p>
+          <ul>
+            <li>
+              <i data-lucide="check-circle"></i>
+              <span
+                ><strong>Username</strong> — a pseudonym you choose (3–30
+                characters, letters, numbers, and hyphens only). This is used to
+                authenticate you and to namespace your knowledge base
+                workspace.</span
+              >
+            </li>
+            <li>
+              <i data-lucide="check-circle"></i>
+              <span
+                ><strong>Password hash</strong> — your password is hashed with
+                bcrypt and stored securely. We never store plaintext
+                passwords.</span
+              >
+            </li>
+            <li>
+              <i data-lucide="check-circle"></i>
+              <span
+                ><strong>Creation timestamp</strong> — the date and time your
+                account was created.</span
+              >
+            </li>
+          </ul>
           <p>
-            Keb connects to a local WebSocket server (<code>ws://127.0.0.1:9876</code>) that you run
-            yourself. No third-party server is involved. You control all code and data.
+            That is all. We do <strong>not</strong> collect your real name,
+            email address, phone number, billing information, IP address logs,
+            or any browsing history beyond the URLs you explicitly choose to add
+            to your knowledge base.
+          </p>
+
+          <h2>How We Use Your Information</h2>
+          <p>
+            Your username and password hash are used exclusively for
+            authentication and to associate your knowledge base workspace with
+            your account. We never sell, rent, or share this information with
+            third parties.
+          </p>
+
+          <h2>AI Processing (Knowledge Compilation &amp; Querying)</h2>
+          <p>
+            Keb's hosted service uses
+            <a
+              href="https://www.poolside.ai/"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Poolside.ai</a
+            >
+            as its LLM provider for knowledge compilation and query answering.
+            When you add a URL, capture a page, or ask a question, the relevant
+            content (page text, URLs, and your query) is sent to Poolside.ai for
+            processing. This is the only AI provider used in hosted mode — you
+            cannot configure an alternative.
+          </p>
+          <p>
+            <strong>Important:</strong> Poolside.ai may collect the data sent to
+            them to improve their products and services, in accordance with
+            their own privacy policy. We have no control over how they use data
+            once it leaves our systems. By using the Keb hosted service, you
+            acknowledge that Poolside.ai may process your content for model
+            improvement, safety monitoring, and service operations.
+          </p>
+          <p>
+            If you wish to avoid third-party AI processing entirely, you may
+            self-host the bridge in local mode with a local LLM (e.g., via
+            Ollama), where no data leaves your machine beyond your chosen
+            provider (which you configure yourself).
+          </p>
+
+          <h2>Where Data Is Stored</h2>
+          <p>
+            <strong>Local mode:</strong> All data stays on your machine — the
+            knowledge base files and user configuration live under
+            <code>~/.pi/agent/kb/</code>.
+          </p>
+          <p>
+            <strong>Hosted mode:</strong> User accounts (username + password
+            hash) are stored in a SQLite database on the bridge server. Your
+            knowledge base content (summaries, concepts, registry) also resides
+            on the server's filesystem. The bridge server is operated by us —
+            you entrust us with this data under the terms described here.
           </p>
 
           <h2>No Analytics, No Tracking</h2>
           <p>
-            There are no analytics SDKs, telemetry, cookies, or third-party services embedded in the
-            extension or this website.
+            There are no analytics SDKs, telemetry, cookies, fingerprinting, or
+            third-party tracking services embedded in the Keb extension, the
+            bridge server, or this website.
           </p>
 
           <h2>No Remote Code Execution</h2>
           <p>
-            Keb does not fetch or execute remote scripts. The extension loads only its own bundled
-            code. Your knowledge base is yours.
+            Keb does not fetch or execute remote scripts. The extension loads
+            only its own bundled code. Your knowledge base is yours.
           </p>
 
           <h2>Third-Party Links</h2>
           <p>
-            Keb may display links to external websites (e.g., saved URLs in your knowledge base). We
-            are not responsible for the privacy practices of those sites.
+            Keb may display links to external websites (e.g., saved URLs in your
+            knowledge base). We are not responsible for the privacy practices of
+            those sites.
+          </p>
+
+          <h2>Open Source</h2>
+          <p>
+            Keb is fully open source under the MIT license. You can review every
+            line of code on
+            <a href="https://github.com/auto-medica-labs/keb">GitHub</a> to
+            verify exactly what data is collected and how it is handled.
           </p>
 
           <h2>Changes</h2>
           <p>
-            If this policy changes, we will update the date below. Keb is open source — you can
-            verify what the extension does by reviewing the code on GitHub.
+            If this policy changes, we will update the date below. Keb is open
+            source — you can verify what the extension does by reviewing the
+            code on GitHub.
           </p>
 
-          <div class="last-updated">Last updated: May 2026</div>
+          <div class="last-updated">Last updated: June 2026</div>
         </div>
       </section>
     </main>
@@ -183,10 +287,13 @@
     <footer>
       <div class="container" style="flex-direction: column; gap: 0.25rem">
         <span style="display: flex; align-items: center; gap: 0.35rem">
-          <i data-lucide="copyright"></i> 2026 Keb. Open source under MIT license.
+          <i data-lucide="copyright"></i> 2026 Keb. Open source under MIT
+          license.
         </span>
         <p style="font-size: 0.8rem; opacity: 0.8">
-          <a href="/privacy.html" style="color: inherit; text-decoration: underline"
+          <a
+            href="/privacy.html"
+            style="color: inherit; text-decoration: underline"
             >Privacy Policy</a
           >
         </p>

@@ -337,6 +337,8 @@ export default function App() {
 
   function handleAuthenticated(token: string, uname: string) {
     persistBridgeConfig({ token, username: uname });
+    // Ensure settings overlay is not shown after sign-in
+    setShowSettings(false);
     // The useEffect watching authToken will trigger connectWithConfig
   }
 
@@ -362,7 +364,12 @@ export default function App() {
   }
 
   function handleSwitchToLocal() {
-    handleModeChange("local");
+    // Disconnect existing WS (if any) before switching modes
+    wsRef.current?.disconnect();
+    // Switch to local mode and clear any hosted auth state
+    persistBridgeConfig({ mode: "local", token: undefined, username: undefined });
+    // Ensure settings overlay is not shown on the main page
+    setShowSettings(false);
   }
 
   // ── Action handlers ───────────────────────────────────────────

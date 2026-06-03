@@ -6,42 +6,94 @@
 # child pi processes (for /kb-add, /kb-query) have the credentials and
 # model selection they need.
 #
-# Environment variables:
+# Primary (recommended) — custom provider via ~/.pi/agent/models.json:
 #
-#   API key env vars (standard pi names):
-#     ANTHROPIC_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY,
-#     GEMINI_API_KEY, GROQ_API_KEY, MISTRAL_API_KEY, XAI_API_KEY,
-#     OPENROUTER_API_KEY, HF_TOKEN, etc.
-#     See pi docs/providers.md for the full list.
+#   LLM_PROVIDER   — Provider name/slug (e.g., "ollama", "my-provider")
+#   LLM_BASE_URL   — API base URL (e.g., "http://host.docker.internal:11434/v1")
+#   LLM_MODEL      — Model ID (e.g., "llama3.1:8b", "gpt-4")
 #
-#   PI_DEFAULT_PROVIDER   — default provider name (e.g., "anthropic")
-#   PI_DEFAULT_MODEL       — default model ID (e.g., "claude-sonnet-4-20250514")
-#   PI_DEFAULT_THINKING    — thinking level (e.g., "high", "medium")
+#   Optional:
+#     LLM_API        — API type (default: "openai-completions")
+#                      See pi docs/models.md for supported APIs:
+#                      "anthropic-messages", "google-generative-ai",
+#                      "openai-responses"
+#     LLM_API_KEY    — API key (required by pi, can be dummy for local models)
+#     LLM_MODEL_NAME — Human-readable model name (defaults to LLM_MODEL)
+#     LLM_REASONING  — Set "true" for reasoning-capable models
 #
-#   PORT, HOST            — bridge listen settings (passed through)
+# Example .env:
+#   LLM_PROVIDER=ollama
+#   LLM_BASE_URL=http://host.docker.internal:11434/v1
+#   LLM_MODEL=llama3.1:8b
+#   LLM_API_KEY=ollama
+#
+# Legacy — native pi providers via auth.json + PI_DEFAULT_*:
+#   ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.
+#   PI_DEFAULT_PROVIDER, PI_DEFAULT_MODEL, PI_DEFAULT_THINKING
+#   See pi docs/providers.md for the full list.
 #
 # Volume mounts (alternative to env vars — for advanced config):
+#   -v $HOME/.pi/agent/models.json:/root/.pi/agent/models.json:ro
 #   -v $HOME/.pi/agent/auth.json:/root/.pi/agent/auth.json:ro
 #   -v $HOME/.pi/agent/settings.json:/root/.pi/agent/settings.json:ro
-#   -v $HOME/.pi/agent/models.json:/root/.pi/agent/models.json:ro
 #   -v kb-data:/root/.pi/agent/kb
-#
-# If auth.json is mounted (or already exists), it takes priority over
-# env vars, matching pi's native resolution order.
 # =============================================================================
 
 set -e
 
 PI_AGENT_DIR="${HOME}/.pi/agent"
+mkdir -p "${PI_AGENT_DIR}"
+SETTINGS_FILE="${PI_AGENT_DIR}/settings.json"
 
 # ---------------------------------------------------------------------------
-# 1. Build auth.json from environment variables
+# 1. Build models.json from LLM_* environment variables (primary)
 # ---------------------------------------------------------------------------
-# Only write auth.json if no file is already present (mounted or inherited)
+# Generates ~/.pi/agent/models.json with a custom provider + model.
+# This is the recommended way to configure LLM access in Docker.
+# If models.json is already mounted, this step is skipped.
+#
+# Required: LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL
+# Optional: LLM_API (default: openai-completions), LLM_API_KEY,
+#           LLM_MODEL_NAME, LLM_REASONING
+if [ -n "$LLM_PROVIDER" ] && [ -n "$LLM_BASE_URL" ] && [ -n "$LLM_MODEL" ] && [ ! -f "${PI_AGENT_DIR}/models.json" ]; then
+  MODELS_FILE="${PI_AGENT_DIR}/models.json"
+  node - "$MODELS_FILE" "$LLM_PROVIDER" "${LLM_API:-openai-completions}" "$LLM_BASE_URL" "${LLM_API_KEY:-}" "$LLM_MODEL" "${LLM_MODEL_NAME:-}" "${LLM_REASONING:-false}" <<'NODEMODELS'
+var fs = require("fs");
+var file = process.argv[2];
+var provider = process.argv[3];
+var api = process.argv[4];
+var baseUrl = process.argv[5];
+var apiKey = process.argv[6];
+var model = process.argv[7];
+var modelName = process.argv[8];
+var reasoning = process.argv[9] === "true";
+
+var obj = {};
+try { obj = JSON.parse(fs.readFileSync(file, "utf8")); } catch (e) {}
+if (!obj.providers) obj.providers = {};
+
+var modelEntry = { id: model };
+if (modelName) modelEntry.name = modelName;
+if (reasoning) modelEntry.reasoning = true;
+
+obj.providers[provider] = {
+  baseUrl: baseUrl,
+  api: api,
+  apiKey: apiKey,
+  models: [modelEntry]
+};
+
+fs.writeFileSync(file, JSON.stringify(obj, null, 2) + "\n");
+NODEMODELS
+  echo "[entrypoint] Wrote models.json: provider=${LLM_PROVIDER}, model=${LLM_MODEL}"
+fi
+
+# ---------------------------------------------------------------------------
+# 2. Build auth.json from environment variables (legacy fallback)
+# ---------------------------------------------------------------------------
+# Only write auth.json if no file is already present (mounted or inherited).
+# Not needed when using LLM_* env vars above — the API key goes in models.json.
 if [ ! -f "${PI_AGENT_DIR}/auth.json" ]; then
-  mkdir -p "${PI_AGENT_DIR}"
-  # Use node to build JSON safely — JSON.stringify handles all special
-  # character escaping that shell printf / eval cannot.
   count=$(node - "${PI_AGENT_DIR}/auth.json" <<'NODEAUTH'
 var fs = require("fs");
 var path = process.argv[2];
@@ -90,26 +142,23 @@ NODEAUTH
 fi
 
 # ---------------------------------------------------------------------------
-# 2. Generate settings.json from PI_DEFAULT_* env vars
+# 3. Generate settings.json with default provider/model
 # ---------------------------------------------------------------------------
-SETTINGS_FILE="${PI_AGENT_DIR}/settings.json"
+# Tries LLM_* env vars (primary) first, then PI_DEFAULT_* (legacy fallback).
+# Merges into existing settings.json, preserving keys like "packages".
+_DEFAULT_PROVIDER="${LLM_PROVIDER:-${PI_DEFAULT_PROVIDER:-}}"
+_DEFAULT_MODEL="${LLM_MODEL:-${PI_DEFAULT_MODEL:-}}"
+_DEFAULT_THINKING="${LLM_THINKING:-${PI_DEFAULT_THINKING:-}}"
 
-# Merge PI_DEFAULT_* env vars into settings.json (preserves any existing
-# keys like "packages" from pi install or user mounts).
-_has_provider=0
-_has_model=0
-_has_thinking=0
-[ -n "${PI_DEFAULT_PROVIDER}" ] && _has_provider=1
-[ -n "${PI_DEFAULT_MODEL}" ] && _has_model=1
-[ -n "${PI_DEFAULT_THINKING}" ] && _has_thinking=1
+_has_provider=0; _has_model=0; _has_thinking=0
+[ -n "$_DEFAULT_PROVIDER" ] && _has_provider=1
+[ -n "$_DEFAULT_MODEL" ] && _has_model=1
+[ -n "$_DEFAULT_THINKING" ] && _has_thinking=1
 _has_defaults=$((_has_provider + _has_model + _has_thinking))
 
 if [ $_has_defaults -gt 0 ]; then
-  mkdir -p "${PI_AGENT_DIR}"
-  # Use node to merge env vars into settings.json (preserving existing fields)
-  node - "$SETTINGS_FILE" "$PI_DEFAULT_PROVIDER" "$PI_DEFAULT_MODEL" "$PI_DEFAULT_THINKING" <<'NODEJS'
+  node - "$SETTINGS_FILE" "$_DEFAULT_PROVIDER" "$_DEFAULT_MODEL" "$_DEFAULT_THINKING" <<'NODESETTINGS'
 var fs = require("fs");
-// node - puts "-" at argv[1]; real args start at argv[2]
 var file = process.argv[2];
 var provider = process.argv[3];
 var model = process.argv[4];
@@ -120,17 +169,17 @@ if (provider) obj.defaultProvider = provider;
 if (model) obj.defaultModel = model;
 if (thinking) obj.defaultThinkingLevel = thinking;
 fs.writeFileSync(file, JSON.stringify(obj, null, 2) + "\n");
-NODEJS
-  echo "[entrypoint] Merged settings.json: ${PI_DEFAULT_PROVIDER:-?} / ${PI_DEFAULT_MODEL:-?}"
+NODESETTINGS
+  echo "[entrypoint] Merged settings.json: ${_DEFAULT_PROVIDER:-?} / ${_DEFAULT_MODEL:-?}"
 fi
 
 # ---------------------------------------------------------------------------
-# 3. Ensure KB directory exists (for sync operations)
+# 4. Ensure KB directory exists (for sync operations)
 # ---------------------------------------------------------------------------
 mkdir -p "${PI_AGENT_DIR}/kb"
 
 # ---------------------------------------------------------------------------
-# 4. Execute the bridge server
+# 5. Execute the bridge server
 # ---------------------------------------------------------------------------
 echo "[entrypoint] Starting bridge server..."
 exec node src/bridge-server.js

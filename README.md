@@ -39,7 +39,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 │        ▼                   ▼                         │
 │  ┌──────────┐  ┌───────────────────────────┐        │
 │  │ UserStore│  │  KbStore (pi-kb adapter)  │        │
-│  │ (JSON)   │  │  → FilesystemStore        │        │
+│  │ (SQLite) │  │  → FilesystemStore        │        │
 │  └──────────┘  └──────────┬────────────────┘        │
 │                           │                          │
 │                           ▼                          │
@@ -65,7 +65,7 @@ The bridge follows the same port/adapter architecture as pi-kb:
 | Port | Adapter (today) | Swappable to |
 |---|---|---|
 | `KbStore` (kb read/workspace ops) | `PiKbStore` → pi-kb's `FilesystemStore` | — |
-| `UserStore` (user credentials) | `JsonUserStore` (JSON file) | PostgreSQL, SQLite |
+| `UserStore` (user credentials) | `SqliteUserStore` (SQLite) | PostgreSQL |
 
 Swap adapters by changing one factory call in `bridge-server.js`. Handlers never know which adapter is in use.
 
@@ -201,7 +201,7 @@ keb/
 │   │       ├── adapters/
 │   │       │   ├── pi-kb-store.js      # KbStore → wraps pi-kb's FilesystemStore
 │   │       │   ├── pi-rpc-spawner.js   # spawns pi --mode rpc child processes
-│   │       │   └── user-store-json.js  # UserStore → JSON file adapter
+│   │       │   └── user-store-sqlite.js  # UserStore → SQLite adapter
 │   │       ├── ports/
 │   │       │   ├── kb-store.js         # KbStore interface
 │   │       │   └── user-store.js       # UserStore interface
@@ -259,7 +259,7 @@ In local mode all HTTP routes return 404.
 **Signup flow:**
 1. Validates username (slugified, 3-30 chars, `[a-z0-9-]`) and password (min 8 chars)
 2. Hashes password with bcrypt (12 rounds)
-3. Stores user in `~/.pi/agent/kb/users.json`
+3. Stores user in `~/.pi/agent/kb/users.db`
 4. Creates workspace at `~/.pi/agent/kb/workspaces/<username>/`
 5. Returns JWT (30-day expiry)
 

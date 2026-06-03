@@ -4,8 +4,9 @@
 # Build:
 #   docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
 #
-# Run (recommended: env file — keeps secrets out of shell history):
-#   cp .env.example .env   # then fill in your API keys
+# Run (recommended: env file with custom provider — keeps secrets out of
+# shell history):
+#   cp .env.example .env   # fill in LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL, etc.
 #   docker run -d \
 #     --name chrome-kb-bridge \
 #     -p 9876:9876 \
@@ -13,36 +14,49 @@
 #     -v kb-data:/root/.pi/agent/kb \
 #     chrome-kb-bridge
 #
-# Run (mount host pi config):
+# Run (mount host pi config files directly):
 #   docker run -d \
 #     --name chrome-kb-bridge \
 #     -p 9876:9876 \
-#     -v ~/.pi/agent/auth.json:/root/.pi/agent/auth.json:ro \
-#     -v ~/.pi/agent/settings.json:/root/.pi/agent/settings.json:ro \
+#     -v ~/.pi/agent/models.json:/root/.pi/agent/models.json:ro \
 #     -v kb-data:/root/.pi/agent/kb \
 #     chrome-kb-bridge
 #
 # Environment variables:
-#   PORT                   — WebSocket listen port (default: 9876)
-#   HOST                   — Listen address (default: 0.0.0.0; set to 127.0.0.1
-#                            for local-only access when binding to host network)
 #
-#   LLM provider API keys (standard pi names):
-#     ANTHROPIC_API_KEY    — Anthropic Claude
-#     OPENAI_API_KEY       — OpenAI
-#     DEEPSEEK_API_KEY     — DeepSeek
-#     GEMINI_API_KEY       — Google Gemini
+#   Primary — custom provider via models.json (recommended):
+#     LLM_PROVIDER   — Provider name/slug (e.g., "ollama", "my-provider")
+#     LLM_BASE_URL   — API base URL
+#     LLM_MODEL      — Model ID (e.g., "llama3.1:8b", "gpt-4")
+#     LLM_API        — API type (default: "openai-completions"; see pi
+#                      docs/models.md for "anthropic-messages", etc.)
+#     LLM_API_KEY    — API key (can be dummy for local models like Ollama)
+#     LLM_MODEL_NAME — Optional human-readable model name
+#     LLM_REASONING  — Set "true" for reasoning-capable models
+#
+#   Legacy — native pi providers (auth.json + PI_DEFAULT_*):
+#     ANTHROPIC_API_KEY, OPENAI_API_KEY, DEEPSEEK_API_KEY, GEMINI_API_KEY,
 #     ... (see pi docs/providers.md for full list)
+#     PI_DEFAULT_PROVIDER, PI_DEFAULT_MODEL, PI_DEFAULT_THINKING
 #
-#   PI_DEFAULT_PROVIDER    — default provider name (e.g. "anthropic")
-#   PI_DEFAULT_MODEL       — default model ID (e.g. "claude-sonnet-4-20250514")
-#   PI_DEFAULT_THINKING    — default thinking level ("off"|"low"|"medium"|"high"|"xhigh")
+#   Bridge mode:
+#     KEB_MODE  — "hosted" (default, requires auth) or "local"
+#     JWT_SECRET — required in hosted mode; generate with:
+#                  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+#
+#   Network:
+#     PORT  — WebSocket listen port (default: 9876)
+#     HOST  — Listen address (default: 0.0.0.0; set to 127.0.0.1 for
+#             local-only access when binding to host network)
 #
 # Volume mounts:
-#   auth.json              — mount host's ~/.pi/agent/auth.json for credentials
-#   settings.json          — mount for default provider/model selection
-#   models.json            — mount for custom provider/model definitions
-#   kb-data                — persistent volume for KB documents (recommended)
+#   models.json            — mount host's ~/.pi/agent/models.json (overrides
+#                            LLM_* env vars when present)
+#   auth.json              — legacy: mount host's ~/.pi/agent/auth.json
+#   settings.json          — mount for additional settings overrides
+#   kb-data                — persistent volume for KB documents and user database
+#                            (recommended — stores both workspace content and
+#                            users.db with registered accounts)
 # =============================================================================
 
 FROM node:22-slim AS base
@@ -117,7 +131,8 @@ RUN ln -sf ../lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js /usr/
 # Copy pi-kb extension + installed packages manifest from the pi-layer.
 # pi-layer ran `pi install git:github.com/dheerapat/pi-kb` which cloned
 # the extension to ~/.pi/agent/git/ and wrote a settings.json with the
-# packages list. The entrypoint merges PI_DEFAULT_* env vars into this.
+# packages list. The entrypoint merges LLM_* or PI_DEFAULT_* env vars
+# into this settings.json to set defaultProvider/defaultModel.
 COPY --from=pi-layer /root/.pi/agent /root/.pi/agent
 
 # Copy bridge node_modules (production) from deps-layer
@@ -141,6 +156,10 @@ EXPOSE 9876
 # Health check — verify the bridge is responding
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
     CMD node -e "new (require('ws').WebSocket)('ws://127.0.0.1:'+(process.env.PORT||9876)+'/').on('open',function(){process.exit(0)}).on('error',function(){process.exit(1)})"
+
+# Default to hosted mode (auth with JWT required).
+# Override KEB_MODE=local for local-only deployments.
+ENV KEB_MODE=hosted
 
 # Default listen on all interfaces (inside the container) so Docker
 # port mapping works. Override HOST=127.0.0.1 for host-network mode.

@@ -23,7 +23,7 @@ ports/          ← interfaces (contracts)
 
 adapters/       ← concrete implementations
   pi-kb-store.js    KbStore backed by pi-kb's FilesystemStore
-  user-store-json.js  UserStore backed by a JSON file
+  user-store-sqlite.js  UserStore backed by SQLite
   pi-rpc-spawner.js   spawns pi child processes
 
 handlers/       ← orchestration (depends on ports, never on adapters)
@@ -48,7 +48,7 @@ bridge-server.js  ← composition root (wires adapters to handlers)
 ### How to swap an adapter (e.g., JSON → PostgreSQL)
 
 1. Create `src/adapters/user-store-postgres.js` implementing `UserStore`
-2. In `bridge-server.js`, change `createJsonUserStore()` → `createPostgresUserStore({ connectionString })`
+2. In `bridge-server.js`, change `createSqliteUserStore()` → `createPostgresUserStore({ connectionString })`
 3. Done. No handler changes needed.
 
 ## pi-kb submodule
@@ -110,8 +110,8 @@ Handles `add` and `repair` WebSocket messages. Dedups URLs via `KbStore` registr
 ### `adapters/pi-kb-store.js`
 Bridge-specific wrapper around pi-kb's `FilesystemStore`. Implements the bridge's `KbStore` port. Adds `buildSyncData()` (reads all summaries/concepts and builds the sync payload). Also exports `ensureWorkspace()` and `workspaceExists()` for the auth flow.
 
-### `adapters/user-store-json.js`
-Stores users at `~/.pi/agent/kb/users.json`. Format: `{"username": {"passwordHash":"...", "createdAt":"..."}}`. Implements `UserStore` port.
+### `adapters/user-store-sqlite.js`
+Stores users in `~/.pi/agent/kb/users.db` using better-sqlite3. Uses a `users` table with columns `username`, `passwordHash`, `createdAt`. Eliminates race conditions present in the JSON file adapter. Implements `UserStore` port.
 
 ### `adapters/pi-rpc-spawner.js`
 Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses JSONL stdout, forwards events via callbacks. The caller sends a prompt over stdin.

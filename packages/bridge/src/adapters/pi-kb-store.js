@@ -85,6 +85,10 @@ export function createPiKbStore() {
       return store.listWorkspaces();
     },
 
+    countDocuments(workspace) {
+      return Object.keys(store.readRegistry(workspace)).length;
+    },
+
     buildSyncData(workspace) {
       const reg = store.readRegistry(workspace);
       const summariesList = store.listSummaries(workspace);

@@ -38,7 +38,8 @@ import { createSqliteUserStore } from "./adapters/user-store-sqlite.js";
 import { createAuthHandler } from "./handlers/auth-handler.js";
 import { spawnPi } from "./adapters/pi-rpc-spawner.js";
 import { handleQuery } from "./handlers/query-handler.js";
-import { handleCommand } from "./handlers/command-handler.js";
+import { handleAddUrl } from "./handlers/add-url-handler.js";
+import { handleRepair } from "./handlers/repair-handler.js";
 import { handleAddContent } from "./handlers/add-content-handler.js";
 import { handleSync } from "./handlers/sync-handler.js";
 
@@ -114,6 +115,12 @@ const HOST = process.env.HOST || "127.0.0.1";
  * @type {'local' | 'hosted'}
  */
 const MODE = process.env.KEB_MODE === "hosted" ? "hosted" : "local";
+
+/**
+ * Document limit for hosted free tier (no limit in local mode).
+ * @type {number|undefined}
+ */
+const MAX_DOCUMENTS = MODE === "hosted" ? 50 : undefined;
 
 // ---------------------------------------------------------------------------
 // Bootstrap adapters
@@ -296,14 +303,14 @@ function startBridge(port, host) {
             ws.send(safeStringify({ type: "error", operationId, message: "Missing 'url' field" }));
             return;
           }
-          const child = handleCommand({
+          const child = handleAddUrl({
             ws,
             operationId,
-            command: "add",
             url: msg.url,
             workspace,
             kbStore,
             spawn: spawnPi,
+            maxDocuments: MAX_DOCUMENTS,
           });
           if (child) {
             activeChildren.set(operationId, child);
@@ -317,10 +324,9 @@ function startBridge(port, host) {
         }
 
         case "repair": {
-          const child = handleCommand({
+          const child = handleRepair({
             ws,
             operationId,
-            command: "repair",
             workspace,
             kbStore,
             spawn: spawnPi,
@@ -355,7 +361,9 @@ function startBridge(port, host) {
             url: msg.url,
             title: msg.title,
             workspace,
+            kbStore,
             spawn: spawnPi,
+            maxDocuments: MAX_DOCUMENTS,
           });
           if (child) {
             activeChildren.set(operationId, child);

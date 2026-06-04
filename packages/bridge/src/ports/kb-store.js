@@ -64,6 +64,7 @@
  * @property {(workspace?: string) => string[]} listConcepts
  * @property {(slug: string, workspace?: string) => ConceptPage|null} readConcept
  * @property {() => string[]} listWorkspaces
+ * @property {(workspace?: string) => number} countDocuments
  * @property {(workspace?: string) => SyncData} buildSyncData
  */
 

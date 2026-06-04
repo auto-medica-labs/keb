@@ -194,6 +194,7 @@ keb/
 │   │   ├── tsconfig.json
 │   │   ├── tsconfig.build-pi-kb.json  # compiles pi-kb standalone adapter
 │   │   ├── Dockerfile
+│   │   ├── Caddyfile.example   # Reverse proxy config for production
 │   │   ├── entrypoint.sh
 │   │   ├── .env.example
 │   │   └── src/
@@ -245,6 +246,79 @@ keb/
 │           └── index.css         # Global styles (Tailwind + shadcn theme)
 ```
 
+## Docker
+
+```bash
+# Build
+docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+
+# Run
+docker run -d \
+  --name chrome-kb-bridge \
+  -p 9876:9876 \
+  --env-file packages/bridge/.env \
+  -v kb-data:/root/.pi/agent/kb \
+  chrome-kb-bridge
+```
+
+The Dockerfile has four stages:
+1. `pi-layer` — installs pi + pi-kb globally
+2. `deps-layer` — installs bridge npm deps (including TypeScript)
+3. `pi-kb-build` — compiles pi-kb standalone adapter to JS
+4. `final` — minimal `node:22-slim` with production deps only
+
+### Reverse proxy with Caddy
+
+A sample `Caddyfile.example` is included in `packages/bridge/`. It proxies `api.mdevd.co/keb/v1` → the bridge container, stripping the `/keb/v1` path prefix so the bridge receives clean `/api/*` paths. Caddy auto-provisions TLS via Let's Encrypt and handles WebSocket upgrades transparently.
+
+Example Docker Compose snippet:
+
+```yaml
+services:
+  bridge:
+    build:
+      context: .
+      dockerfile: packages/bridge/Dockerfile
+    env_file: packages/bridge/.env
+    volumes:
+      - kb-data:/root/.pi/agent/kb
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./packages/bridge/Caddyfile.example:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+    restart: unless-stopped
+
+volumes:
+  kb-data:
+  caddy-data:
+```
+
+### Horizontal scaling
+
+Running multiple bridge instances behind a load balancer is **not safe** with the default adapters:
+
+| Component | Default adapter | Multi-instance issue |
+|---|---|---|
+| `UserStore` | SQLite (`users.db`) | File-level locking — concurrent writes from two instances will corrupt or block. |
+| `KbStore` | FilesystemStore (markdown + JSON) | pi child processes writing to the same workspace will race on registry entries and files. |
+
+Even with sticky sessions, cross-user writes collide on the shared `users.db`. The architecture is designed for vertical scaling (single instance, more resources) out of the box.
+
+To scale horizontally, swap the adapters to distributed backends — the port/adapter pattern makes this a one-line change in `bridge-server.js`:
+
+```
+UserStore port  →  swap SQLite for a Postgres adapter     (shared users.db)
+KbStore port    →  swap FilesystemStore for S3/Postgres    (shared KB data)
+```
+
+With both stores backed by distributed databases, multiple bridge instances can share state safely. The bridge server itself is stateless (JWT verification uses only the shared secret, no session store).
+
 ## HTTP API (hosted mode only)
 
 When `KEB_MODE=hosted`, the bridge exposes these endpoints on the same port as the WebSocket.
@@ -267,7 +341,7 @@ In local mode all HTTP routes return 404.
 
 ## WebSocket Protocol
 
-The bridge listens on `ws://127.0.0.1:9876` by default and accepts JSON messages.
+The bridge listens on `ws://127.0.0.1:9876` by default (local mode). The extension's Settings panel lets you configure the bridge URL for either mode — hosted mode defaults to `wss://api.mdevd.co/keb/v1`. All messages are JSON.
 
 ### Auth (hosted mode only)
 
@@ -290,6 +364,17 @@ In local mode, no auth message is needed — clients can send any operation imme
 | `query` | `operationId`, `text`, `workspace?` | Query the knowledge base |
 | `repair` | `operationId`, `workspace?` | Re-compile interrupted documents |
 | `sync` | `workspace?` | Full state dump (registry, index, summaries, concepts, workspaces) |
+
+### Bridge URL Configuration
+
+The Settings panel (gear icon) includes a **Bridge URL** input field. When you switch between modes, the URL auto-resets to the default for that mode:
+
+| Mode | Default Bridge URL |
+|---|---|
+| Local | `ws://127.0.0.1:9876` |
+| Hosted | `wss://api.mdevd.co/keb/v1` |
+
+You can edit the URL at any time — changes are persisted to `chrome.storage.local`.
 
 > **Note:** In hosted mode, the `workspace` field is **ignored** — the server enforces the authenticated username as the workspace for all operations. In local mode, `workspace` is optional and defaults to the default workspace.
 
@@ -324,3 +409,7 @@ This project uses a **dual license**:
 | `@keb/bridge` | [MIT with SaaS restriction](packages/bridge/LICENSE) | Free for self-hosted use; no competing SaaS/cloud hosting permitted |
 
 The bridge license allows you to use, modify, and self-host the bridge freely, but prohibits offering it to third parties as a hosted, managed, or SaaS product where the primary value is the bridge's functionality itself.
+
+### Hosted Bridge URL
+
+When the extension is in **hosted mode**, it defaults to connecting to `wss://api.mdevd.co/keb/v1`. This is the production bridge endpoint. You can change it in Settings if you're running your own hosted bridge instance.

@@ -135,8 +135,8 @@ export async function getWorkspaces(): Promise<string[]> {
 // ── Bridge config ────────────────────────────────────────────────────────
 
 const DEFAULT_BRIDGE_CONFIG: BridgeConfig = {
-  mode: "local",
-  bridgeUrl: "ws://127.0.0.1:9876",
+  mode: "hosted",
+  bridgeUrl: "wss://api.mdevd.co/keb/v1",
 };
 
 export async function getBridgeConfig(): Promise<BridgeConfig> {

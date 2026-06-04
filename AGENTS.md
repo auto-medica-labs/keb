@@ -218,7 +218,10 @@ curl -X POST http://127.0.0.1:9876/api/login \
 - React components in `src/sidepanel/components/`.
 - shadcn/ui components in `src/components/ui/` (generated, don't edit manually).
 - State management: `chrome.storage.local` for persistence (see `lib/store.ts`), React state for UI.
-- Auth: `lib/api.ts` calls bridge HTTP endpoints (login/signup/me). `components/AuthPanel.tsx` provides the login/signup form. `components/SettingsPanel.tsx` lets users switch between local and hosted modes.
+- Auth: `lib/api.ts` calls bridge HTTP endpoints (login/signup/me). `components/AuthPanel.tsx` provides the login/signup form. `components/SettingsPanel.tsx` lets users switch between local and hosted modes and configure the bridge URL.
+
+#### `lib/store.ts`
+chrome.storage.local cache wrapper. Stores bridge config (mode, bridgeUrl, token, username) and KB state (registry, index, summaries, concepts). `DEFAULT_BRIDGE_CONFIG` defaults to hosted mode with `wss://api.mdevd.co/keb/v1`. `persistBridgeConfig` / `setBridgeConfig` handle partial updates, so mode-specific defaults (e.g. `ws://127.0.0.1:9876` for local) are applied by the caller.
 
 ## Environment variables
 
@@ -275,6 +278,18 @@ The Dockerfile has four stages:
 2. `deps-layer` — installs bridge npm deps (including TypeScript)
 3. `pi-kb-build` — compiles pi-kb standalone adapter to JS
 4. `final` — minimal `node:22-slim` with production deps only
+
+`Caddyfile.example` provides a production reverse-proxy config for `api.mdevd.co/keb/v1`. It uses `handle_path` to strip the path prefix before proxying to the bridge — this is critical so the bridge receives clean `/api/*` paths. Caddy handles TLS and WebSocket upgrades automatically.
+
+### Horizontal scaling
+
+Multiple bridge instances behind a load balancer are **not safe** with the default adapters: SQLite (`UserStore`) uses file-level locking, and `FilesystemStore` (`KbStore`) races on registry entries when pi child processes write concurrently. Even sticky sessions don't fully protect against cross-user `users.db` corruption.
+
+To scale horizontally, swap adapters to distributed backends:
+- `UserStore` → Postgres (shared user DB across instances)
+- `KbStore` → S3, Postgres, or NFS with proper locking
+
+The bridge server itself is stateless — JWT verification uses only `JWT_SECRET`, no session store needed.
 
 ## Troubleshooting
 

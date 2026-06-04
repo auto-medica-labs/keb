@@ -58,7 +58,7 @@ export default function App() {
 
   // ── Auth / config state ───────────────────────────────────────
   const [bridgeMode, setBridgeMode] = useState<BridgeMode>("local");
-  const [bridgeUrl, setBridgeUrl] = useState("ws://127.0.0.1:9876");
+  const [bridgeUrl, setBridgeUrl] = useState("wss://api.mdevd.co/keb/v1");
   const [authToken, setAuthToken] = useState<string | undefined>(undefined);
   const [username, setUsername] = useState<string | undefined>(undefined);
   const [showSettings, setShowSettings] = useState(false);
@@ -273,7 +273,7 @@ export default function App() {
       // Load bridge config
       const bc = await getBridgeConfig();
       setBridgeMode(bc.mode || "local");
-      setBridgeUrl(bc.bridgeUrl || "ws://127.0.0.1:9876");
+      setBridgeUrl(bc.bridgeUrl || "wss://api.mdevd.co/keb/v1");
       if (bc.token) setAuthToken(bc.token);
       if (bc.username) setUsername(bc.username);
 
@@ -352,9 +352,17 @@ export default function App() {
     wsRef.current?.disconnect();
 
     if (newMode === "local") {
-      persistBridgeConfig({ mode: "local", token: undefined, username: undefined });
+      persistBridgeConfig({
+        mode: "local",
+        bridgeUrl: "ws://127.0.0.1:9876",
+        token: undefined,
+        username: undefined,
+      });
     } else {
-      persistBridgeConfig({ mode: "hosted" });
+      persistBridgeConfig({
+        mode: "hosted",
+        bridgeUrl: "wss://api.mdevd.co/keb/v1",
+      });
     }
   }
 
@@ -363,11 +371,22 @@ export default function App() {
     wsRef.current?.disconnect();
   }
 
+  function handleBridgeUrlChange(url: string) {
+    // Disconnect existing WS before changing URL
+    wsRef.current?.disconnect();
+    persistBridgeConfig({ bridgeUrl: url });
+  }
+
   function handleSwitchToLocal() {
     // Disconnect existing WS (if any) before switching modes
     wsRef.current?.disconnect();
-    // Switch to local mode and clear any hosted auth state
-    persistBridgeConfig({ mode: "local", token: undefined, username: undefined });
+    // Switch to local mode, reset URL to localhost, clear hosted auth state
+    persistBridgeConfig({
+      mode: "local",
+      bridgeUrl: "ws://127.0.0.1:9876",
+      token: undefined,
+      username: undefined,
+    });
     // Ensure settings overlay is not shown on the main page
     setShowSettings(false);
   }
@@ -525,6 +544,7 @@ export default function App() {
         <SettingsPanel
           config={{ mode: bridgeMode, bridgeUrl, token: authToken, username }}
           onModeChange={handleModeChange}
+          onBridgeUrlChange={handleBridgeUrlChange}
           onLogout={handleLogout}
           onClose={() => setShowSettings(false)}
         />

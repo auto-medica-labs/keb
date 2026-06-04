@@ -48,70 +48,15 @@ export default function SettingsPanel({
 
       {/* Content */}
       <div className="flex-1 space-y-5 overflow-y-auto p-4">
-        {/* Bridge URL */}
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">Bridge URL</label>
-          <div className="flex gap-1.5">
-            <input
-              type="text"
-              value={draftUrl}
-              onChange={(e) => setDraftUrl(e.target.value)}
-              placeholder={config.mode === "local" ? "ws://127.0.0.1:9876" : "wss://api.mdevd.co/keb/v1"}
-              className="h-9 flex-1 rounded-md border border-border bg-transparent px-2.5 text-xs placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-primary"
-            />
-            <button
-              onClick={handleSaveUrl}
-              disabled={!draftUrl.trim() || draftUrl.trim() === config.bridgeUrl}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border transition-colors hover:bg-muted disabled:opacity-40"
-              aria-label="Save bridge URL"
-            >
-              {saved ? <Check className="size-3.5 text-green-500" /> : <span className="text-xs">✓</span>}
-            </button>
-          </div>
-          <p className="text-[10px] text-muted-foreground">
-            WebSocket endpoint for bridge connection
-          </p>
-        </div>
-
-        {/* Mode */}
-        <label className="text-xs font-medium text-muted-foreground">Bridge Mode</label>
-        <div className="mt-2 flex gap-2">
-          <button
-            onClick={() => onModeChange("local")}
-            className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
-              config.mode === "local"
-                ? "bg-primary/10 border-primary text-primary"
-                : "border-border hover:bg-muted"
-            }`}
-          >
-            <Monitor className="mx-auto mb-1 size-4" />
-            Local
-            <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
-              No login required
-            </span>
-          </button>
-          <button
-            onClick={() => onModeChange("hosted")}
-            className={`flex-1 rounded-md border px-3 py-2 text-xs font-medium transition-colors ${
-              config.mode === "hosted"
-                ? "bg-primary/10 border-primary text-primary"
-                : "border-border hover:bg-muted"
-            }`}
-          >
-            <Globe className="mx-auto mb-1 size-4" />
-            Hosted
-            <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
-              Login required
-            </span>
-          </button>
-        </div>
-
-        {/* Sign out (hosted mode only) */}
-        {config.mode === "hosted" && config.username && (
-          <div className="space-y-2 border-t border-border pt-3">
-            <p className="text-xs text-muted-foreground">
-              Signed in as <span className="font-medium text-foreground">{config.username}</span>
-            </p>
+        {config.mode === "hosted" ? (
+          /* Hosted mode: no URL display, no mode toggle.
+             Switch to local by signing out, then clicking "Use local mode instead". */
+          <>
+            {config.username && (
+              <p className="text-xs text-muted-foreground">
+                Signed in as <span className="font-medium text-foreground">{config.username}</span>
+              </p>
+            )}
             <button
               onClick={() => {
                 onLogout();
@@ -122,7 +67,66 @@ export default function SettingsPanel({
               <LogOut className="size-4" />
               Sign Out
             </button>
-          </div>
+          </>
+        ) : (
+          /* Local mode */
+          <>
+            {/* Bridge URL */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Bridge URL</label>
+              <div>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={draftUrl}
+                    onChange={(e) => setDraftUrl(e.target.value)}
+                    placeholder="ws://127.0.0.1:9876"
+                    className="h-9 flex-1 rounded-md border border-border bg-transparent px-2.5 text-xs placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-primary focus:outline-none"
+                  />
+                  <button
+                    onClick={handleSaveUrl}
+                    disabled={!draftUrl.trim() || draftUrl.trim() === config.bridgeUrl}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border transition-colors hover:bg-muted disabled:opacity-40"
+                    aria-label="Save bridge URL"
+                  >
+                    {saved ? (
+                      <Check className="size-3.5 text-green-500" />
+                    ) : (
+                      <span className="text-xs">✓</span>
+                    )}
+                  </button>
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  WebSocket endpoint for bridge connection
+                </p>
+              </div>
+            </div>
+
+            {/* Mode toggle */}
+            <label className="text-xs font-medium text-muted-foreground">Bridge Mode</label>
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={() => onModeChange("local")}
+                className="flex-1 rounded-md border border-primary bg-primary/10 px-3 py-2 text-xs font-medium text-primary"
+              >
+                <Monitor className="mx-auto mb-1 size-4" />
+                Local
+                <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                  No login required
+                </span>
+              </button>
+              <button
+                onClick={() => onModeChange("hosted")}
+                className="flex-1 rounded-md border border-border px-3 py-2 text-xs font-medium transition-colors hover:bg-muted"
+              >
+                <Globe className="mx-auto mb-1 size-4" />
+                Hosted
+                <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                  Login required
+                </span>
+              </button>
+            </div>
+          </>
         )}
       </div>
     </div>

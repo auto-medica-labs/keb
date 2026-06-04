@@ -4,8 +4,8 @@
   "private": true,
   "packageManager": "pnpm@11.3.0",
   "scripts": {
-    "dev": "pnpm --filter @keb/extension dev",
     "build": "pnpm --filter @keb/extension --filter @keb/landing build",
+    "build:local": "VITE_HOSTED_BRIDGE_URL=ws://127.0.0.1:19876 pnpm --filter @keb/extension build",
     "build:pi-kb": "pnpm --filter @keb/bridge build:pi-kb",
     "typecheck": "pnpm --filter './packages/*' --filter '!./packages/pi-kb' typecheck",
     "preview": "pnpm --filter @keb/extension preview",

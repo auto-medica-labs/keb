@@ -35,7 +35,17 @@ const { convert } = require("@kreuzberg/html-to-markdown-node");
  * @param {number} [opts.maxDocuments] - Document limit (hosted free tier)
  * @returns {import('node:child_process').ChildProcess|null} Spawned child
  */
-export function handleAddContent({ ws, operationId, html, url, title, workspace, kbStore, spawn, maxDocuments }) {
+export function handleAddContent({
+  ws,
+  operationId,
+  html,
+  url,
+  title,
+  workspace,
+  kbStore,
+  spawn,
+  maxDocuments,
+}) {
   // ── 1. Convert HTML → Markdown ──────────────────────────────────
   /** @type {string} */
   let markdownContent;

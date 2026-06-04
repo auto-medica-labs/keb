@@ -21,6 +21,7 @@ import {
   type RegistryEntry,
   type BridgeMode,
 } from "../lib/store";
+import { HOSTED_BRIDGE_URL } from "../lib/env";
 import Header from "./components/Header";
 import AuthPanel from "./components/AuthPanel";
 import SettingsPanel from "./components/SettingsPanel";
@@ -195,11 +196,12 @@ export default function App() {
 
   // ── Bridge config helpers ─────────────────────────────────────
 
-  /** Build WSClientConfig from current auth/config state. */
+  /** Build WSClientConfig from current auth/config state.
+   *  In hosted mode, bridgeUrl is always the build-time constant (ignores stored value). */
   function getWSConfig(): WSClientConfig {
     return {
       mode: bridgeMode,
-      bridgeUrl,
+      bridgeUrl: bridgeMode === "hosted" ? HOSTED_BRIDGE_URL : bridgeUrl,
       token: authToken,
     };
   }
@@ -273,7 +275,11 @@ export default function App() {
       // Load bridge config
       const bc = await getBridgeConfig();
       setBridgeMode(bc.mode || "local");
-      setBridgeUrl(bc.bridgeUrl || "wss://api.mdevd.co/keb/v1");
+      // In hosted mode, always use the build-time constant (ignore stored URL
+      // from dev builds). In local mode, fall through to the stored URL.
+      setBridgeUrl(
+        bc.mode === "hosted" ? HOSTED_BRIDGE_URL : bc.bridgeUrl || "ws://127.0.0.1:9876",
+      );
       if (bc.token) setAuthToken(bc.token);
       if (bc.username) setUsername(bc.username);
 
@@ -361,7 +367,7 @@ export default function App() {
     } else {
       persistBridgeConfig({
         mode: "hosted",
-        bridgeUrl: "wss://api.mdevd.co/keb/v1",
+        bridgeUrl: HOSTED_BRIDGE_URL,
       });
     }
   }
@@ -372,6 +378,8 @@ export default function App() {
   }
 
   function handleBridgeUrlChange(url: string) {
+    // In hosted mode, the URL is fixed at build time — ignore user edits
+    if (bridgeMode === "hosted") return;
     // Disconnect existing WS before changing URL
     wsRef.current?.disconnect();
     persistBridgeConfig({ bridgeUrl: url });
@@ -525,7 +533,7 @@ export default function App() {
         <Toaster position="bottom-center" />
         <AuthPanel
           mode={bridgeMode}
-          bridgeUrl={bridgeUrl}
+          bridgeUrl={bridgeMode === "hosted" ? HOSTED_BRIDGE_URL : bridgeUrl}
           onAuthenticated={handleAuthenticated}
           onSwitchToLocal={handleSwitchToLocal}
         />

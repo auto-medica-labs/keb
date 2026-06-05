@@ -1,0 +1,60 @@
+# =============================================================================
+# Docker Compose — chrome-kb bridge + Caddy reverse proxy
+#
+# Quick start:
+#   1. cp .env.example .env   # fill in secrets
+#   2. docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+#   3. docker compose -f packages/bridge/docker-compose.yml up -d
+#
+# Caddy handles TLS (Let's Encrypt) automatically and strips the
+# /keb/v1 path prefix so the bridge receives clean /api/* paths.
+# Change the domain below to match your setup.
+# =============================================================================
+
+services:
+  bridge:
+    image: chrome-kb-bridge
+    container_name: chrome-kb-bridge
+    restart: unless-stopped
+    env_file:
+      - .env
+    volumes:
+      - ./data/kb:/root/.pi/agent/kb
+    expose:
+      - "9876"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "new (require('ws').WebSocket)('ws://127.0.0.1:9876/').on('open',function(){process.exit(0)}).on('error',function(){process.exit(1)})",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - keb
+
+  caddy:
+    image: caddy:2-alpine
+    container_name: chrome-kb-caddy
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    networks:
+      - keb
+
+volumes:
+  caddy-data:
+  caddy-config:
+
+networks:
+  keb:
+    driver: bridge

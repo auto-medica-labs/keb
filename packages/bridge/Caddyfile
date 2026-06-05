@@ -1,0 +1,31 @@
+# =============================================================================
+# Caddyfile — reverse proxy for chrome-kb bridge
+#
+# Mounted at /etc/caddy/Caddyfile inside the caddy container.
+# Caddy auto-obtains Let's Encrypt certificates and handles WebSocket
+# upgrades. The /keb/v1 prefix is stripped so the bridge receives
+# clean /api/* paths.
+#
+# Before starting:
+#   1. Replace api.mdevd.co with your domain
+#   2. Set your email for Let's Encrypt notifications
+#   3. Ensure DNS A/AAAA records point to your server's public IP
+#   4. Ensure ports 80 and 443 are reachable (Lightsail firewall)
+# =============================================================================
+
+{
+    email admin@mdevd.co
+}
+
+api.mdevd.co {
+    handle_path /keb/v1/* {
+        reverse_proxy bridge:9876 {
+            # Increase timeout — compilation can take 30-90s
+            # for large pages. Caddy handles WebSocket upgrades
+            # automatically.
+            transport http {
+                read_timeout 120s
+            }
+        }
+    }
+}

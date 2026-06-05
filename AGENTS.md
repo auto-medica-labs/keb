@@ -282,7 +282,7 @@ The Dockerfile has four stages:
 3. `pi-kb-build` — compiles pi-kb standalone adapter to JS
 4. `final` — minimal `node:22-slim` with production deps only
 
-`Caddyfile.example` provides a production reverse-proxy config for `api.mdevd.co/keb/v1`. It uses `handle_path` to strip the path prefix before proxying to the bridge — this is critical so the bridge receives clean `/api/*` paths. Caddy handles TLS and WebSocket upgrades automatically.
+`Caddyfile` provides a production reverse-proxy config for `api.mdevd.co/keb/v1`. It uses `handle_path` to strip the path prefix before proxying to the bridge — this is critical so the bridge receives clean `/api/*` paths. Caddy handles TLS and WebSocket upgrades automatically.
 
 ### Horizontal scaling
 

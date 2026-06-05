@@ -128,7 +128,7 @@ HTTP client for bridge auth endpoints. `signup()`, `login()`, `getMe()`. Used by
 Login/signup form. Validates username (3-30 chars, `[a-z0-9-]`) and password (8+ chars). Toggles between login and signup. Calls bridge HTTP API. Stores JWT on success.
 
 #### `sidepanel/components/SettingsPanel.tsx`
-Settings overlay. Mode toggle (local/hosted), bridge URL input, save & reconnect, sign out button.
+Settings overlay. Mode toggle (local/hosted), bridge URL input (local mode only — hidden in hosted mode), sign out button (hosted mode only). The hosted bridge URL is a build-time constant and not runtime-configurable.
 
 #### `sidepanel/App.tsx`
 Main application shell. On startup, loads bridge config from storage. If hosted mode without token, shows AuthPanel. If local mode or hosted with token, connects WS and shows tabs. Manages settings overlay visibility.
@@ -220,8 +220,11 @@ curl -X POST http://127.0.0.1:9876/api/login \
 - State management: `chrome.storage.local` for persistence (see `lib/store.ts`), React state for UI.
 - Auth: `lib/api.ts` calls bridge HTTP endpoints (login/signup/me). `components/AuthPanel.tsx` provides the login/signup form. `components/SettingsPanel.tsx` lets users switch between local and hosted modes and configure the bridge URL.
 
+#### `lib/env.ts`
+Build-time constants inlined by Vite. Exports `HOSTED_BRIDGE_URL` — the immutable WebSocket URL used in hosted mode. Defaults to `wss://api.mdevd.co/keb/v1`, overridable at build time via `VITE_HOSTED_BRIDGE_URL` env var. This value is NOT configurable at runtime; the Settings panel hides the URL input in hosted mode.
+
 #### `lib/store.ts`
-chrome.storage.local cache wrapper. Stores bridge config (mode, bridgeUrl, token, username) and KB state (registry, index, summaries, concepts). `DEFAULT_BRIDGE_CONFIG` defaults to hosted mode with `wss://api.mdevd.co/keb/v1`. `persistBridgeConfig` / `setBridgeConfig` handle partial updates, so mode-specific defaults (e.g. `ws://127.0.0.1:9876` for local) are applied by the caller.
+chrome.storage.local cache wrapper. Stores bridge config (mode, bridgeUrl, token, username) and KB state (registry, index, summaries, concepts). `DEFAULT_BRIDGE_CONFIG` defaults to hosted mode with `wss://api.mdevd.co/keb/v1`. `persistBridgeConfig` / `setBridgeConfig` handle partial updates, so mode-specific defaults (e.g. `ws://127.0.0.1:9876` for local) are applied by the caller. Note: in hosted mode, `App.tsx` ignores any stored `bridgeUrl` and always uses `HOSTED_BRIDGE_URL` from `env.ts`.
 
 ## Environment variables
 

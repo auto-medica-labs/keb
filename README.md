@@ -367,14 +367,14 @@ In local mode, no auth message is needed — clients can send any operation imme
 
 ### Bridge URL Configuration
 
-The Settings panel (gear icon) includes a **Bridge URL** input field. When you switch between modes, the URL auto-resets to the default for that mode:
+The Settings panel (gear icon) includes a **Bridge URL** input field, but it behaves differently per mode:
 
-| Mode | Default Bridge URL |
-|---|---|
-| Local | `ws://127.0.0.1:9876` |
-| Hosted | `wss://api.mdevd.co/keb/v1` |
+| Mode | Default Bridge URL | Configurable? |
+|---|---|---|
+| Local | `ws://127.0.0.1:9876` | Yes — editable in Settings |
+| Hosted | `wss://api.mdevd.co/keb/v1` | No — hardcoded at build time |
 
-You can edit the URL at any time — changes are persisted to `chrome.storage.local`.
+In **hosted mode**, the bridge URL is a build-time constant (`HOSTED_BRIDGE_URL` in `lib/env.ts`, overridable via `VITE_HOSTED_BRIDGE_URL` env var). The Settings panel hides the URL input entirely when in hosted mode — there is no runtime override. In **local mode**, the URL is freely editable and persisted to `chrome.storage.local`.
 
 > **Note:** In hosted mode, the `workspace` field is **ignored** — the server enforces the authenticated username as the workspace for all operations. In local mode, `workspace` is optional and defaults to the default workspace.
 
@@ -412,4 +412,10 @@ The bridge license allows you to use, modify, and self-host the bridge freely, b
 
 ### Hosted Bridge URL
 
-When the extension is in **hosted mode**, it defaults to connecting to `wss://api.mdevd.co/keb/v1`. This is the production bridge endpoint. You can change it in Settings if you're running your own hosted bridge instance.
+The extension's hosted mode bridge URL (`wss://api.mdevd.co/keb/v1`) is a **build-time constant** set in `packages/extension/src/lib/env.ts`. It is NOT configurable at runtime — the Settings panel hides the URL input in hosted mode. To target a different hosted bridge (e.g., a staging instance), set the `VITE_HOSTED_BRIDGE_URL` environment variable at build time:
+
+```bash
+VITE_HOSTED_BRIDGE_URL=wss://staging.example.com/keb/v1 pnpm build
+```
+
+Vite inlines this value into the bundle, so it cannot be changed after the extension is built.

@@ -27,11 +27,12 @@ adapters/       ← concrete implementations
   pi-rpc-spawner.js   spawns pi child processes
 
 handlers/       ← orchestration (depends on ports, never on adapters)
-  auth-handler.js    HTTP auth endpoints → uses UserStore port
-  command-handler.js add/repair → uses KbStore port + spawnPi
-  query-handler.js   query → uses spawnPi
-  sync-handler.js    sync → uses KbStore port
-  add-content-handler.js
+  auth-handler.js       HTTP auth endpoints → uses UserStore port
+  add-url-handler.js    add (URL) → uses KbStore port + spawnPi
+  add-content-handler.js add-content → HTML→Markdown + spawnPi
+  query-handler.js      query → uses spawnPi
+  repair-handler.js     repair → uses KbStore port + spawnPi
+  sync-handler.js       sync → uses KbStore port
 
 bridge-server.js  ← composition root (wires adapters to handlers)
 ```
@@ -104,8 +105,20 @@ JWT sign/verify (`generateToken`, `verifyToken`), bcrypt password hashing (`hash
 ### `handlers/auth-handler.js`
 HTTP request handler. Routes `POST /api/signup`, `POST /api/login`, `GET /api/me`. On signup, creates workspace via `ensureWorkspace()`. Returns JSON. Returns `false` for non-auth routes (so the HTTP server can 404).
 
-### `handlers/command-handler.js`
-Handles `add` and `repair` WebSocket messages. Dedups URLs via `KbStore` registry before spawning pi. The actual pi prompt is `/kb-add -w <workspace> <url>`.
+### `handlers/add-url-handler.js`
+Handles `add` WebSocket messages. Dedup-checks URL against `KbStore` registry before spawning pi. Enforces document limit (hosted free tier). Prompt: `/kb-add -f -w <workspace> <url>`.
+
+### `handlers/add-content-handler.js`
+Handles `add-content` WebSocket messages. Converts captured page HTML to Markdown via `@kreuzberg/html-to-markdown-node`, prepends metadata, enforces document limit, then spawns pi with `/kb-add-content -f -w <workspace> <content>`.
+
+### `handlers/repair-handler.js`
+Handles `repair` WebSocket messages. Counts pending (compiled === false) registry entries. Short-circuits if none; otherwise spawns pi with `/kb-repair -w <workspace>`.
+
+### `handlers/query-handler.js`
+Handles `query` WebSocket messages. Spawns pi with `/kb-query -w <workspace> <text>` and wires stdout/stderr back to WebSocket.
+
+### `handlers/sync-handler.js`
+Handles `sync` WebSocket messages. Pure read — calls `kbStore.buildSyncData(workspace)` and sends `sync_result` back. No pi process needed.
 
 ### `adapters/pi-kb-store.js`
 Bridge-specific wrapper around pi-kb's `FilesystemStore`. Implements the bridge's `KbStore` port. Adds `buildSyncData()` (reads all summaries/concepts and builds the sync payload). Also exports `ensureWorkspace()` and `workspaceExists()` for the auth flow.
@@ -114,7 +127,7 @@ Bridge-specific wrapper around pi-kb's `FilesystemStore`. Implements the bridge'
 Stores users in `~/.pi/agent/kb/users.db` using better-sqlite3. Uses a `users` table with columns `username`, `passwordHash`, `createdAt`. Eliminates race conditions present in the JSON file adapter. Implements `UserStore` port.
 
 ### `adapters/pi-rpc-spawner.js`
-Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses JSONL stdout, forwards events via callbacks. The caller sends a prompt over stdin.
+Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses JSONL stdout, forwards events via callbacks (`onEvent`, `onDone`, `onStderr`, `onError`). Detects pre-agent errors (fetch failures) and fails fast. The caller sends a prompt over stdin.
 
 ### Extension key files
 
@@ -141,7 +154,7 @@ Main application shell. On startup, loads bridge config from storage. If hosted 
 git clone --recurse-submodules https://github.com/auto-medica-labs/keb.git
 cd keb
 pnpm install
-pnpm build          # builds extension
+pnpm build          # builds extension + landing page
 pnpm build:pi-kb    # compiles pi-kb standalone adapter
 
 # Create .env from example (optional — defaults to local mode)
@@ -256,11 +269,22 @@ The Dockerfile and docker-compose.yml healthcheck use this endpoint (not a raw W
 |---|---|---|---|
 | `KEB_MODE` | No | `local` | Bridge mode: `local` (no auth) or `hosted` (auth required) |
 | `JWT_SECRET` | For hosted mode | Random per-process | JWT signing secret |
-| `ANTHROPIC_API_KEY` | Yes | — | LLM provider API key |
-| `PI_DEFAULT_PROVIDER` | Recommended | — | e.g. `anthropic` |
-| `PI_DEFAULT_MODEL` | Recommended | — | e.g. `claude-sonnet-4-20250514` |
 | `PORT` | No | `9876` | HTTP + WebSocket listen port |
 | `HOST` | No | `127.0.0.1` | Listen address (`0.0.0.0` for Docker) |
+| `LLM_PROVIDER` | Recommended* | — | Custom provider name (e.g., `ollama`, `anthropic`) |
+| `LLM_BASE_URL` | Recommended* | — | API base URL for custom provider |
+| `LLM_MODEL` | Recommended* | — | Model ID (e.g., `llama3.1:8b`, `claude-sonnet-4-20250514`) |
+| `LLM_API` | No | `openai-completions` | API type: `openai-completions`, `anthropic-messages`, `google-generative-ai`, `openai-responses` |
+| `LLM_API_KEY` | Recommended* | — | API key (can be dummy for local models) |
+| `LLM_MODEL_NAME` | No | — | Optional human-readable model name |
+| `LLM_REASONING` | No | — | Set `true` for reasoning-capable models |
+| `LLM_THINKING` | No | `off` | Thinking level: `off`, `low`, `medium`, `high`, `xhigh` |
+| `ADMIN_KEY` | No | — | Secret for `GET /api/status` (sent via `X-API-Key` header) |
+| `ANTHROPIC_API_KEY` | Legacy* | — | Native pi Anthropic key (alternative to LLM_*) |
+| `PI_DEFAULT_PROVIDER` | Legacy* | — | Default provider (e.g., `anthropic`) |
+| `PI_DEFAULT_MODEL` | Legacy* | — | Default model (e.g., `claude-sonnet-4-20250514`) |
+
+* Use either the `LLM_*` group **or** the legacy `ANTHROPIC_API_KEY` + `PI_DEFAULT_*` group. The `LLM_*` approach is recommended for custom providers.
 
 See `.env.example` for all supported LLM providers.
 
@@ -280,6 +304,7 @@ Bridge → Client:
   { type: "event", operationId, data }       ← streaming event
   { type: "done", operationId, command }     ← operation complete
   { type: "error", operationId, message }    ← error
+  { type: "stderr", operationId, text }      ← raw stderr from pi
   { type: "sync_result", data }              ← sync response
 ```
 

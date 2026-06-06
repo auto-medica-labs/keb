@@ -54,7 +54,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
                 └── ...
 ```
 
-1. **`@keb/bridge`** — Combined HTTP + WebSocket server. HTTP handles user auth (signup, login, token verification). WebSocket handles KB operations (add, query, sync, repair). Written in JS with full JSDoc type annotations.
+1. **`@keb/bridge`** — Combined HTTP + WebSocket server. HTTP handles user auth (signup, login, token verification). WebSocket handles KB operations (add, add-content, query, sync, repair). Written in JS with full JSDoc type annotations.
 2. **`@keb/extension`** — React side panel + TypeScript service worker. Built with Vite.
 3. **`pi-kb`** — pi extension providing the knowledge base. Included as a git submodule at `packages/pi-kb/`. The bridge imports its `FilesystemStore` directly for filesystem reads and workspace creation.
 
@@ -66,6 +66,7 @@ The bridge follows the same port/adapter architecture as pi-kb:
 |---|---|---|
 | `KbStore` (kb read/workspace ops) | `PiKbStore` → pi-kb's `FilesystemStore` | — |
 | `UserStore` (user credentials) | `SqliteUserStore` (SQLite) | PostgreSQL |
+| (spawnPi) | `PiRpcSpawner` → spawns `pi --mode rpc` | — |
 
 Swap adapters by changing one factory call in `bridge-server.js`. Handlers never know which adapter is in use.
 
@@ -128,10 +129,23 @@ The bridge auto-loads `packages/bridge/.env` if it exists. Key settings:
 | Variable | Default | Description |
 |---|---|---|
 | `KEB_MODE` | `local` | `local` (no auth) or `hosted` (auth required) |
-| `ANTHROPIC_API_KEY` | — | LLM provider API key |
-| `JWT_SECRET` | random | JWT signing secret (set for hosted mode) |
+| `JWT_SECRET` | random | JWT signing secret (required for hosted mode) |
 | `PORT` | `9876` | HTTP + WebSocket listen port |
-| `HOST` | `127.0.0.1` | Listen address |
+| `HOST` | `127.0.0.1` | Listen address (`0.0.0.0` for Docker) |
+| `LLM_PROVIDER` | — | Custom provider name (e.g., `ollama`, `anthropic`) |
+| `LLM_BASE_URL` | — | API base URL for custom provider |
+| `LLM_MODEL` | — | Model ID (e.g., `llama3.1:8b`, `claude-sonnet-4-20250514`) |
+| `LLM_API` | `openai-completions` | API type: `openai-completions`, `anthropic-messages`, `google-generative-ai`, `openai-responses` |
+| `LLM_API_KEY` | — | API key (required by pi, can be dummy for local models) |
+| `LLM_MODEL_NAME` | — | Optional human-readable model name |
+| `LLM_REASONING` | — | Set `true` for reasoning-capable models |
+| `LLM_THINKING` | `off` | Thinking level: `off`, `low`, `medium`, `high`, `xhigh` |
+| `ADMIN_KEY` | — | Secret for `GET /api/status` (sent via `X-API-Key` header) |
+| `ANTHROPIC_API_KEY` | — | Legacy: native pi Anthropic key (alternative to LLM_*) |
+| `PI_DEFAULT_PROVIDER` | — | Legacy: default provider (e.g., `anthropic`) |
+| `PI_DEFAULT_MODEL` | — | Legacy: default model (e.g., `claude-sonnet-4-20250514`) |
+
+See `.env.example` for all supported LLM providers.
 
 #### Hosted mode (multi-user with auth)
 
@@ -163,11 +177,11 @@ Install [Keb from the Chrome Web Store](https://chromewebstore.google.com/detail
 
 | Script | Description |
 |---|---|
-| `pnpm build` | Production build of the extension (Vite) |
+| `pnpm build` | Production build of extension + landing page (Vite) |
 | `pnpm dev` | Vite dev server for UI development |
-| `pnpm bridge` | Start the WebSocket bridge server |
-| `pnpm bridge:dev` | Start bridge with auto-restart on changes |
-| `pnpm build:pi-kb` | Compile pi-kb standalone adapter (automatically runs before `pnpm bridge` and `pnpm bridge:dev`) |
+| `pnpm bridge` | Start the WebSocket bridge server (runs `build:pi-kb` first) |
+| `pnpm bridge:dev` | Start bridge with auto-restart on changes (runs `build:pi-kb` first) |
+| `pnpm build:pi-kb` | Compile pi-kb standalone adapter |
 | `pnpm typecheck` | Type-check both packages (tsc + JSDoc) |
 | `pnpm lint` | Lint with oxlint (no-unused-vars, no-explicit-any) |
 | `pnpm format` | Auto-format all files with oxfmt |
@@ -281,8 +295,8 @@ Example Docker Compose snippet:
 services:
   bridge:
     build:
-      context: .
-      dockerfile: packages/bridge/Dockerfile
+      context: ./packages/bridge
+      dockerfile: Dockerfile
     env_file: packages/bridge/.env
     volumes:
       - kb-data:/root/.pi/agent/kb
@@ -392,6 +406,13 @@ In local mode, no auth message is needed — clients can send any operation imme
 | `repair` | `operationId`, `workspace?` | Re-compile interrupted documents |
 | `sync` | `workspace?` | Full state dump (registry, index, summaries, concepts, workspaces) |
 
+### Bridge → Client: Error/StdErr
+
+| Message | Fields | Description |
+|---|---|---|
+| `stderr` | `operationId`, `text` | Raw stderr from pi child process |
+| `error` | `operationId`, `message` | Operation-level error |
+
 ### Bridge URL Configuration
 
 The Settings panel (gear icon) includes a **Bridge URL** input field, but it behaves differently per mode:
@@ -403,7 +424,7 @@ The Settings panel (gear icon) includes a **Bridge URL** input field, but it beh
 
 In **hosted mode**, the bridge URL is a build-time constant (`HOSTED_BRIDGE_URL` in `lib/env.ts`, overridable via `VITE_HOSTED_BRIDGE_URL` env var). The Settings panel hides the URL input entirely when in hosted mode — there is no runtime override. In **local mode**, the URL is freely editable and persisted to `chrome.storage.local`.
 
-> **Note:** In hosted mode, the `workspace` field is **ignored** — the server enforces the authenticated username as the workspace for all operations. In local mode, `workspace` is optional and defaults to the default workspace.
+> **Note:** In hosted mode, the `workspace` field is **ignored** — the server enforces the authenticated username as the workspace for all operations. In local mode, `workspace` is optional; the bridge treats `undefined` as the default workspace (the extension sends `"default"` explicitly).
 
 Every `add`/`query`/`repair` message includes a client-generated `operationId` (nanoid). The bridge echoes it back in all responses so the client can correlate streaming events with the originating request.
 

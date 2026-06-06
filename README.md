@@ -194,7 +194,9 @@ keb/
 │   │   ├── tsconfig.json
 │   │   ├── tsconfig.build-pi-kb.json  # compiles pi-kb standalone adapter
 │   │   ├── Dockerfile
-│   │   ├── Caddyfile.example   # Reverse proxy config for production
+│   │   ├── docker-compose.yml
+│   │   ├── Caddyfile           # Reverse proxy config for production
+│   │   ├── DEPLOYMENT.md       # Step-by-step production deployment guide
 │   │   ├── entrypoint.sh
 │   │   ├── .env.example
 │   │   └── src/
@@ -269,7 +271,9 @@ The Dockerfile has four stages:
 
 ### Reverse proxy with Caddy
 
-A sample `Caddyfile.example` is included in `packages/bridge/`. It proxies `api.mdevd.co/keb/v1` → the bridge container, stripping the `/keb/v1` path prefix so the bridge receives clean `/api/*` paths. Caddy auto-provisions TLS via Let's Encrypt and handles WebSocket upgrades transparently.
+A `Caddyfile` is included in `packages/bridge/`. It proxies `api.mdevd.co/keb/v1` → the bridge container, stripping the `/keb/v1` path prefix so the bridge receives clean `/api/*` paths. Caddy auto-provisions TLS via Let's Encrypt and handles WebSocket upgrades transparently.
+
+**Important:** the path pattern is `handle_path /keb/v1*` (not `/keb/v1/*`) — this ensures the WebSocket root path `/keb/v1` (no trailing slash) matches. The extension connects to `wss://api.mdevd.co/keb/v1` with no additional path segment.
 
 Example Docker Compose snippet:
 
@@ -290,7 +294,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./packages/bridge/Caddyfile.example:/etc/caddy/Caddyfile:ro
+      - ./packages/bridge/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
     restart: unless-stopped
 
@@ -319,10 +323,23 @@ KbStore port    →  swap FilesystemStore for S3/Postgres    (shared KB data)
 
 With both stores backed by distributed databases, multiple bridge instances can share state safely. The bridge server itself is stateless (JWT verification uses only the shared secret, no session store).
 
-## HTTP API (hosted mode only)
+## HTTP API
+
+### Health check (all modes)
+
+`GET /api/healthcheck` — no auth required, works in both local and hosted modes.
+
+```bash
+curl http://127.0.0.1:9876/api/healthcheck
+# → {"status":"ok","mode":"hosted"}
+```
+
+Used by Docker healthcheck, monitoring, and load balancer probes.
+
+### Auth endpoints (hosted mode only)
 
 When `KEB_MODE=hosted`, the bridge exposes these endpoints on the same port as the WebSocket.
-In local mode all HTTP routes return 404.
+In local mode all HTTP routes (except `/api/healthcheck`) return 404.
 
 | Endpoint | Method | Body | Response |
 |---|---|---|---|

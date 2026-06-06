@@ -226,6 +226,16 @@ Build-time constants inlined by Vite. Exports `HOSTED_BRIDGE_URL` — the immuta
 #### `lib/store.ts`
 chrome.storage.local cache wrapper. Stores bridge config (mode, bridgeUrl, token, username) and KB state (registry, index, summaries, concepts). `DEFAULT_BRIDGE_CONFIG` defaults to hosted mode with `wss://api.mdevd.co/keb/v1`. `persistBridgeConfig` / `setBridgeConfig` handle partial updates, so mode-specific defaults (e.g. `ws://127.0.0.1:9876` for local) are applied by the caller. Note: in hosted mode, `App.tsx` ignores any stored `bridgeUrl` and always uses `HOSTED_BRIDGE_URL` from `env.ts`.
 
+## Health check endpoint
+
+The bridge exposes `GET /api/healthcheck` — returns `{"status":"ok","mode":"hosted"|"local"}`. **No auth required.** Works in both local and hosted modes. Used by Docker healthcheck, monitoring, and load balancer probes.
+
+```bash
+curl http://127.0.0.1:9876/api/healthcheck
+```
+
+The Dockerfile and docker-compose.yml healthcheck use this endpoint (not a raw WebSocket open as before).
+
 ## Environment variables
 
 | Variable | Required | Default | Purpose |
@@ -282,7 +292,9 @@ The Dockerfile has four stages:
 3. `pi-kb-build` — compiles pi-kb standalone adapter to JS
 4. `final` — minimal `node:22-slim` with production deps only
 
-`Caddyfile` provides a production reverse-proxy config for `api.mdevd.co/keb/v1`. It uses `handle_path` to strip the path prefix before proxying to the bridge — this is critical so the bridge receives clean `/api/*` paths. Caddy handles TLS and WebSocket upgrades automatically.
+`Caddyfile` provides a production reverse-proxy config for `api.mdevd.co/keb/v1`. It uses `handle_path /keb/v1*` to strip the path prefix before proxying to the bridge — this is critical so the bridge receives clean `/api/*` paths. **Note:** the pattern uses `/keb/v1*` (not `/keb/v1/*`) so the WebSocket root path `/keb/v1` (no trailing slash) matches. Caddy handles TLS and WebSocket upgrades automatically.
+
+See `packages/bridge/DEPLOYMENT.md` for full step-by-step production deployment guide.
 
 ### Horizontal scaling
 

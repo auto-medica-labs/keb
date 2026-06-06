@@ -187,7 +187,10 @@ function startBridge(port, host) {
     /** @type {{ user: string, connectedSince: number }[]} */
     const clients = [];
     for (const client of wss.clients) {
-      const c = /** @type {import('ws').WebSocket & {_authenticatedUser?: string|null, _connectedAt?: number}} */ (client);
+      const c =
+        /** @type {import('ws').WebSocket & {_authenticatedUser?: string|null, _connectedAt?: number}} */ (
+          client
+        );
       if (c.readyState === 1 && c._authenticatedUser && c._connectedAt) {
         clients.push({
           user: c._authenticatedUser,
@@ -236,17 +239,19 @@ function startBridge(port, host) {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
 
     // ── Health check: always available, no auth required ────
-    if (url.pathname === "/api/healthcheck" && (req.method?.toUpperCase() === "GET")) {
+    if (url.pathname === "/api/healthcheck" && req.method?.toUpperCase() === "GET") {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok", mode: MODE }));
       return;
     }
 
     // ── Status: admin key required ──────────────────────────
-    if (url.pathname === "/api/status" && (req.method?.toUpperCase() === "GET")) {
+    if (url.pathname === "/api/status" && req.method?.toUpperCase() === "GET") {
       if (!ADMIN_KEY) {
         res.writeHead(501, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "ADMIN_KEY not configured on server. Set ADMIN_KEY env var." }));
+        res.end(
+          JSON.stringify({ error: "ADMIN_KEY not configured on server. Set ADMIN_KEY env var." }),
+        );
         return;
       }
       const apiKey = req.headers["x-api-key"];
@@ -427,7 +432,11 @@ function startBridge(port, host) {
           if (child) {
             activeChildren.set(operationId, child);
             childProcesses.add(child);
-            activeOperations.set(operationId, { type: "add", workspace: workspace || "default", startedAt: Date.now() });
+            activeOperations.set(operationId, {
+              type: "add",
+              workspace: workspace || "default",
+              startedAt: Date.now(),
+            });
             child.on("exit", () => {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
@@ -449,7 +458,11 @@ function startBridge(port, host) {
           if (child) {
             activeChildren.set(operationId, child);
             childProcesses.add(child);
-            activeOperations.set(operationId, { type: "repair", workspace: workspace || "default", startedAt: Date.now() });
+            activeOperations.set(operationId, {
+              type: "repair",
+              workspace: workspace || "default",
+              startedAt: Date.now(),
+            });
             child.on("exit", () => {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
@@ -486,7 +499,11 @@ function startBridge(port, host) {
           if (child) {
             activeChildren.set(operationId, child);
             childProcesses.add(child);
-            activeOperations.set(operationId, { type: "add-content", workspace: workspace || "default", startedAt: Date.now() });
+            activeOperations.set(operationId, {
+              type: "add-content",
+              workspace: workspace || "default",
+              startedAt: Date.now(),
+            });
             child.on("exit", () => {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
@@ -506,7 +523,11 @@ function startBridge(port, host) {
           const child = handleQuery({ ws, operationId, text: msg.text, workspace, spawn: spawnPi });
           activeChildren.set(operationId, child);
           childProcesses.add(child);
-          activeOperations.set(operationId, { type: "query", workspace: workspace || "default", startedAt: Date.now() });
+          activeOperations.set(operationId, {
+            type: "query",
+            workspace: workspace || "default",
+            startedAt: Date.now(),
+          });
           child.on("exit", () => {
             activeChildren.delete(operationId);
             childProcesses.delete(child);
@@ -561,7 +582,9 @@ function startBridge(port, host) {
   httpServer.listen(port, host, () => {
     log(`✅ Bridge listening on http://${host}:${port}`);
     log(`   Health: GET  /api/healthcheck (no auth)`);
-    log(`   Status: GET  /api/status (X-API-Key required${ADMIN_KEY ? "" : " — disabled, set ADMIN_KEY to enable"})`);
+    log(
+      `   Status: GET  /api/status (X-API-Key required${ADMIN_KEY ? "" : " — disabled, set ADMIN_KEY to enable"})`,
+    );
     if (MODE === "hosted") {
       log(`   Mode:  hosted (auth required)`);
       log(`   HTTP:  POST /api/signup  |  POST /api/login  |  GET /api/me`);

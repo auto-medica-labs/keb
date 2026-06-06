@@ -54,13 +54,13 @@ LLM_API_KEY=sk-ant-...
 
 ### Optional environment variables
 
-| Variable | Default | Purpose |
-|---|---|---|
-| `PORT` | `9876` | WebSocket/HTTP listen port |
-| `HOST` | `0.0.0.0` | Listen address (use `127.0.0.1` for host-network mode) |
-| `LLM_MODEL_NAME` | `LLM_MODEL` value | Human-readable model name |
-| `LLM_REASONING` | `false` | Set `"true"` for reasoning-capable models |
-| `LLM_THINKING` | `off` | Thinking level: `"off"`, `"low"`, `"medium"`, `"high"`, `"xhigh"` |
+| Variable         | Default           | Purpose                                                           |
+| ---------------- | ----------------- | ----------------------------------------------------------------- |
+| `PORT`           | `9876`            | WebSocket/HTTP listen port                                        |
+| `HOST`           | `0.0.0.0`         | Listen address (use `127.0.0.1` for host-network mode)            |
+| `LLM_MODEL_NAME` | `LLM_MODEL` value | Human-readable model name                                         |
+| `LLM_REASONING`  | `false`           | Set `"true"` for reasoning-capable models                         |
+| `LLM_THINKING`   | `off`             | Thinking level: `"off"`, `"low"`, `"medium"`, `"high"`, `"xhigh"` |
 
 ### Generating the JWT secret
 
@@ -79,6 +79,7 @@ docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
 ```
 
 This is a multi-stage build:
+
 1. **`pi-layer`** — Installs the `pi` CLI + pi-kb extension globally
 2. **`deps-layer`** — Installs bridge npm dependencies (including TypeScript)
 3. **`pi-kb-build`** — Compiles pi-kb TypeScript source to standalone JS
@@ -93,6 +94,7 @@ mkdir -p packages/bridge/data/kb
 ```
 
 This directory is bind-mounted into the container at `/root/.pi/agent/kb`. It persists:
+
 - KB documents (summaries, concepts, index)
 - `users.db` — SQLite database of registered user accounts
 
@@ -117,6 +119,7 @@ api.mdevd.co {
 ```
 
 Key behaviors:
+
 - **Auto TLS** — Caddy obtains Let's Encrypt certificates automatically
 - **Path stripping** — `/keb/v1/api/signup` → `/api/signup` to the bridge
 - **120s timeout** — LLM compilation can take 30–90 seconds
@@ -130,10 +133,10 @@ docker compose -f packages/bridge/docker-compose.yml up -d
 
 This starts two containers:
 
-| Container | Image | Role |
-|---|---|---|
-| `chrome-kb-bridge` | `chrome-kb-bridge:latest` | WebSocket + HTTP server on port 9876 |
-| `chrome-kb-caddy` | `caddy:2-alpine` | Reverse proxy, TLS termination, WebSocket upgrade |
+| Container          | Image                     | Role                                              |
+| ------------------ | ------------------------- | ------------------------------------------------- |
+| `chrome-kb-bridge` | `chrome-kb-bridge:latest` | WebSocket + HTTP server on port 9876              |
+| `chrome-kb-caddy`  | `caddy:2-alpine`          | Reverse proxy, TLS termination, WebSocket upgrade |
 
 Verify both are running:
 
@@ -171,7 +174,7 @@ curl https://api.mdevd.co/keb/v1/api/healthcheck
 Response:
 
 ```json
-{"status":"ok","mode":"hosted"}
+{ "status": "ok", "mode": "hosted" }
 ```
 
 Works in both local and hosted modes with no auth required. Useful for monitoring, load balancer probes, and verifying the bridge is up after deploy.
@@ -195,7 +198,7 @@ curl -X POST https://api.mdevd.co/keb/v1/api/signup \
 Expected response:
 
 ```json
-{"token":"eyJhbGciOi...","username":"test-user"}
+{ "token": "eyJhbGciOi...", "username": "test-user" }
 ```
 
 ### HTTP — Login endpoint
@@ -254,16 +257,6 @@ docker compose -f packages/bridge/docker-compose.yml logs -f
 docker compose -f packages/bridge/docker-compose.yml down
 ```
 
-### Update to new code
-
-```bash
-cd keb
-git pull origin main
-git submodule update --init --recursive
-docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
-docker compose -f packages/bridge/docker-compose.yml up -d --force-recreate
-```
-
 ### Backup the data
 
 ```bash
@@ -278,6 +271,105 @@ rm -rf packages/bridge/data/kb
 tar -xzf kb-backup-YYYYMMDD.tar.gz
 docker compose -f packages/bridge/docker-compose.yml up -d
 ```
+
+---
+
+## Upgrading the Bridge
+
+Upgrading replaces the bridge container with a freshly built image while keeping user data intact (`data/kb/` is bind-mounted, not stored in the container).
+
+### When to upgrade
+
+| Trigger                          | What changed                                              |
+| -------------------------------- | --------------------------------------------------------- |
+| Bridge code updated (`git pull`) | New bridge features, bug fixes, handlers, adapters        |
+| pi-kb submodule updated          | KB extension improvements, new compile prompts, bug fixes |
+| `.env` config changed            | New env vars, LLM provider/model switch, mode change      |
+| Base image security patches      | OS-level or Node.js runtime updates                       |
+
+For **config-only changes** (`.env` edits, no code changes), skip the build step — just recreate the container:
+
+```bash
+docker compose -f packages/bridge/docker-compose.yml up -d --force-recreate
+```
+
+### Full upgrade (code + pi-kb changes)
+
+```bash
+# 1. Pull latest code
+cd /path/to/keb
+git pull origin main
+git submodule update --init --recursive
+
+# 2. Rebuild the Docker image
+docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+
+# 3. Recreate the container with the new image
+docker compose -f packages/bridge/docker-compose.yml up -d --force-recreate
+
+# 4. Remove old dangling images to free disk space
+docker image prune -f
+```
+
+### What happens during upgrade
+
+1. Docker Compose stops and removes the old bridge container
+2. Active WebSocket connections are dropped — clients will reconnect automatically
+3. In-flight pi child processes are terminated
+4. A new container starts with the rebuilt image
+5. The health check (`/api/healthcheck`) must pass before Docker marks it healthy
+6. Extension clients detect the disconnect and reconnect with exponential backoff (2s, 4s, 8s)
+
+The Caddy container is unaffected — it keeps serving and will proxy to the new bridge as soon as it's up.
+
+### Verify the upgrade
+
+```bash
+# Check container status
+$ docker compose -f packages/bridge/docker-compose.yml ps
+NAME                STATUS
+chrome-kb-bridge    Up (healthy)
+chrome-kb-caddy     Up
+
+# Confirm the health check responds
+$ curl -s https://api.mdevd.co/keb/v1/api/healthcheck | jq
+{
+  "status": "ok",
+  "mode": "hosted"
+}
+
+# Check logs for startup confirmation
+$ docker logs chrome-kb-bridge --tail 20
+```
+
+### Upgrade checklist
+
+- [ ] `git pull` succeeded (no merge conflicts)
+- [ ] Submodule updated: `git submodule status` shows the expected commit
+- [ ] Docker build completed without errors
+- [ ] `docker compose ps` shows `Up (healthy)` for the bridge
+- [ ] `curl .../api/healthcheck` returns `{"status":"ok"}`
+- [ ] `docker logs chrome-kb-bridge` shows `Bridge listening on 0.0.0.0:9876`
+- [ ] Test a signup/login flow (hosted mode) or a WebSocket connection (local mode)
+
+### Rollback
+
+If the upgrade breaks something, revert to the previous commit and rebuild:
+
+```bash
+# Revert to the last known-good commit
+git checkout <previous-commit-hash>
+git submodule update --init --recursive
+
+# Rebuild and deploy
+docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+docker compose -f packages/bridge/docker-compose.yml up -d --force-recreate
+
+# Verify
+curl https://api.mdevd.co/keb/v1/api/healthcheck
+```
+
+User data in `data/kb/` is unaffected by rollbacks — it lives outside the container.
 
 ## Architecture
 
@@ -314,6 +406,7 @@ Something else (nginx, Apache, another Caddy) is bound to ports 80/443. Stop it 
 ### Caddy can't obtain TLS certificate
 
 Check that:
+
 1. Ports 80 and 443 are open in the firewall (AWS security group / Lightsail networking)
 2. DNS A record `api.mdevd.co` points to the instance's public IP
 3. No other service is bound to port 80
@@ -333,6 +426,7 @@ docker logs chrome-kb-bridge
 ```
 
 Common causes:
+
 - Missing or invalid `LLM_API_KEY` — the bridge starts but pi child processes may fail
 - `users.db` permission issues — ensure `packages/bridge/data/kb/` is writable
 - pi-kb standalone adapter not compiled — did you build the Docker image with the full context (repo root)?
@@ -340,6 +434,7 @@ Common causes:
 ### Build fails with "Cannot find module '.../filesystem-store.js'"
 
 The pi-kb standalone adapter isn't being compiled. Make sure:
+
 1. The git submodule is initialized: `git submodule update --init --recursive`
 2. You're building from the repo root: `docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .`
 3. The `pi-kb-build` stage completed without errors
@@ -347,10 +442,12 @@ The pi-kb standalone adapter isn't being compiled. Make sure:
 ## Horizontal scaling
 
 Multiple bridge instances behind a load balancer are **not safe** with the default adapters:
+
 - SQLite (`UserStore`) uses file-level locking
 - `FilesystemStore` (`KbStore`) races on registry entries from concurrent pi child processes
 
 To scale horizontally, swap adapters to distributed backends:
+
 - `UserStore` → PostgreSQL (shared user database)
 - `KbStore` → S3, PostgreSQL, or NFS with proper locking
 

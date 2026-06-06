@@ -12,10 +12,15 @@ await rm(DIST, { recursive: true, force: true });
 await mkdir(DIST);
 await mkdir(`${DIST}/asset`);
 
-// --- minify HTML ---
-console.log("Minifying HTML...");
-for (const page of ["index.html", "privacy.html"]) {
-  const html = await readFile(page, "utf-8");
+// --- inject partials + minify HTML ---
+console.log("Building HTML...");
+const nav = await readFile("_nav.html", "utf-8");
+const footer = await readFile("_footer.html", "utf-8");
+
+for (const page of ["index.html", "privacy.html", "how-to-use.html"]) {
+  let html = await readFile(page, "utf-8");
+  html = html.replace("<!-- NAV -->", nav);
+  html = html.replace("<!-- FOOTER -->", footer);
   const minifiedHtml = await minifyHtml(html, {
     collapseWhitespace: true,
     removeComments: true,
@@ -71,8 +76,10 @@ async function size(path) {
   return (s.size / 1024).toFixed(1) + " KB";
 }
 
-console.log(`  index.html     : ${await size(`${DIST}/index.html`)}`);
-console.log(`  privacy.html   : ${await size(`${DIST}/privacy.html`)}`);
+const PAGE_FILES = ["index.html", "privacy.html", "how-to-use.html"];
+for (const page of PAGE_FILES) {
+  console.log(`  ${page.padEnd(18)} ${await size(`${DIST}/${page}`)}`);
+}
 console.log(`  style.css  : ${await size(`${DIST}/style.css`)}`);
 for (const file of assetFiles) {
   const ext = file.slice(file.lastIndexOf("."));

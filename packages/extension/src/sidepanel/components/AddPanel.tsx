@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import OperationTimeline from "./OperationTimeline";
+import { AutoScrollArea } from "@/components/ui/auto-scroll-area";
 import type { ActiveOperation } from "../App";
 
 interface AddPanelProps {
@@ -16,8 +17,6 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
   const [doneFlash, setDoneFlash] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const scrollViewportRef = useRef<HTMLDivElement>(null);
-  const prevTextLengthRef = useRef(0);
 
   // Listen for context menu URL
   useEffect(() => {
@@ -67,7 +66,7 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
 
   const hasAnyOps = operations.length > 0;
 
-  // Auto-scroll to bottom when text content grows (streaming) or new entries arrive
+  // Auto-scroll trigger: total text length across all operations
   const totalTextLength = useMemo(() => {
     return operations.reduce((sum, op) => {
       return (
@@ -76,26 +75,6 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
       );
     }, 0);
   }, [operations]);
-
-  useEffect(() => {
-    if (totalTextLength > prevTextLengthRef.current) {
-      const viewport = scrollViewportRef.current;
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
-    }
-    prevTextLengthRef.current = totalTextLength;
-  }, [totalTextLength]);
-
-  // Scroll to bottom on initial render when there are operations
-  useEffect(() => {
-    if (hasAnyOps) {
-      const viewport = scrollViewportRef.current;
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
-    }
-  }, [hasAnyOps]);
 
   return (
     <div className="flex h-full flex-col gap-3">
@@ -150,20 +129,14 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
             )}
           </div>
 
-          {/* Scrollable timeline — one card per operation */}
-          <div
-            ref={scrollViewportRef}
-            className="min-h-0 flex-1 overflow-y-auto"
-            style={{ scrollbarWidth: "thin" }}
-          >
+          {/* Scrollable timeline — auto-scrolls on new content */}
+          <AutoScrollArea trigger={totalTextLength} className="min-h-0 flex-1">
             <div className="space-y-3 p-3 leading-relaxed">
               {operations.map((op) => (
                 <OperationTimeline key={op.id} operation={op} />
               ))}
-              {/* Bottom anchor for auto-scroll */}
-              <div style={{ height: 1 }} />
             </div>
-          </div>
+          </AutoScrollArea>
         </div>
       )}
     </div>

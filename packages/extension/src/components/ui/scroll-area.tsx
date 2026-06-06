@@ -1,27 +1,50 @@
 "use client";
 
 import { ScrollArea as ScrollAreaPrimitive } from "@base-ui/react/scroll-area";
+import { forwardRef, useRef, useEffect } from "react";
 
 import { cn } from "@/lib/utils";
 
-function ScrollArea({ className, children, ...props }: ScrollAreaPrimitive.Root.Props) {
-  return (
-    <ScrollAreaPrimitive.Root
-      data-slot="scroll-area"
-      className={cn("relative", className)}
-      {...props}
-    >
-      <ScrollAreaPrimitive.Viewport
-        data-slot="scroll-area-viewport"
-        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
-      >
-        {children}
-      </ScrollAreaPrimitive.Viewport>
-      <ScrollBar />
-      <ScrollAreaPrimitive.Corner />
-    </ScrollAreaPrimitive.Root>
-  );
+interface ScrollAreaProps extends ScrollAreaPrimitive.Root.Props {
+  viewportRef?: React.Ref<HTMLDivElement | null>;
 }
+
+const ScrollArea = forwardRef<HTMLDivElement | null, ScrollAreaProps>(
+  ({ className, children, viewportRef, ...props }, ref) => {
+    const viewportRefInternal = useRef<HTMLDivElement | null>(null);
+
+    // Sync the external viewportRef with the internal ref
+    useEffect(() => {
+      if (viewportRef) {
+        if (typeof viewportRef === "function") {
+          viewportRef(viewportRefInternal.current);
+        } else {
+          viewportRef.current = viewportRefInternal.current;
+        }
+      }
+    }, [viewportRef]);
+
+    return (
+      <ScrollAreaPrimitive.Root
+        data-slot="scroll-area"
+        className={cn("relative", className)}
+        ref={ref}
+        {...props}
+      >
+        <ScrollAreaPrimitive.Viewport
+          data-slot="scroll-area-viewport"
+          ref={viewportRefInternal}
+          className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+        >
+          {children}
+        </ScrollAreaPrimitive.Viewport>
+        <ScrollBar />
+        <ScrollAreaPrimitive.Corner />
+      </ScrollAreaPrimitive.Root>
+    );
+  },
+);
+ScrollArea.displayName = "ScrollArea";
 
 function ScrollBar({
   className,

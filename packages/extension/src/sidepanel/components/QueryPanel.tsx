@@ -1,8 +1,9 @@
-import { useState, useRef, useEffect, useMemo } from "react";
+import { useState, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, CheckCircle2 } from "lucide-react";
 import OperationTimeline from "./OperationTimeline";
+import { AutoScrollArea } from "@/components/ui/auto-scroll-area";
 import type { ActiveOperation } from "../App";
 
 interface QueryPanelProps {
@@ -14,8 +15,6 @@ interface QueryPanelProps {
 export default function QueryPanel({ operations, connected, onQuery }: QueryPanelProps) {
   const [text, setText] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
-  const scrollViewportRef = useRef<HTMLDivElement>(null);
-  const prevTimelineLengthRef = useRef(0);
 
   function handleSubmit() {
     const trimmed = text.trim();
@@ -29,8 +28,7 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
   const hasInProgress = op && !op.done;
   const hasAnyOps = operations.length > 0;
 
-  // Auto-scroll to bottom when new timeline entries arrive OR text content grows
-  // (text streaming appends to last entry without changing timeline.length)
+  // Auto-scroll trigger: total text length in the operation's timeline
   const totalTextLength = useMemo(() => {
     if (!op) return 0;
     return op.timeline.reduce(
@@ -39,36 +37,12 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
     );
   }, [op?.timeline]);
 
-  useEffect(() => {
-    if (totalTextLength > prevTimelineLengthRef.current) {
-      const viewport = scrollViewportRef.current;
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
-    }
-    prevTimelineLengthRef.current = totalTextLength;
-  }, [totalTextLength]);
-
-  // Scroll to bottom on initial render when there's an operation
-  useEffect(() => {
-    if (hasAnyOps) {
-      const viewport = scrollViewportRef.current;
-      if (viewport) {
-        viewport.scrollTop = viewport.scrollHeight;
-      }
-    }
-  }, [hasAnyOps]);
-
   return (
     <div className="flex h-full flex-col gap-3">
       {/* Chat area — fills remaining space, scrolls from bottom */}
       {hasAnyOps && (
         <div className="flex min-h-0 flex-1 flex-col rounded-md border bg-muted/50">
-          <div
-            ref={scrollViewportRef}
-            className="min-h-0 flex-1 overflow-y-auto"
-            style={{ scrollbarWidth: "thin" }}
-          >
+          <AutoScrollArea trigger={totalTextLength} className="min-h-0 flex-1">
             <div className="space-y-1 p-3 leading-relaxed">
               {operations.map((op) => (
                 <div key={op.id}>
@@ -81,10 +55,8 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
                   <OperationTimeline operation={op} />
                 </div>
               ))}
-              {/* Bottom anchor for auto-scroll */}
-              <div style={{ height: 1 }} />
             </div>
-          </div>
+          </AutoScrollArea>
 
           {/* Status header at bottom of chat area */}
           <div className="flex shrink-0 items-center justify-between gap-2 border-t px-3 py-2">

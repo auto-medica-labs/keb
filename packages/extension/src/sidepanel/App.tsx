@@ -52,7 +52,7 @@ export default function App() {
   // ── UI state ──────────────────────────────────────────────────
   const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>("disconnected");
   const [workspace, setWorkspaceState] = useState("default");
-  const [activeTab, setActiveTab] = useState<ActiveTab>("add");
+  const [activeTab, setActiveTab] = useState<ActiveTab>("query");
   const [docCount, setDocCount] = useState(0);
   const [conceptCount, setConceptCount] = useState(0);
   const [hasPending, setHasPending] = useState(false);
@@ -573,18 +573,18 @@ export default function App() {
       >
         <TabsList variant="line" className="h-auto w-full rounded-none px-3">
           <TabsTrigger
-            value="add"
-            className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
-          >
-            <FilePlusCorner className="size-4" />
-            Add Knowledge
-          </TabsTrigger>
-          <TabsTrigger
             value="query"
             className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
           >
             <BookSearch className="size-4" />
             Consult
+          </TabsTrigger>
+          <TabsTrigger
+            value="add"
+            className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
+          >
+            <FilePlusCorner className="size-4" />
+            Add Knowledge
           </TabsTrigger>
           <TabsTrigger
             value="browse"
@@ -595,18 +595,18 @@ export default function App() {
           </TabsTrigger>
         </TabsList>
         <div className="min-h-0 flex-1 overflow-hidden p-4">
-          <TabsContent value="add" className="mt-0 h-full">
-            <AddPanel
-              operations={addOperations}
-              connected={connectionStatus === "connected"}
-              onAdd={handleAdd}
-            />
-          </TabsContent>
           <TabsContent value="query" className="mt-0 h-full">
             <QueryPanel
               operations={queryOperations}
               connected={connectionStatus === "connected"}
               onQuery={handleQuery}
+            />
+          </TabsContent>
+          <TabsContent value="add" className="mt-0 h-full">
+            <AddPanel
+              operations={addOperations}
+              connected={connectionStatus === "connected"}
+              onAdd={handleAdd}
             />
           </TabsContent>
           <TabsContent value="browse" className="mt-0 h-full">

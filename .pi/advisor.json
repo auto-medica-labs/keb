@@ -1,0 +1,5 @@
+{
+  "provider": "opencode-go",
+  "model": "deepseek-v4-pro",
+  "thinkingLevel": "high"
+}

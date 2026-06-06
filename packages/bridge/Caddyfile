@@ -19,7 +19,7 @@
 }
 
 api.mdevd.co {
-    handle_path /keb/v1/* {
+    handle_path /keb/v1* {
         reverse_proxy bridge:9876 {
             # Increase timeout — compilation can take 30-90s
             # for large pages. Caddy handles WebSocket upgrades

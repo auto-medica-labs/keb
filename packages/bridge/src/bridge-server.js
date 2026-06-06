@@ -155,6 +155,15 @@ const authHandler = createAuthHandler({ userStore });
  */
 function startBridge(port, host) {
   const httpServer = createServer(async (req, res) => {
+    const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
+
+    // ── Health check: always available, no auth required ────
+    if (url.pathname === "/api/healthcheck" && (req.method?.toUpperCase() === "GET")) {
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(JSON.stringify({ status: "ok", mode: MODE }));
+      return;
+    }
+
     // Auth endpoints only active in hosted mode
     if (MODE === "hosted") {
       const handled = await authHandler(req, res);
@@ -435,6 +444,7 @@ function startBridge(port, host) {
 
   httpServer.listen(port, host, () => {
     log(`✅ Bridge listening on http://${host}:${port}`);
+    log(`   Health: GET  /api/healthcheck (no auth)`);
     if (MODE === "hosted") {
       log(`   Mode:  hosted (auth required)`);
       log(`   HTTP:  POST /api/signup  |  POST /api/login  |  GET /api/me`);

@@ -8,13 +8,14 @@
 #
 # Before starting:
 #   1. Replace api.mdevd.co with your domain
-#   2. Set your email for Let's Encrypt notifications
+#   2. (Optional but recommended) Set your email for Let's Encrypt
+#      expiration notices and account recovery. Caddy works without it.
 #   3. Ensure DNS A/AAAA records point to your server's public IP
 #   4. Ensure ports 80 and 443 are reachable (Lightsail firewall)
 # =============================================================================
 
 {
-    email admin@mdevd.co
+    email dheeto@mdevd.co
 }
 
 api.mdevd.co {
@@ -24,7 +25,7 @@ api.mdevd.co {
             # for large pages. Caddy handles WebSocket upgrades
             # automatically.
             transport http {
-                read_timeout 120s
+                read_timeout 240s
             }
         }
     }

@@ -153,9 +153,9 @@ WORKDIR /app/bridge
 # Expose the WebSocket port
 EXPOSE 9876
 
-# Health check — verify the bridge is responding
+# Health check — hit /api/healthcheck (works in both local and hosted modes)
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD node -e "new (require('ws').WebSocket)('ws://127.0.0.1:'+(process.env.PORT||9876)+'/').on('open',function(){process.exit(0)}).on('error',function(){process.exit(1)})"
+    CMD node -e "require('http').get('http://127.0.0.1:'+(process.env.PORT||9876)+'/api/healthcheck',function(r){var d='';r.on('data',function(c){d+=c});r.on('end',function(){var j=JSON.parse(d);process.exit(j.status==='ok'?0:1)})}).on('error',function(){process.exit(1)})"
 
 # Default to hosted mode (auth with JWT required).
 # Override KEB_MODE=local for local-only deployments.

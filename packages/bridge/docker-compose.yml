@@ -28,7 +28,7 @@ services:
           "CMD",
           "node",
           "-e",
-          "new (require('ws').WebSocket)('ws://127.0.0.1:9876/').on('open',function(){process.exit(0)}).on('error',function(){process.exit(1)})",
+          "require('http').get('http://127.0.0.1:9876/api/healthcheck',function(r){var d='';r.on('data',function(c){d+=c});r.on('end',function(){var j=JSON.parse(d);process.exit(j.status==='ok'?0:1)})}).on('error',function(){process.exit(1)})",
         ]
       interval: 30s
       timeout: 5s

@@ -234,6 +234,20 @@ The bridge exposes `GET /api/healthcheck` — returns `{"status":"ok","mode":"ho
 curl http://127.0.0.1:9876/api/healthcheck
 ```
 
+## Status endpoint
+
+`GET /api/status` returns live runtime metrics. **Requires `X-API-Key` header** matching `ADMIN_KEY` env var. If `ADMIN_KEY` is not set, returns 501.
+
+```bash
+curl -H "X-API-Key: your-key" http://127.0.0.1:9876/api/status
+```
+
+Response includes:
+- `uptime` — seconds since server start
+- `connections` — active WebSocket clients with usernames and connect time
+- `operations` — active pi child processes by type (add, add-content, query, repair)
+- `workspaces` — all workspaces with document counts and last activity timestamps
+
 The Dockerfile and docker-compose.yml healthcheck use this endpoint (not a raw WebSocket open as before).
 
 ## Environment variables

@@ -48,6 +48,12 @@ import { handleSync } from "./handlers/sync-handler.js";
 // ---------------------------------------------------------------------------
 
 /**
+ * @typedef {Object} TrackedSocket
+ * @property {string|null} _authenticatedUser
+ * @property {number} _connectedAt
+ */
+
+/**
  * @typedef {Object} BridgeAuthMessage
  * @property {'auth'} type
  * @property {string} token - JWT from /api/login or /api/signup
@@ -122,6 +128,13 @@ const MODE = process.env.KEB_MODE === "hosted" ? "hosted" : "local";
  */
 const MAX_DOCUMENTS = MODE === "hosted" ? 50 : undefined;
 
+/**
+ * Admin API key for /api/status endpoint.
+ * If unset, /api/status returns 501. Sent via X-API-Key header.
+ * @type {string|undefined}
+ */
+const ADMIN_KEY = process.env.ADMIN_KEY || undefined;
+
 // ---------------------------------------------------------------------------
 // Bootstrap adapters
 // ---------------------------------------------------------------------------
@@ -154,6 +167,71 @@ const authHandler = createAuthHandler({ userStore });
  * @param {string} host - IP address to bind to
  */
 function startBridge(port, host) {
+  // ── Runtime tracking for /api/status ────────────────────
+  const serverStartTime = Date.now();
+
+  /** @type {Map<string, { type: string, workspace: string, startedAt: number }>} */
+  const activeOperations = new Map();
+
+  /** @type {Map<string, number>} */
+  const workspaceLastActivity = new Map();
+
+  /** Record workspace activity timestamp. */
+  function touchWorkspace(/** @type {string|undefined} */ ws) {
+    if (ws) workspaceLastActivity.set(ws, Date.now());
+  }
+
+  /** Build /api/status response payload. */
+  function buildStatus() {
+    // Connected clients
+    /** @type {{ user: string, connectedSince: number }[]} */
+    const clients = [];
+    for (const client of wss.clients) {
+      const c = /** @type {import('ws').WebSocket & {_authenticatedUser?: string|null, _connectedAt?: number}} */ (client);
+      if (c.readyState === 1 && c._authenticatedUser && c._connectedAt) {
+        clients.push({
+          user: c._authenticatedUser,
+          connectedSince: c._connectedAt,
+        });
+      }
+    }
+
+    // Active operations by type
+    /** @type {Object<string, number>} */
+    const byType = {};
+    for (const [, op] of activeOperations) {
+      byType[op.type] = (byType[op.type] || 0) + 1;
+    }
+
+    // Workspace details
+    const workspaceNames = kbStore.listWorkspaces();
+    const workspaces = workspaceNames.map((name) => ({
+      name,
+      documents: kbStore.countDocuments(name),
+      lastActivity: workspaceLastActivity.has(name)
+        ? new Date(/** @type {number} */ (workspaceLastActivity.get(name))).toISOString()
+        : null,
+    }));
+
+    return {
+      status: "ok",
+      mode: MODE,
+      uptime: Math.floor((Date.now() - serverStartTime) / 1000),
+      connections: {
+        active: clients.length,
+        clients,
+      },
+      operations: {
+        active: activeOperations.size,
+        byType,
+      },
+      workspaces: {
+        total: workspaces.length,
+        details: workspaces,
+      },
+    };
+  }
+
   const httpServer = createServer(async (req, res) => {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
 
@@ -161,6 +239,25 @@ function startBridge(port, host) {
     if (url.pathname === "/api/healthcheck" && (req.method?.toUpperCase() === "GET")) {
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ status: "ok", mode: MODE }));
+      return;
+    }
+
+    // ── Status: admin key required ──────────────────────────
+    if (url.pathname === "/api/status" && (req.method?.toUpperCase() === "GET")) {
+      if (!ADMIN_KEY) {
+        res.writeHead(501, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "ADMIN_KEY not configured on server. Set ADMIN_KEY env var." }));
+        return;
+      }
+      const apiKey = req.headers["x-api-key"];
+      if (!apiKey || apiKey !== ADMIN_KEY) {
+        res.writeHead(401, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "Invalid or missing X-API-Key header." }));
+        return;
+      }
+      const payload = JSON.stringify(buildStatus());
+      res.writeHead(200, { "Content-Type": "application/json" });
+      res.end(payload);
       return;
     }
 
@@ -236,6 +333,10 @@ function startBridge(port, host) {
     let authenticatedUser = null;
     let authComplete = false;
 
+    // Tag ws object for /api/status tracking
+    ws._connectedAt = Date.now();
+    ws._authenticatedUser = null;
+
     /** @type {Map<string, import('node:child_process').ChildProcess>} */
     const activeChildren = new Map();
 
@@ -279,6 +380,7 @@ function startBridge(port, host) {
           try {
             const { username } = verifyToken(/** @type {BridgeAuthMessage} */ (msg).token);
             authenticatedUser = username;
+            ws._authenticatedUser = username;
             authComplete = true;
             log(`🔐 User authenticated: ${username}`);
             ws.send(safeStringify({ type: "auth_ok", username }));
@@ -291,6 +393,7 @@ function startBridge(port, host) {
       } else {
         // Local mode: always auth-complete, no token needed
         authComplete = true;
+        ws._authenticatedUser = "(local)";
       }
 
       // ── Determine workspace ──────────────────────────────────
@@ -324,9 +427,12 @@ function startBridge(port, host) {
           if (child) {
             activeChildren.set(operationId, child);
             childProcesses.add(child);
+            activeOperations.set(operationId, { type: "add", workspace: workspace || "default", startedAt: Date.now() });
             child.on("exit", () => {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
+              activeOperations.delete(operationId);
+              touchWorkspace(workspace);
             });
           }
           break;
@@ -343,9 +449,12 @@ function startBridge(port, host) {
           if (child) {
             activeChildren.set(operationId, child);
             childProcesses.add(child);
+            activeOperations.set(operationId, { type: "repair", workspace: workspace || "default", startedAt: Date.now() });
             child.on("exit", () => {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
+              activeOperations.delete(operationId);
+              touchWorkspace(workspace);
             });
           }
           break;
@@ -377,9 +486,12 @@ function startBridge(port, host) {
           if (child) {
             activeChildren.set(operationId, child);
             childProcesses.add(child);
+            activeOperations.set(operationId, { type: "add-content", workspace: workspace || "default", startedAt: Date.now() });
             child.on("exit", () => {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
+              activeOperations.delete(operationId);
+              touchWorkspace(workspace);
             });
           }
           break;
@@ -394,9 +506,12 @@ function startBridge(port, host) {
           const child = handleQuery({ ws, operationId, text: msg.text, workspace, spawn: spawnPi });
           activeChildren.set(operationId, child);
           childProcesses.add(child);
+          activeOperations.set(operationId, { type: "query", workspace: workspace || "default", startedAt: Date.now() });
           child.on("exit", () => {
             activeChildren.delete(operationId);
             childProcesses.delete(child);
+            activeOperations.delete(operationId);
+            touchWorkspace(workspace);
           });
           break;
         }
@@ -405,6 +520,7 @@ function startBridge(port, host) {
         case "sync": {
           try {
             handleSync({ ws, workspace, kbStore });
+            touchWorkspace(workspace);
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             ws.send(safeStringify({ type: "error", message: `Sync failed: ${message}` }));
@@ -445,6 +561,7 @@ function startBridge(port, host) {
   httpServer.listen(port, host, () => {
     log(`✅ Bridge listening on http://${host}:${port}`);
     log(`   Health: GET  /api/healthcheck (no auth)`);
+    log(`   Status: GET  /api/status (X-API-Key required${ADMIN_KEY ? "" : " — disabled, set ADMIN_KEY to enable"})`);
     if (MODE === "hosted") {
       log(`   Mode:  hosted (auth required)`);
       log(`   HTTP:  POST /api/signup  |  POST /api/login  |  GET /api/me`);

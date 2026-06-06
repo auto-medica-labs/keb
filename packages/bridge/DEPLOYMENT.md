@@ -176,6 +176,14 @@ Response:
 
 Works in both local and hosted modes with no auth required. Useful for monitoring, load balancer probes, and verifying the bridge is up after deploy.
 
+### Status endpoint (admin only)
+
+```bash
+curl -H "X-API-Key: your-admin-key" https://api.mdevd.co/keb/v1/api/status
+```
+
+Returns live runtime metrics: connected clients, active pi operations by type, and per-workspace document counts with last activity timestamps. Requires `ADMIN_KEY` env var to be set. Returns 501 if not configured.
+
 ### HTTP — Signup endpoint
 
 ```bash

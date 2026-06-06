@@ -336,6 +336,16 @@ curl http://127.0.0.1:9876/api/healthcheck
 
 Used by Docker healthcheck, monitoring, and load balancer probes.
 
+### Status (admin only)
+
+`GET /api/status` — live runtime metrics. Requires `X-API-Key` header matching `ADMIN_KEY` env var. Returns 501 if `ADMIN_KEY` is not configured.
+
+```bash
+curl -H "X-API-Key: your-admin-key" http://127.0.0.1:9876/api/status
+```
+
+Response includes connected clients, active pi operations by type, and per-workspace document counts with last activity timestamps.
+
 ### Auth endpoints (hosted mode only)
 
 When `KEB_MODE=hosted`, the bridge exposes these endpoints on the same port as the WebSocket.

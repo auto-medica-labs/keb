@@ -33,6 +33,7 @@ handlers/       ← orchestration (depends on ports, never on adapters)
   query-handler.js      query → uses spawnPi
   repair-handler.js     repair → uses KbStore port + spawnPi
   sync-handler.js       sync → uses KbStore port
+  clear-handler.js      clear → uses KbStore port (no pi process)
 
 bridge-server.js  ← composition root (wires adapters to handlers)
 ```
@@ -119,6 +120,9 @@ Handles `query` WebSocket messages. Spawns pi with `/kb-query -w <workspace> <te
 
 ### `handlers/sync-handler.js`
 Handles `sync` WebSocket messages. Pure read — calls `kbStore.buildSyncData(workspace)` and sends `sync_result` back. No pi process needed.
+
+### `handlers/clear-handler.js`
+Handles `clear` WebSocket messages. Calls `kbStore.clearWorkspace(workspace)` to wipe all workspace content (source/, wiki/, registry), then sends back an empty `sync_result`. Pure filesystem operation — no pi process needed.
 
 ### `adapters/pi-kb-store.js`
 Bridge-specific wrapper around pi-kb's `FilesystemStore`. Implements the bridge's `KbStore` port. Adds `buildSyncData()` (reads all summaries/concepts and builds the sync payload). Also exports `ensureWorkspace()` and `workspaceExists()` for the auth flow.
@@ -258,7 +262,7 @@ curl -H "X-API-Key: your-key" http://127.0.0.1:9876/api/status
 Response includes:
 - `uptime` — seconds since server start
 - `connections` — active WebSocket clients with usernames and connect time
-- `operations` — active pi child processes by type (add, add-content, query, repair)
+- `operations` — active pi child processes by type (add, add-content, query, repair); `clear` is instant (no pi process)
 - `workspaces` — all workspaces with document counts and last activity timestamps
 
 The Dockerfile and docker-compose.yml healthcheck use this endpoint (not a raw WebSocket open as before).
@@ -298,6 +302,7 @@ Client → Bridge:
   { type: "query", operationId, text, workspace? }
   { type: "repair", operationId, workspace? }
   { type: "sync", workspace? }
+  { type: "clear", workspace? }
 
 Bridge → Client:
   { type: "auth_ok", username }              ← auth success (hosted mode)

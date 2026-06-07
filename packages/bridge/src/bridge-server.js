@@ -42,6 +42,7 @@ import { handleAddUrl } from "./handlers/add-url-handler.js";
 import { handleRepair } from "./handlers/repair-handler.js";
 import { handleAddContent } from "./handlers/add-content-handler.js";
 import { handleSync } from "./handlers/sync-handler.js";
+import { handleClear } from "./handlers/clear-handler.js";
 
 // ---------------------------------------------------------------------------
 // Type definitions — WebSocket message shapes
@@ -83,6 +84,12 @@ import { handleSync } from "./handlers/sync-handler.js";
  */
 
 /**
+ * @typedef {Object} BridgeClearMessage
+ * @property {'clear'} type
+ * @property {string} [workspace] - Ignored in hosted mode
+ */
+
+/**
  * @typedef {Object} BridgeRepairMessage
  * @property {'repair'} type
  * @property {string} operationId
@@ -100,7 +107,7 @@ import { handleSync } from "./handlers/sync-handler.js";
  */
 
 /**
- * @typedef {BridgeAuthMessage|BridgeAddMessage|BridgeQueryMessage|BridgeSyncMessage|BridgeRepairMessage|BridgeAddContentMessage} BridgeMessage
+ * @typedef {BridgeAuthMessage|BridgeAddMessage|BridgeQueryMessage|BridgeSyncMessage|BridgeRepairMessage|BridgeAddContentMessage|BridgeClearMessage} BridgeMessage
  */
 
 // ---------------------------------------------------------------------------
@@ -546,6 +553,19 @@ function startBridge(port, host) {
             const message = err instanceof Error ? err.message : String(err);
             ws.send(safeStringify({ type: "error", message: `Sync failed: ${message}` }));
             log(`sync error: ${message}`);
+          }
+          break;
+        }
+
+        // ── Clear action (pure write, no pi needed) ──────────────
+        case "clear": {
+          try {
+            handleClear({ ws, workspace, kbStore });
+            touchWorkspace(workspace);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : String(err);
+            ws.send(safeStringify({ type: "error", message: `Clear failed: ${message}` }));
+            log(`clear error: ${message}`);
           }
           break;
         }

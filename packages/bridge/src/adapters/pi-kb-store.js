@@ -93,6 +93,10 @@ export function createPiKbStore() {
       return store.ensureKbDir(name);
     },
 
+    clearWorkspace(workspace) {
+      return store.clearWorkspace(workspace);
+    },
+
     buildSyncData(workspace) {
       const reg = store.readRegistry(workspace);
       const summariesList = store.listSummaries(workspace);

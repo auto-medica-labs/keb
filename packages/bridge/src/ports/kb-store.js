@@ -67,6 +67,7 @@
  * @property {(workspace?: string) => number} countDocuments
  * @property {(workspace?: string) => SyncData} buildSyncData
  * @property {(name: string) => boolean} ensureWorkspace
+ * @property {(workspace?: string) => string} clearWorkspace - Clear all content from a workspace
  */
 
 export {};

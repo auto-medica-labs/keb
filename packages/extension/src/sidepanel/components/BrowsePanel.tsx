@@ -1,8 +1,20 @@
 import { useState, useEffect } from "react";
-import { FileText, TriangleAlert, Tag } from "lucide-react";
+import { FileText, TriangleAlert, Tag, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
 import {
   getSummaries,
   getConcepts,
@@ -13,7 +25,11 @@ import {
 import type { Summary, Concept } from "../../lib/store";
 import { escapeHtml } from "../../lib/utils";
 
-export default function BrowsePanel() {
+interface BrowsePanelProps {
+  onClearWorkspace: () => void;
+}
+
+export default function BrowsePanel({ onClearWorkspace }: BrowsePanelProps) {
   const [summaries, setSummaries] = useState<Record<string, Summary>>({});
   const [concepts, setConcepts] = useState<Record<string, Concept>>({});
   const [pendingDocs, setPendingDocs] = useState<Set<string>>(new Set());
@@ -109,6 +125,47 @@ export default function BrowsePanel() {
             </div>
           </div>
         )}
+
+        {/* Danger Zone */}
+        <Separator />
+        <div className="rounded-lg border border-destructive/40 p-3">
+          <h3 className="mb-1 text-xs font-medium tracking-wider text-destructive uppercase">
+            Danger Zone
+          </h3>
+          <p className="mb-3 text-[11px] text-muted-foreground">
+            Once cleared, all documents, summaries, and concepts in this workspace are permanently
+            deleted. This action cannot be undone.
+          </p>
+          <AlertDialog>
+            <AlertDialogTrigger
+              render={
+                <Button variant="destructive" size="sm">
+                  <Trash2 data-icon="inline-start" />
+                  Clear Workspace
+                </Button>
+              }
+            />
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Clear Workspace?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete all documents, summaries, and concepts in this
+                  workspace. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogPrimitive.Close
+                  render={
+                    <Button variant="destructive" size="default" onClick={onClearWorkspace}>
+                      Clear Workspace
+                    </Button>
+                  }
+                />
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
     </ScrollArea>
   );

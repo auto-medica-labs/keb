@@ -206,6 +206,7 @@ export default function App() {
       mode: bridgeMode,
       bridgeUrl: bridgeMode === "hosted" ? HOSTED_BRIDGE_URL : bridgeUrl,
       token: authToken,
+      workspace: workspace,
     };
   }
 
@@ -497,6 +498,10 @@ export default function App() {
     wsRef.current?.query(text, createOperationCallbacks(operationId), operationId);
   }
 
+  function handleClearWorkspace() {
+    wsRef.current?.clear();
+  }
+
   function handleSwitchWorkspace(name: string) {
     // In hosted mode, workspace switching is disabled (server enforces it)
     if (bridgeMode === "hosted") return;
@@ -621,7 +626,7 @@ export default function App() {
               />
             </TabsContent>
             <TabsContent value="browse" className="mt-0 h-full">
-              <BrowsePanel />
+              <BrowsePanel onClearWorkspace={handleClearWorkspace} />
             </TabsContent>
           </div>
         </Tabs>

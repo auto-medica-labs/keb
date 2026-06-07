@@ -12,6 +12,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 - **Add current page content** — Capture the full text of the current tab and compile it directly (no URL fetch needed).
 - **Consult** — Ask natural-language questions and get streaming LLM responses drawn from your knowledge base, complete with inline references.
 - **Browse** — Explore all compiled documents and extracted concepts in a scrollable list, with source tracking.
+- **Clear workspace** — Wipe all documents, summaries, and concepts from a workspace with one click (Browse tab → Danger Zone). Instant — no LLM process needed.
 - **Multi-workspace** — Switch between isolated knowledge bases for different projects or topics.
 - **User authentication** — Signup, login, JWT-based sessions. Each user gets an isolated workspace automatically created on signup.
 - **Live streaming** — Watch the LLM compile pages and answer queries in real time with event-level progress.
@@ -34,6 +35,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 │  ┌──────────┐  ┌──────────────────────────────┐     │
 │  │ HTTP Auth │  │  WebSocket KB Operations     │     │
 │  │ /api/*    │  │  add / query / sync / repair │     │
+│  │           │  │  clear                       │     │
 │  └─────┬─────┘  └──────────┬───────────────────┘     │
 │        │                   │                         │
 │        ▼                   ▼                         │
@@ -228,7 +230,8 @@ keb/
 │   │       │   ├── add-content-handler.js # HTML captur e + compile
 │   │       │   ├── repair-handler.js   # re-compile interrupted docs
 │   │       │   ├── query-handler.js
-│   │       │   └── sync-handler.js
+│   │       │   ├── sync-handler.js
+│   │       │   └── clear-handler.js    # wipe workspace (no pi process)
 │   │       └── lib/
 │   │           ├── auth.js             # JWT, bcrypt, username validation
 │   │           └── utils.js            # logging, JSON, URL helpers
@@ -406,6 +409,7 @@ In local mode, no auth message is needed — clients can send any operation imme
 | `query` | `operationId`, `text`, `workspace?` | Query the knowledge base |
 | `repair` | `operationId`, `workspace?` | Re-compile interrupted documents |
 | `sync` | `workspace?` | Full state dump (registry, index, summaries, concepts, workspaces) |
+| `clear` | `workspace?` | Delete all workspace content (source/, wiki/, registry). Sends back empty `sync_result`. No pi process. |
 
 ### Bridge → Client: Error/StdErr
 

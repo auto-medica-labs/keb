@@ -28,7 +28,8 @@ export type WSMessage =
     }
   | { type: "query"; text: string; operationId: string; workspace?: string }
   | { type: "repair"; operationId: string; workspace?: string }
-  | { type: "sync"; workspace?: string };
+  | { type: "sync"; workspace?: string }
+  | { type: "clear"; workspace?: string };
 
 export type BridgeEvent = {
   type: string;
@@ -85,6 +86,8 @@ export interface WSClientConfig {
   mode: BridgeMode;
   bridgeUrl: string;
   token?: string;
+  /** Initial workspace (loaded from storage). Defaults to "default". */
+  workspace?: string;
 }
 
 const DEFAULT_BRIDGE_URL = "ws://127.0.0.1:9876";
@@ -112,6 +115,7 @@ export class WSClient {
     this.mode = config.mode;
     this.bridgeUrl = config.bridgeUrl || DEFAULT_BRIDGE_URL;
     this.token = config.token;
+    this.workspace = config.workspace || "default";
   }
 
   /** Update config (e.g. after login, or mode switch). Triggers reconnect if needed. */
@@ -280,6 +284,11 @@ export class WSClient {
 
   sync() {
     this.send({ type: "sync", workspace: this.workspace });
+  }
+
+  /** Clear all workspace content (source/, wiki/, registry). */
+  clear() {
+    this.send({ type: "clear", workspace: this.workspace });
   }
 
   // ── Internal ──────────────────────────────────────────────────────

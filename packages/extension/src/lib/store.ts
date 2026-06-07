@@ -184,3 +184,17 @@ export async function countPendingCompilations(): Promise<number> {
 export async function clearAll(): Promise<void> {
   await chrome.storage.local.remove(Object.values(KEYS));
 }
+
+// ── First-use tracking ──────────────────────────────────────────────────
+
+const FIRST_USE_KEY = "kb:firstUse";
+
+export async function isFirstUse(): Promise<boolean> {
+  const { [FIRST_USE_KEY]: firstUse } = await chrome.storage.local.get(FIRST_USE_KEY);
+  // If not set, it's the first use
+  return firstUse !== false;
+}
+
+export async function setFirstUseComplete(): Promise<void> {
+  await chrome.storage.local.set({ [FIRST_USE_KEY]: false });
+}

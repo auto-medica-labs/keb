@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
-import { FilePlusCorner, BookSearch, Library } from "lucide-react";
+import { FilePlusCorner, BookSearch, Library, BookOpen } from "lucide-react";
 import { nanoid } from "nanoid";
 import {
   WSClient,
@@ -20,6 +20,8 @@ import {
   isEntryCompiled,
   type RegistryEntry,
   type BridgeMode,
+  isFirstUse,
+  setFirstUseComplete,
 } from "../lib/store";
 import { HOSTED_BRIDGE_URL } from "../lib/env";
 import Header from "./components/Header";
@@ -282,6 +284,13 @@ export default function App() {
       );
       if (bc.token) setAuthToken(bc.token);
       if (bc.username) setUsername(bc.username);
+
+      // Check first use and redirect if needed
+      const firstUse = await isFirstUse();
+      if (firstUse) {
+        await setFirstUseComplete();
+        chrome.tabs.create({ url: "https://keb.mdevd.co/how-to-use" });
+      }
 
       setAppLoading(false);
     })();
@@ -594,6 +603,16 @@ export default function App() {
             Browse
           </TabsTrigger>
         </TabsList>
+        {/* Help link under tabs */}
+        <div className="flex justify-start px-3 pb-2 mt-2.5">
+          <button
+            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
+            onClick={() => chrome.tabs.create({ url: "https://keb.mdevd.co/how-to-use" })}
+          >
+            <BookOpen className="size-3.5" />
+            <span>How to use Keb</span>
+          </button>
+        </div>
         <div className="min-h-0 flex-1 overflow-hidden p-4">
           <TabsContent value="query" className="mt-0 h-full">
             <QueryPanel

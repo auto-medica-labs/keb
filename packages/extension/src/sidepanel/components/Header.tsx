@@ -9,7 +9,8 @@ import {
 } from "@/components/ui/select";
 import { getWorkspaces, type BridgeMode } from "../../lib/store";
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
-import { Settings, User } from "lucide-react";
+import { Settings, User, CircleHelp } from "lucide-react";
+import { Tooltip, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip";
 
 const NARROW_BREAKPOINT = 500;
 
@@ -142,13 +143,28 @@ export default function Header({
         )}
       </div>
       <div className="flex items-center gap-1.5">
-        <button
-          onClick={onOpenSettings}
-          className="rounded p-0.5 transition-colors hover:bg-muted"
-          aria-label="Settings"
-        >
-          <Settings className="size-3.5 text-muted-foreground" />
-        </button>
+        <Tooltip>
+          <TooltipTrigger
+            render={<button />}
+            onClick={() => chrome.tabs.create({ url: "https://keb.mdevd.co/how-to-use" })}
+            className="rounded p-0.5 transition-colors hover:bg-muted"
+            aria-label="Learn how to use Keb"
+          >
+            <CircleHelp className="size-3.5 text-muted-foreground" />
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Learn how to use Keb</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger
+            render={<button />}
+            onClick={onOpenSettings}
+            className="rounded p-0.5 transition-colors hover:bg-muted"
+            aria-label="Settings"
+          >
+            <Settings className="size-3.5 text-muted-foreground" />
+          </TooltipTrigger>
+          <TooltipContent side="bottom">Settings</TooltipContent>
+        </Tooltip>
         <span className={`size-2 shrink-0 rounded-full ${statusColors[connectionStatus]}`} />
         {connectionStatus === "max_retries" ? (
           <span className="text-right text-[11px] leading-tight text-destructive">OFFLINE</span>

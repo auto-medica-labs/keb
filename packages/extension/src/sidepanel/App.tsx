@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { Toaster } from "sonner";
 import { toast } from "sonner";
-import { FilePlusCorner, BookSearch, Library, BookOpen } from "lucide-react";
+import { FilePlusCorner, BookSearch, Library } from "lucide-react";
 import { nanoid } from "nanoid";
 import {
   WSClient,
@@ -27,6 +27,7 @@ import { HOSTED_BRIDGE_URL } from "../lib/env";
 import Header from "./components/Header";
 import AuthPanel from "./components/AuthPanel";
 import SettingsPanel from "./components/SettingsPanel";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddPanel from "./components/AddPanel";
 import QueryPanel from "./components/QueryPanel";
@@ -553,93 +554,85 @@ export default function App() {
   // ── Main app UI ───────────────────────────────────────────────
 
   return (
-    <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
-      <Toaster position="bottom-center" />
+    <TooltipProvider>
+      <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground">
+        <Toaster position="bottom-center" />
 
-      {/* Settings overlay */}
-      {showSettings && (
-        <SettingsPanel
-          config={{ mode: bridgeMode, bridgeUrl, token: authToken, username }}
-          onModeChange={handleModeChange}
-          onBridgeUrlChange={handleBridgeUrlChange}
-          onLogout={handleLogout}
-          onClose={() => setShowSettings(false)}
+        {/* Settings overlay */}
+        {showSettings && (
+          <SettingsPanel
+            config={{ mode: bridgeMode, bridgeUrl, token: authToken, username }}
+            onModeChange={handleModeChange}
+            onBridgeUrlChange={handleBridgeUrlChange}
+            onLogout={handleLogout}
+            onClose={() => setShowSettings(false)}
+          />
+        )}
+
+        <Header
+          connectionStatus={connectionStatus}
+          workspace={workspace}
+          mode={bridgeMode}
+          username={username}
+          onSwitchWorkspace={handleSwitchWorkspace}
+          onOpenSettings={() => setShowSettings(true)}
         />
-      )}
-
-      <Header
-        connectionStatus={connectionStatus}
-        workspace={workspace}
-        mode={bridgeMode}
-        username={username}
-        onSwitchWorkspace={handleSwitchWorkspace}
-        onOpenSettings={() => setShowSettings(true)}
-      />
-      <Tabs
-        value={activeTab}
-        onValueChange={(v) => setActiveTab(v as ActiveTab)}
-        className="flex min-h-0 flex-1 flex-col"
-      >
-        <TabsList variant="line" className="h-auto w-full rounded-none px-3">
-          <TabsTrigger
-            value="query"
-            className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
-          >
-            <BookSearch className="size-4" />
-            Consult
-          </TabsTrigger>
-          <TabsTrigger
-            value="add"
-            className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
-          >
-            <FilePlusCorner className="size-4" />
-            Add Knowledge
-          </TabsTrigger>
-          <TabsTrigger
-            value="browse"
-            className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
-          >
-            <Library className="size-4" />
-            Browse
-          </TabsTrigger>
-        </TabsList>
-        {/* Help link under tabs */}
-        <div className="flex justify-start px-3 pb-2 mt-2.5">
-          <button
-            className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-primary transition-colors"
-            onClick={() => chrome.tabs.create({ url: "https://keb.mdevd.co/how-to-use" })}
-          >
-            <BookOpen className="size-3.5" />
-            <span>How to use Keb</span>
-          </button>
-        </div>
-        <div className="min-h-0 flex-1 overflow-hidden p-4">
-          <TabsContent value="query" className="mt-0 h-full">
-            <QueryPanel
-              operations={queryOperations}
-              connected={connectionStatus === "connected"}
-              onQuery={handleQuery}
-            />
-          </TabsContent>
-          <TabsContent value="add" className="mt-0 h-full">
-            <AddPanel
-              operations={addOperations}
-              connected={connectionStatus === "connected"}
-              onAdd={handleAdd}
-            />
-          </TabsContent>
-          <TabsContent value="browse" className="mt-0 h-full">
-            <BrowsePanel />
-          </TabsContent>
-        </div>
-      </Tabs>
-      <Footer
-        docCount={docCount}
-        conceptCount={conceptCount}
-        hasPending={hasPending}
-        agentStatus={agentStatus}
-        onRepair={handleRepair}
-      />
-    </div>
+        <Tabs
+          value={activeTab}
+          onValueChange={(v) => setActiveTab(v as ActiveTab)}
+          className="flex min-h-0 flex-1 flex-col"
+        >
+          <TabsList variant="line" className="h-auto w-full rounded-none px-3">
+            <TabsTrigger
+              value="query"
+              className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
+            >
+              <BookSearch className="size-4" />
+              Consult
+            </TabsTrigger>
+            <TabsTrigger
+              value="add"
+              className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
+            >
+              <FilePlusCorner className="size-4" />
+              Add Knowledge
+            </TabsTrigger>
+            <TabsTrigger
+              value="browse"
+              className="flex-1 gap-1.5 rounded-none py-2.5 text-xs font-medium"
+            >
+              <Library className="size-4" />
+              Browse
+            </TabsTrigger>
+          </TabsList>
+          <div className="min-h-0 flex-1 overflow-hidden p-4">
+            <TabsContent value="query" className="mt-0 h-full">
+              <QueryPanel
+                operations={queryOperations}
+                connected={connectionStatus === "connected"}
+                onQuery={handleQuery}
+              />
+            </TabsContent>
+            <TabsContent value="add" className="mt-0 h-full">
+              <AddPanel
+                operations={addOperations}
+                connected={connectionStatus === "connected"}
+                onAdd={handleAdd}
+              />
+            </TabsContent>
+            <TabsContent value="browse" className="mt-0 h-full">
+              <BrowsePanel />
+            </TabsContent>
+          </div>
+        </Tabs>
+        <Footer
+          docCount={docCount}
+          conceptCount={conceptCount}
+          hasPending={hasPending}
+          agentStatus={agentStatus}
+          onRepair={handleRepair}
+        />
+      </div>
+    </TooltipProvider>
   );
 }

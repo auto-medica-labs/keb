@@ -145,7 +145,7 @@ const kbStore = createPiKbStore();
 /** @type {import('./ports/user-store.js').UserStore} */
 const userStore = createSqliteUserStore();
 
-const authHandler = createAuthHandler({ userStore });
+const authHandler = createAuthHandler({ userStore, kbStore });
 
 // ---------------------------------------------------------------------------
 // Server: HTTP + WebSocket on same port

@@ -66,6 +66,7 @@
  * @property {() => string[]} listWorkspaces
  * @property {(workspace?: string) => number} countDocuments
  * @property {(workspace?: string) => SyncData} buildSyncData
+ * @property {(name: string) => boolean} ensureWorkspace
  */
 
 export {};

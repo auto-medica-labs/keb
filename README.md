@@ -224,8 +224,9 @@ keb/
 │   │       │   └── user-store.js       # UserStore interface
 │   │       ├── handlers/
 │   │       │   ├── auth-handler.js     # HTTP /api/signup, /api/login, /api/me
-│   │       │   ├── add-content-handler.js
-│   │       │   ├── command-handler.js  # add / repair
+│   │       │   ├── add-url-handler.js  # URL fetch + compile
+│   │       │   ├── add-content-handler.js # HTML captur e + compile
+│   │       │   ├── repair-handler.js   # re-compile interrupted docs
 │   │       │   ├── query-handler.js
 │   │       │   └── sync-handler.js
 │   │       └── lib/

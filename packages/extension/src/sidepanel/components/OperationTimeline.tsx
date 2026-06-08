@@ -16,7 +16,7 @@ export default function OperationTimeline({ operation }: OperationTimelineProps)
         entry.type === "tool" ? (
           <div
             key={i}
-            className={`flex items-center gap-1.5 font-mono text-[11px] ${entry.cls}${i > 0 && timeline[i - 1].type === "text" ? " mt-3" : ""}`}
+            className={`flex items-start gap-1.5 font-mono text-[11px] whitespace-pre-wrap ${entry.cls}${i > 0 && timeline[i - 1].type === "text" ? " mt-3" : ""}`}
           >
             {entry.cls.includes("green") ? (
               <CheckCircle2 className="size-3 shrink-0" />

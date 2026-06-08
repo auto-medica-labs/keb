@@ -43,7 +43,7 @@ export type WSResponse =
   | { type: "event"; operationId?: string; data: BridgeEvent }
   | { type: "sync_result"; operationId?: string; data: SyncResult }
   | { type: "done"; operationId?: string; command: string }
-  | { type: "error"; operationId?: string; message: string }
+  | { type: "error"; operationId?: string; message: string; toast?: string }
   | { type: "stderr"; operationId?: string; text: string };
 
 export interface SyncResult {
@@ -65,7 +65,11 @@ export type ConnectionStatus =
 export interface OperationCallbacks {
   onEvent: (event: BridgeEvent) => void;
   onDone: (command: string) => void;
-  onError: (message: string) => void;
+  /**
+   * @param message - Error message (shown in operation timeline)
+   * @param toast - Optional shorter message for toast notification
+   */
+  onError: (message: string, toast?: string) => void;
 }
 
 /** Global callbacks — status changes, auth results, and sync results. */
@@ -342,7 +346,7 @@ export class WSClient {
           this.operations.delete(opId);
           return;
         case "error":
-          op.onError(msg.message);
+          op.onError(msg.message, msg.toast);
           this.operations.delete(opId);
           return;
         case "stderr":

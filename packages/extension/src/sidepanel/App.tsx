@@ -173,9 +173,9 @@ export default function App() {
           }
         }
       },
-      onError: (message: string) => {
+      onError: (message: string, toastMsg?: string) => {
         markOperationError(opId, message);
-        toast.error(message);
+        toast.error(toastMsg || message);
       },
     };
   }

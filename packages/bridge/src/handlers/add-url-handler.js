@@ -93,7 +93,23 @@ export function handleAddUrl({ ws, operationId, url, workspace, kbStore, spawn, 
       ws.send(safeStringify({ type: "stderr", operationId, text }));
     },
     onError: (message) => {
-      ws.send(safeStringify({ type: "error", operationId, message }));
+      // Detect fetch failures (403 Forbidden, 401 Unauthorized) where the
+      // remote server blocked the request. Guide the user to use the
+      // right-click option instead, which captures the page as seen by
+      // their browser (bypassing server-side blocks).
+      const blockedPattern = /Failed to fetch .+?:\s*HTTP\s+(?:403|401)\b/i;
+      if (blockedPattern.test(message)) {
+        ws.send(
+          safeStringify({
+            type: "error",
+            operationId,
+            toast: message,
+            message: `${url} blocked Keb from accessing its content. Instead:\n\n1. Right-click on the page\n2. Select Keb menu\n3. Select "Add this content into Knowledge base"\n\nThis captures the page as your browser sees it, bypassing the block.`,
+          }),
+        );
+      } else {
+        ws.send(safeStringify({ type: "error", operationId, message }));
+      }
     },
   });
 }

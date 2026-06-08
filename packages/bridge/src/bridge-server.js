@@ -180,12 +180,16 @@ function startBridge(port, host) {
   /** @type {Map<string, { type: string, workspace: string, startedAt: number }>} */
   const activeOperations = new Map();
 
-  /** @type {Map<string, number>} */
-  const workspaceLastActivity = new Map();
-
-  /** Record workspace activity timestamp. */
-  function touchWorkspace(/** @type {string|undefined} */ ws) {
-    if (ws) workspaceLastActivity.set(ws, Date.now());
+  /** Find the ISO timestamp of the most recently added document from the registry. */
+  function deriveLastDocumentAdded(/** @type {string} */ name) {
+    const reg = kbStore.readRegistry(name);
+    let latest = null;
+    for (const entry of Object.values(reg)) {
+      if (entry.addedAt && (!latest || entry.addedAt > latest)) {
+        latest = entry.addedAt;
+      }
+    }
+    return latest;
   }
 
   /** Build /api/status response payload. */
@@ -213,14 +217,12 @@ function startBridge(port, host) {
       byType[op.type] = (byType[op.type] || 0) + 1;
     }
 
-    // Workspace details
+    // Workspace details — lastDocumentAdded derived from registry (persists across restarts)
     const workspaceNames = kbStore.listWorkspaces();
     const workspaces = workspaceNames.map((name) => ({
       name,
       documents: kbStore.countDocuments(name),
-      lastActivity: workspaceLastActivity.has(name)
-        ? new Date(/** @type {number} */ (workspaceLastActivity.get(name))).toISOString()
-        : null,
+      lastDocumentAdded: deriveLastDocumentAdded(name),
     }));
 
     return {
@@ -448,7 +450,6 @@ function startBridge(port, host) {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
               activeOperations.delete(operationId);
-              touchWorkspace(workspace);
             });
           }
           break;
@@ -474,7 +475,6 @@ function startBridge(port, host) {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
               activeOperations.delete(operationId);
-              touchWorkspace(workspace);
             });
           }
           break;
@@ -515,7 +515,6 @@ function startBridge(port, host) {
               activeChildren.delete(operationId);
               childProcesses.delete(child);
               activeOperations.delete(operationId);
-              touchWorkspace(workspace);
             });
           }
           break;
@@ -539,7 +538,6 @@ function startBridge(port, host) {
             activeChildren.delete(operationId);
             childProcesses.delete(child);
             activeOperations.delete(operationId);
-            touchWorkspace(workspace);
           });
           break;
         }
@@ -548,7 +546,6 @@ function startBridge(port, host) {
         case "sync": {
           try {
             handleSync({ ws, workspace, kbStore });
-            touchWorkspace(workspace);
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             ws.send(safeStringify({ type: "error", message: `Sync failed: ${message}` }));
@@ -561,7 +558,6 @@ function startBridge(port, host) {
         case "clear": {
           try {
             handleClear({ ws, workspace, kbStore });
-            touchWorkspace(workspace);
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
             ws.send(safeStringify({ type: "error", message: `Clear failed: ${message}` }));

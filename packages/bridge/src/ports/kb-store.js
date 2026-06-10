@@ -28,7 +28,7 @@
  * @property {string} slug      - URL-friendly concept identifier
  * @property {string[]} sources - Source filenames this concept was derived from
  * @property {string} updated   - ISO timestamp of last update
- * @property {string} body      - Markdown body (frontmatter stripped)
+ * @property {string} content   - Markdown body (frontmatter stripped)
  */
 
 /**

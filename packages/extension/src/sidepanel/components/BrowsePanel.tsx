@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { FileText, TriangleAlert, Tag, Trash2 } from "lucide-react";
+import { FileText, ArrowLeft, Tag, Trash2 } from "lucide-react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -15,58 +15,122 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
-import {
-  getSummaries,
-  getConcepts,
-  getRegistry,
-  isEntryCompiled,
-  type RegistryEntry,
-} from "../../lib/store";
+import MarkdownRenderer from "@/components/MarkdownRenderer";
+import { getSummaries, getConcepts } from "../../lib/store";
 import type { Summary, Concept } from "../../lib/store";
 import { escapeHtml } from "../../lib/utils";
+
+/** Strip YAML frontmatter and auto-generated footer from content. */
+function stripFrontmatterAndFooter(content: string): string {
+  // Strip YAML frontmatter if present (defensive — bridge should already strip it)
+  if (content.startsWith("---")) {
+    const end = content.indexOf("---", 3);
+    if (end !== -1) {
+      content = content.slice(end + 3).trimStart();
+    }
+  }
+  // Strip auto-generated footer (--- + Concepts/Sources section)
+  const patterns = [
+    "\n\n---\n\n**Concepts**",
+    "\n\n---\n\n*No concepts",
+    "\n\n---\n\n**Sources**",
+    "\n\n---\n\n*No sources",
+  ];
+  for (const pattern of patterns) {
+    const idx = content.lastIndexOf(pattern);
+    if (idx !== -1) {
+      return content.slice(0, idx);
+    }
+  }
+  return content;
+}
 
 interface BrowsePanelProps {
   onClearWorkspace: () => void;
 }
 
+type DetailView = { type: "doc"; name: string } | { type: "concept"; slug: string } | null;
+
 export default function BrowsePanel({ onClearWorkspace }: BrowsePanelProps) {
   const [summaries, setSummaries] = useState<Record<string, Summary>>({});
   const [concepts, setConcepts] = useState<Record<string, Concept>>({});
-  const [pendingDocs, setPendingDocs] = useState<Set<string>>(new Set());
+  const [detail, setDetail] = useState<DetailView>(null);
 
   useEffect(() => {
     (async () => {
-      const [sums, cons, reg] = await Promise.all([getSummaries(), getConcepts(), getRegistry()]);
+      const [sums, cons] = await Promise.all([getSummaries(), getConcepts()]);
       setSummaries(sums);
       setConcepts(cons);
-      computePending(reg);
     })();
 
     // Re-render when storage changes
     const listener = () => {
-      Promise.all([getSummaries(), getConcepts(), getRegistry()]).then(([sums, cons, reg]) => {
+      Promise.all([getSummaries(), getConcepts()]).then(([sums, cons]) => {
         setSummaries(sums);
         setConcepts(cons);
-        computePending(reg);
       });
     };
     chrome.storage.onChanged.addListener(listener);
     return () => chrome.storage.onChanged.removeListener(listener);
   }, []);
 
-  function computePending(reg: Record<string, unknown>) {
-    const pending = new Set<string>();
-    for (const entry of Object.values(reg)) {
-      const e = entry as RegistryEntry;
-      if (!isEntryCompiled(e) && e.docName) {
-        pending.add(e.docName);
-      }
-    }
-    setPendingDocs(pending);
-  }
-
   const summNames = Object.keys(summaries);
   const concSlugs = Object.keys(concepts);
+
+  // ── Detail view (document or concept) ────────────────────────────
+
+  if (detail?.type === "doc") {
+    const doc = summaries[detail.name];
+    if (!doc) {
+      // Fall back to list if the doc was deleted while viewing
+      setDetail(null);
+      return null;
+    }
+    return (
+      <ScrollArea className="h-full">
+        <div className="space-y-4">
+          {/* Back button */}
+          <button
+            onClick={() => setDetail(null)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            Back to Browse
+          </button>
+
+          {/* Rendered content */}
+          <MarkdownRenderer text={stripFrontmatterAndFooter(doc.content)} />
+        </div>
+      </ScrollArea>
+    );
+  }
+
+  if (detail?.type === "concept") {
+    const concept = concepts[detail.slug];
+    if (!concept) {
+      setDetail(null);
+      return null;
+    }
+    return (
+      <ScrollArea className="h-full">
+        <div className="space-y-4">
+          {/* Back button */}
+          <button
+            onClick={() => setDetail(null)}
+            className="inline-flex items-center gap-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            Back to Browse
+          </button>
+
+          {/* Rendered content */}
+          <MarkdownRenderer text={stripFrontmatterAndFooter(concept.content)} />
+        </div>
+      </ScrollArea>
+    );
+  }
+
+  // ── List view ────────────────────────────────────────────────────
 
   if (summNames.length === 0 && concSlugs.length === 0) {
     return (
@@ -90,15 +154,11 @@ export default function BrowsePanel({ onClearWorkspace }: BrowsePanelProps) {
               {summNames.map((name) => (
                 <div
                   key={name}
+                  onClick={() => setDetail({ type: "doc", name })}
                   className="flex cursor-pointer items-center gap-2 rounded-md px-3 py-2 transition-colors hover:bg-accent"
                 >
                   <FileText className="size-4 shrink-0 text-muted-foreground" />
                   <span className="text-sm font-medium text-primary">{escapeHtml(name)}</span>
-                  {pendingDocs.has(name) && (
-                    <span title="Compilation interrupted — pending">
-                      <TriangleAlert className="size-3.5 shrink-0 text-amber-500" />
-                    </span>
-                  )}
                   {summaries[name].source && (
                     <span className="ml-auto max-w-30 truncate text-[11px] text-muted-foreground">
                       {escapeHtml(summaries[name].source)}
@@ -118,7 +178,12 @@ export default function BrowsePanel({ onClearWorkspace }: BrowsePanelProps) {
             </h3>
             <div className="flex flex-wrap gap-1.5">
               {concSlugs.map((slug) => (
-                <Badge key={slug} variant="secondary" className="cursor-pointer">
+                <Badge
+                  key={slug}
+                  variant="secondary"
+                  className="cursor-pointer"
+                  onClick={() => setDetail({ type: "concept", slug })}
+                >
                   <Tag className="size-3" /> {escapeHtml(slug)}
                 </Badge>
               ))}

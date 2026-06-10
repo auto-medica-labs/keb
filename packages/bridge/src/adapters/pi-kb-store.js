@@ -77,7 +77,7 @@ export function createPiKbStore() {
         slug: c.slug,
         sources: c.sources,
         updated: c.dateAdded ?? "",
-        body: c.body,
+        content: c.body,
       };
     },
 
@@ -143,7 +143,7 @@ export function createPiKbStore() {
           slug: c.slug,
           sources: c.sources,
           updated: c.dateAdded ?? "",
-          body: c.body,
+          content: c.body,
         };
       }
 

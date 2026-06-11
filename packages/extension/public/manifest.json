@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Keb",
-  "version": "0.0.9",
+  "version": "0.0.10",
   "description": "A personal knowledge base that compiles markdown documents and URLs into structured, interlinked wiki pages using your LLM.",
   "permissions": ["storage", "sidePanel", "contextMenus", "scripting", "activeTab"],
   "host_permissions": ["http://127.0.0.1/*", "http://localhost/*", "https://api.mdevd.co/*"],

@@ -109,6 +109,23 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
         </div>
       </div>
 
+      {/* Blocked URL hint — shows when bridge reports a 403/401 fetch error */}
+      {operations.some((op) => op.done && op.blocked) && (
+        <div className="rounded-md border border-amber-500/30 bg-amber-500/10 px-3 py-2">
+          <p className="text-xs text-amber-600 dark:text-amber-400">
+            Some websites block automated fetching.{" "}
+            <a
+              href="https://keb.mdevd.co/how-to-use#common-issues"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="underline hover:text-amber-700 dark:hover:text-amber-300"
+            >
+              Learn how to work around this →
+            </a>
+          </p>
+        </div>
+      )}
+
       {/* Progress / timeline area — fills remaining space */}
       {hasAnyOps && (
         <div className="flex min-h-0 flex-1 flex-col rounded-md border bg-muted/50">

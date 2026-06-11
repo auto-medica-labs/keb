@@ -49,6 +49,8 @@ export type ActiveOperation = {
   /** Display label (URL for add, question for query). */
   label: string;
   done: boolean;
+  /** True when the bridge reported a 403/401 — the target site blocked fetching. */
+  blocked?: boolean;
 };
 
 export default function App() {
@@ -127,7 +129,7 @@ export default function App() {
     );
   }
 
-  function markOperationError(opId: string, message: string) {
+  function markOperationError(opId: string, message: string, blocked?: boolean) {
     setOperations((prev) =>
       prev.map((op) =>
         op.id === opId
@@ -138,6 +140,7 @@ export default function App() {
                 { type: "tool", text: `Error: ${message}`, cls: "text-red-400" },
               ],
               done: true,
+              ...(blocked ? { blocked } : {}),
             }
           : op,
       ),
@@ -174,7 +177,10 @@ export default function App() {
         }
       },
       onError: (message: string, toastMsg?: string) => {
-        markOperationError(opId, message);
+        // Detect 403/401 fetch errors from the bridge so the UI can
+        // surface a link to the "Common Issues" section.
+        const isBlocked = /blocked Keb from accessing its content/i.test(message);
+        markOperationError(opId, message, isBlocked);
         toast.error(toastMsg || message);
       },
     };

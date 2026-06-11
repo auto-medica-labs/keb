@@ -810,6 +810,214 @@ footer .container {
 }
 
 /*-==============================
+    HOW-TO-USE PAGE
+-==============================*/
+.howto-section {
+  padding: 4rem 0;
+  min-height: 60vh;
+}
+
+.howto-section .container {
+  max-width: 900px;
+}
+
+.howto-section h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: var(--primary-color);
+  text-align: center;
+}
+
+.howto-section .intro {
+  text-align: center;
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+  margin-bottom: 3rem;
+  line-height: 1.7;
+}
+
+.step-card {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 3rem;
+  padding: 2rem 0;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: var(--bg-primary);
+  font-weight: 900;
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
+.step-content h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.step-content p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.step-content img {
+  display: block;
+  max-width: 100%;
+  margin: 0.5rem auto 0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+.section-divider {
+  border: none;
+  border-top: 1px solid rgba(0, 224, 255, 0.15);
+  margin: 3rem 0;
+}
+
+.common-issues-heading {
+  font-size: 1.8rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.issue-card {
+  background: var(--bg-primary);
+  border-radius: 12px;
+  padding: 2rem;
+}
+
+.issue-content h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 0.75rem;
+}
+
+.issue-content p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.issue-content img {
+  display: block;
+  max-width: 100%;
+  margin: 2rem auto;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/*-==============================
+    PRIVACY PAGE
+-==============================*/
+.privacy-section {
+  padding: 4rem 0;
+  min-height: 60vh;
+}
+
+.privacy-section .container {
+  max-width: 800px;
+}
+
+.privacy-section h1 {
+  font-size: 2.5rem;
+  font-weight: 800;
+  margin-bottom: 2.5rem;
+  color: var(--primary-color);
+  text-align: center;
+}
+
+.privacy-section h2 {
+  font-size: 1.4rem;
+  font-weight: 700;
+  margin-top: 2.5rem;
+  margin-bottom: 0.75rem;
+  text-align: left;
+  color: var(--text-primary);
+}
+
+.privacy-section p {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: var(--text-secondary);
+  margin-bottom: 1rem;
+}
+
+.privacy-section ul {
+  list-style: none;
+  padding: 0;
+  margin-bottom: 1.5rem;
+}
+
+.privacy-section li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  font-size: 0.95rem;
+  color: var(--text-secondary);
+  padding: 0.35rem 0;
+  line-height: 1.5;
+}
+
+.privacy-section li svg {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--primary-color);
+}
+
+.last-updated {
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid rgba(0, 224, 255, 0.15);
+}
+
+/*-==============================
+    SHARED: BACK LINK
+-==============================*/
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--primary-color);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+  transition: opacity 0.2s;
+}
+
+.back-link:hover {
+  opacity: 0.75;
+}
+
+.back-link svg {
+  width: 18px;
+  height: 18px;
+}
+
+/*-==============================
     MEDIA QUERIES
 -==============================*/
 @media (min-width: 769px) {
@@ -905,6 +1113,15 @@ footer .container {
 
   .screenshots-grid {
     grid-template-columns: 1fr;
+  }
+
+  .howto-section h1 {
+    font-size: 1.8rem;
+  }
+
+  .step-card {
+    flex-direction: column;
+    gap: 1rem;
   }
 
   nav div ul {

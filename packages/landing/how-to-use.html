@@ -17,95 +17,6 @@
     />
     <link rel="stylesheet" href="style.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-      .howto-section {
-        padding: 4rem 0;
-        min-height: 60vh;
-      }
-      .howto-section .container {
-        max-width: 900px;
-      }
-      .howto-section h1 {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin-bottom: 1rem;
-        color: var(--primary-color);
-        text-align: center;
-      }
-      .howto-section .intro {
-        text-align: center;
-        font-size: 1.1rem;
-        color: var(--text-secondary);
-        margin-bottom: 3rem;
-        line-height: 1.7;
-      }
-      .step-card {
-        display: flex;
-        gap: 2rem;
-        margin-bottom: 3rem;
-        padding: 2rem 0;
-      }
-      .step-number {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        background: var(--primary-color);
-        color: var(--bg-primary);
-        font-weight: 900;
-        font-size: 1.3rem;
-        flex-shrink: 0;
-      }
-      .step-content h2 {
-        font-size: 1.4rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        text-align: left;
-        color: var(--text-primary);
-      }
-      .step-content p {
-        font-size: 1rem;
-        line-height: 1.7;
-        color: var(--text-secondary);
-        margin-bottom: 1rem;
-      }
-      .step-content img {
-        display: block;
-        max-width: 100%;
-        margin: 0.5rem auto 0;
-        border-radius: 8px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      }
-      .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        color: var(--primary-color);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.95rem;
-        margin-bottom: 2rem;
-        transition: opacity 0.2s;
-      }
-      .back-link:hover {
-        opacity: 0.75;
-      }
-      .back-link svg {
-        width: 18px;
-        height: 18px;
-      }
-      @media (max-width: 768px) {
-        .step-card {
-          flex-direction: column;
-          gap: 1rem;
-        }
-        .howto-section h1 {
-          font-size: 1.8rem;
-        }
-      }
-    </style>
   </head>
   <body>
     <!-- NAV -->
@@ -125,7 +36,7 @@
           </p>
 
           <!-- Step 1 -->
-          <div class="step-card">
+          <div class="step-card" id="step-1">
             <div class="step-number">1</div>
             <div class="step-content">
               <h2>Install the Extension</h2>
@@ -149,7 +60,7 @@
           </div>
 
           <!-- Step 2 -->
-          <div class="step-card">
+          <div class="step-card" id="step-2">
             <div class="step-number">2</div>
             <div class="step-content">
               <h2>Open the Extension &amp; Register</h2>
@@ -168,7 +79,7 @@
           </div>
 
           <!-- Step 3 -->
-          <div class="step-card">
+          <div class="step-card" id="step-3">
             <div class="step-number">3</div>
             <div class="step-content">
               <h2>Add Pages to Your Knowledge Base</h2>
@@ -186,36 +97,39 @@
               />
             </div>
           </div>
+
+          <hr class="section-divider" />
+
+          <h2 class="common-issues-heading" id="common-issues">Common Issues</h2>
+
+          <div class="issue-card">
+            <div class="issue-content">
+              <h3>"Add this URL" doesn't work on some pages</h3>
+              <p>
+                Some websites block automated fetching of their content. When this happens, you'll
+                see an error like this in the side panel:
+              </p>
+              <img
+                src="asset/error-not-allow.png"
+                alt="Error when URL fetching is blocked"
+                loading="lazy"
+              />
+              <p>
+                <strong>Fix:</strong> Instead, right-click on the page and choose
+                <em>"Add this content into Knowledge base"</em>. This captures the full page
+                content directly from your browser — no fetching needed.
+              </p>
+              <img
+                src="asset/add-content-directly.png"
+                alt="Use Add this content into Knowledge base instead"
+                loading="lazy"
+              />
+            </div>
+          </div>
         </div>
       </section>
     </main>
 
     <!-- FOOTER -->
-
-    <script>
-      const themeToggle = document.getElementById("themeToggle");
-      const body = document.body;
-
-      const currentTheme = localStorage.getItem("theme") || "light";
-      if (currentTheme === "dark") {
-        body.classList.add("dark-mode");
-        themeToggle.innerHTML = '<i data-lucide="moon"></i>';
-      } else {
-        themeToggle.innerHTML = '<i data-lucide="sun"></i>';
-      }
-      lucide.createIcons();
-
-      themeToggle.addEventListener("click", () => {
-        body.classList.toggle("dark-mode");
-        if (body.classList.contains("dark-mode")) {
-          themeToggle.innerHTML = '<i data-lucide="moon"></i>';
-          localStorage.setItem("theme", "dark");
-        } else {
-          themeToggle.innerHTML = '<i data-lucide="sun"></i>';
-          localStorage.setItem("theme", "light");
-        }
-        lucide.createIcons();
-      });
-    </script>
   </body>
 </html>

@@ -34,7 +34,8 @@ for (const page of ["index.html", "privacy.html", "how-to-use.html"]) {
   await writeFile(`${DIST}/${page}`, minifiedHtml);
 }
 
-// --- minify CSS ---
+// --- copy asset files ---
+await cp("theme.js", `${DIST}/theme.js`);
 console.log("Minifying CSS...");
 const css = await readFile("style.css", "utf-8");
 const result = await postcss([cssnano({ preset: "default" })]).process(css, {

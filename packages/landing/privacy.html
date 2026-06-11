@@ -14,84 +14,6 @@
     />
     <link rel="stylesheet" href="style.css" />
     <script src="https://unpkg.com/lucide@latest"></script>
-    <style>
-      .privacy-section {
-        padding: 4rem 0;
-        min-height: 60vh;
-      }
-      .privacy-section .container {
-        max-width: 800px;
-      }
-      .privacy-section h1 {
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin-bottom: 2.5rem;
-        color: var(--primary-color);
-        text-align: center;
-      }
-      .privacy-section h2 {
-        font-size: 1.4rem;
-        font-weight: 700;
-        margin-top: 2.5rem;
-        margin-bottom: 0.75rem;
-        text-align: left;
-        color: var(--text-primary);
-      }
-      .privacy-section p {
-        font-size: 1rem;
-        line-height: 1.7;
-        color: var(--text-secondary);
-        margin-bottom: 1rem;
-      }
-      .privacy-section ul {
-        list-style: none;
-        padding: 0;
-        margin-bottom: 1.5rem;
-      }
-      .privacy-section li {
-        display: flex;
-        align-items: flex-start;
-        gap: 0.5rem;
-        font-size: 0.95rem;
-        color: var(--text-secondary);
-        padding: 0.35rem 0;
-        line-height: 1.5;
-      }
-      .privacy-section li svg {
-        width: 18px;
-        height: 18px;
-        flex-shrink: 0;
-        margin-top: 2px;
-        color: var(--primary-color);
-      }
-      .back-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.4rem;
-        color: var(--primary-color);
-        text-decoration: none;
-        font-weight: 600;
-        font-size: 0.95rem;
-        margin-bottom: 2rem;
-        transition: opacity 0.2s;
-      }
-      .back-link:hover {
-        opacity: 0.75;
-      }
-      .back-link svg {
-        width: 18px;
-        height: 18px;
-      }
-      .last-updated {
-        text-align: center;
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-        opacity: 0.7;
-        margin-top: 3rem;
-        padding-top: 1.5rem;
-        border-top: 1px solid rgba(0, 224, 255, 0.15);
-      }
-    </style>
   </head>
   <body>
     <!-- NAV -->
@@ -231,31 +153,5 @@
     </main>
 
     <!-- FOOTER -->
-
-    <script>
-      const themeToggle = document.getElementById("themeToggle");
-      const body = document.body;
-
-      const currentTheme = localStorage.getItem("theme") || "light";
-      if (currentTheme === "dark") {
-        body.classList.add("dark-mode");
-        themeToggle.innerHTML = '<i data-lucide="moon"></i>';
-      } else {
-        themeToggle.innerHTML = '<i data-lucide="sun"></i>';
-      }
-      lucide.createIcons();
-
-      themeToggle.addEventListener("click", () => {
-        body.classList.toggle("dark-mode");
-        if (body.classList.contains("dark-mode")) {
-          themeToggle.innerHTML = '<i data-lucide="moon"></i>';
-          localStorage.setItem("theme", "dark");
-        } else {
-          themeToggle.innerHTML = '<i data-lucide="sun"></i>';
-          localStorage.setItem("theme", "light");
-        }
-        lucide.createIcons();
-      });
-    </script>
   </body>
 </html>

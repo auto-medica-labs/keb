@@ -51,6 +51,24 @@ services:
     networks:
       - keb
 
+  backup:
+    build:
+      context: .
+      dockerfile: packages/bridge/backup.Dockerfile
+    container_name: chrome-kb-backup
+    restart: unless-stopped
+    environment:
+      - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}
+      - R2_ACCESS_KEY_ID=${R2_ACCESS_KEY_ID}
+      - R2_SECRET_ACCESS_KEY=${R2_SECRET_ACCESS_KEY}
+      - R2_BUCKET=${R2_BUCKET}
+      - R2_BACKUP_RETENTION_DAYS=${R2_BACKUP_RETENTION_DAYS:-30}
+      - TZ=Asia/Bangkok
+    volumes:
+      - ./data/kb:/data:ro
+    networks:
+      - keb
+
 volumes:
   caddy-data:
   caddy-config:

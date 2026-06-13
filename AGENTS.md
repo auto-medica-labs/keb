@@ -133,6 +133,17 @@ Stores users in `~/.pi/agent/kb/users.db` using better-sqlite3. Uses a `users` t
 ### `adapters/pi-rpc-spawner.js`
 Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses JSONL stdout, forwards events via callbacks (`onEvent`, `onDone`, `onStderr`, `onError`). Detects pre-agent errors (fetch failures) and fails fast. The caller sends a prompt over stdin.
 
+### Backup sidecar (Docker/deployment)
+
+#### `backup.Dockerfile`
+Lightweight Alpine image with `rclone` (cloud storage sync) and `dcron` (Alpine's cron daemon). Packages the backup script and schedules it via `crontabs/root` at `0 0 * * *`. At runtime, the container sets `TZ=Asia/Bangkok` for midnight Bangkok time scheduling.
+
+#### `scripts/backup-to-r2.sh`
+Bash script that creates a `tar.gz` archive of the KB data directory, uploads it to Cloudflare R2 via `rclone` (using inline `:s3,provider=Cloudflare,...` URL-style config — no config file needed), and prunes backups older than `R2_BACKUP_RETENTION_DAYS`. Sourced from env vars; skips gracefully if the data directory is empty.
+
+#### `docker-compose.yml` (backup service)
+The `backup` service builds from `backup.Dockerfile`, mounts `./data/kb:/data:ro`, and passes `R2_*` env vars. It shares the same Docker network as bridge and caddy. Starts with `docker compose up -d` alongside the other services.
+
 ### Extension key files
 
 #### `lib/ws.ts`
@@ -284,6 +295,11 @@ The Dockerfile and docker-compose.yml healthcheck use this endpoint (not a raw W
 | `LLM_REASONING` | No | — | Set `true` for reasoning-capable models |
 | `LLM_THINKING` | No | `off` | Thinking level: `off`, `low`, `medium`, `high`, `xhigh` |
 | `ADMIN_KEY` | No | — | Secret for `GET /api/status` (sent via `X-API-Key` header) |
+| `R2_ACCOUNT_ID` | For R2 backup | — | Cloudflare account ID for R2 bucket |
+| `R2_ACCESS_KEY_ID` | For R2 backup | — | R2 API token access key ID |
+| `R2_SECRET_ACCESS_KEY` | For R2 backup | — | R2 API token secret |
+| `R2_BUCKET` | For R2 backup | — | R2 bucket name for backups (e.g., `keb-backups`) |
+| `R2_BACKUP_RETENTION_DAYS` | No | `30` | Prune backups older than this many days |
 | `ANTHROPIC_API_KEY` | Legacy* | — | Native pi Anthropic key (alternative to LLM_*) |
 | `PI_DEFAULT_PROVIDER` | Legacy* | — | Default provider (e.g., `anthropic`) |
 | `PI_DEFAULT_MODEL` | Legacy* | — | Default model (e.g., `claude-sonnet-4-20250514`) |

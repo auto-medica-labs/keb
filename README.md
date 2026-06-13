@@ -143,6 +143,11 @@ The bridge auto-loads `packages/bridge/.env` if it exists. Key settings:
 | `LLM_REASONING` | — | Set `true` for reasoning-capable models |
 | `LLM_THINKING` | `off` | Thinking level: `off`, `low`, `medium`, `high`, `xhigh` |
 | `ADMIN_KEY` | — | Secret for `GET /api/status` (sent via `X-API-Key` header) |
+| `R2_ACCOUNT_ID` | — | Cloudflare account ID (for R2 backup sidecar) |
+| `R2_ACCESS_KEY_ID` | — | R2 API token access key ID |
+| `R2_SECRET_ACCESS_KEY` | — | R2 API token secret |
+| `R2_BUCKET` | — | R2 bucket name (e.g., `keb-backups`) |
+| `R2_BACKUP_RETENTION_DAYS` | `30` | Prune backups older than this many days |
 | `ANTHROPIC_API_KEY` | — | Legacy: native pi Anthropic key (alternative to LLM_*) |
 | `PI_DEFAULT_PROVIDER` | — | Legacy: default provider (e.g., `anthropic`) |
 | `PI_DEFAULT_MODEL` | — | Legacy: default model (e.g., `claude-sonnet-4-20250514`) |
@@ -210,11 +215,15 @@ keb/
 │   │   ├── tsconfig.json
 │   │   ├── tsconfig.build-pi-kb.json  # compiles pi-kb standalone adapter
 │   │   ├── Dockerfile
+│   │   ├── backup.Dockerfile   # Alpine + rclone backup sidecar image
 │   │   ├── docker-compose.yml
 │   │   ├── Caddyfile           # Reverse proxy config for production
 │   │   ├── DEPLOYMENT.md       # Step-by-step production deployment guide
 │   │   ├── entrypoint.sh
 │   │   ├── .env.example
+│   │   ├── scripts/
+│   │   │   ├── build-pi-kb.js
+│   │   │   └── backup-to-r2.sh    # Daily R2 backup script (rclone)
 │   │   └── src/
 │   │       ├── bridge-server.js   # HTTP + WebSocket server entry point
 │   │       ├── adapters/
@@ -293,7 +302,11 @@ A `Caddyfile` is included in `packages/bridge/`. It proxies `api.mdevd.co/keb/v1
 
 **Important:** the path pattern is `handle_path /keb/v1*` (not `/keb/v1/*`) — this ensures the WebSocket root path `/keb/v1` (no trailing slash) matches. The extension connects to `wss://api.mdevd.co/keb/v1` with no additional path segment.
 
-Example Docker Compose snippet:
+### Backup sidecar
+
+The project includes a dedicated backup sidecar (`chrome-kb-backup`) that archives the KB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. It runs as an Alpine container with `rclone` + `dcron`, mounting the data directory read-only. Configure it via `R2_*` environment variables (see table above). See `packages/bridge/DEPLOYMENT.md` for full setup instructions.
+
+### Docker Compose snippet
 
 ```yaml
 services:
@@ -314,6 +327,15 @@ services:
     volumes:
       - ./packages/bridge/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy-data:/data
+    restart: unless-stopped
+
+  backup:
+    build:
+      context: ./packages/bridge
+      dockerfile: backup.Dockerfile
+    env_file: packages/bridge/.env
+    volumes:
+      - kb-data:/data:ro
     restart: unless-stopped
 
 volumes:

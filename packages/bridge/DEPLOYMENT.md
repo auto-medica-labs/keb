@@ -257,20 +257,149 @@ docker compose -f packages/bridge/docker-compose.yml logs -f
 docker compose -f packages/bridge/docker-compose.yml down
 ```
 
-### Backup the data
+### Automated R2 backup
 
-```bash
-tar -czf kb-backup-$(date +%Y%m%d).tar.gz packages/bridge/data/kb/
-```
+The backup sidecar container (`chrome-kb-backup`) archives the KB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. See [Daily R2 Backups](#daily-r2-backups) for setup.
 
-### Restore from backup
+### Manual restore from backup
 
 ```bash
 docker compose -f packages/bridge/docker-compose.yml down
 rm -rf packages/bridge/data/kb
-tar -xzf kb-backup-YYYYMMDD.tar.gz
+# Download the latest backup from R2 (see rclone instructions below)
 docker compose -f packages/bridge/docker-compose.yml up -d
 ```
+
+---
+
+## Daily R2 Backups
+
+The project includes a dedicated backup sidecar container that runs daily. It uses `rclone` to upload tar.gz archives to Cloudflare R2 and prunes backups older than a configurable retention period.
+
+### Architecture
+
+```
+                    ┌──────────────────┐
+                    │  chrome-kb-backup │
+                    │  (Alpine + rclone │
+                    │   + dcron)        │
+                    │                   │
+                    │  00:00 UTC+7      │
+                    │  crond runs backup│
+                    │  script           │
+                    └──────┬────────────┘
+                           │
+                    reads  │  tar.gz
+                    ┌──────▼────────────┐     ┌────────────────┐
+                    │ ./data/kb/        │────▶│ Cloudflare R2  │
+                    │ (bind mount, ro)  │     │ keb-backups/   │
+                    └───────────────────┘     └────────────────┘
+```
+
+### Step 1 — Set up an R2 bucket
+
+1. Go to https://dash.cloudflare.com — select your account
+2. Navigate to **R2** > **Create bucket**
+3. Name it (e.g., `keb-backups`) and choose a location
+4. Go to **R2** > **Manage R2 API Tokens** > **Create API Token**
+5. Select **Object Read & Write** permission, apply it to the bucket you created
+6. Copy the **Access Key ID** and **Secret Access Key** — shown only once
+7. Note your **Account ID** from the R2 dashboard URL
+
+### Step 2 — Configure environment variables
+
+Add to `packages/bridge/.env`:
+
+```ini
+R2_ACCOUNT_ID=your-cloudflare-account-id
+R2_ACCESS_KEY_ID=your-r2-access-key-id
+R2_SECRET_ACCESS_KEY=your-r2-secret-access-key
+R2_BUCKET=keb-backups
+R2_BACKUP_RETENTION_DAYS=30
+```
+
+All fields are required except `R2_BACKUP_RETENTION_DAYS` (defaults to 30).
+
+### Step 3 — Build the backup image
+
+```bash
+# Build all images (bridge + backup)
+docker compose -f packages/bridge/docker-compose.yml build
+
+# Or build just the backup image
+docker compose -f packages/bridge/docker-compose.yml build backup
+```
+
+### Step 4 — Start the backup sidecar
+
+```bash
+docker compose -f packages/bridge/docker-compose.yml up -d
+```
+
+Three containers now run:
+
+| Container          | Image                     | Role                                    |
+| ------------------ | ------------------------- | --------------------------------------- |
+| `chrome-kb-bridge` | `chrome-kb-bridge`        | WebSocket + HTTP server                 |
+| `chrome-kb-caddy`  | `caddy:2-alpine`          | Reverse proxy, TLS, WebSocket upgrade   |
+| `chrome-kb-backup` | `chrome-kb-backup`        | Daily R2 backup at 00:00 UTC+7          |
+
+### Verify the backup container
+
+```bash
+# Check status
+docker compose -f packages/bridge/docker-compose.yml ps
+
+# Run a manual backup to verify everything works:
+ docker exec chrome-kb-backup /usr/local/bin/backup-to-r2.sh
+
+# Check backup logs
+docker compose -f packages/bridge/docker-compose.yml logs backup
+```
+
+Expected output from a manual run:
+
+```
+[backup] Creating archive: /tmp/kb-backup-20250613T170000Z.tar.gz
+[backup] Uploading to R2: s3://keb-backups/keb-backups/20250613T170000Z.tar.gz
+[backup] Pruning backups older than 30 days
+[backup] Done — keb-backups/20250613T170000Z.tar.gz
+```
+
+### Restore from an R2 backup
+
+```bash
+# 1. Stop the bridge
+docker compose -f packages/bridge/docker-compose.yml down
+
+# 2. Download the latest backup (run from repo root)
+#    Uses rclone with the same inline config pattern as the backup script
+#
+#    Replace placeholders with your R2 credentials:
+#
+RCLONE_REMOTE=":s3,provider=Cloudflare,access_key_id=ACCESS_KEY,secret_access_key=SECRET_KEY,region=auto,endpoint=https://ACCOUNT_ID.r2.cloudflarestorage.com:BUCKET"
+#    List available backups:
+ rclone ls "${RCLONE_REMOTE}/keb-backups/"
+#    Download a specific backup:
+ rclone copy "${RCLONE_REMOTE}/keb-backups/20250613T170000Z.tar.gz" /tmp/
+
+# 3. Extract into data directory
+rm -rf packages/bridge/data/kb
+mkdir -p packages/bridge/data/kb
+tar -xzf /tmp/20250613T170000Z.tar.gz -C packages/bridge/data/kb/
+
+# 4. Restart
+docker compose -f packages/bridge/docker-compose.yml up -d
+```
+
+### How it works
+
+- **Script**: `packages/bridge/scripts/backup-to-r2.sh` — creates a tar.gz archive, uploads via `rclone`, prunes old backups, cleans up
+- **Image**: `packages/bridge/backup.Dockerfile` — Alpine 3.21 with `rclone` and `dcron` (the cron daemon for Alpine)
+- **Scheduling**: dcron runs the script daily at `0 0 * * *` (midnight) with `TZ=Asia/Bangkok` for UTC+7
+- **Data access**: the sidecar mounts `./data/kb:/data:ro` — read-only access
+- **rclone config**: passed inline via `:s3,key=value...` syntax — no config file needed
+- **Credentials**: sourced from the `.env` file via `docker-compose.yml` environment variables
 
 ---
 

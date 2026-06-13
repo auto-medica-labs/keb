@@ -34,6 +34,9 @@ for (const page of ["index.html", "privacy.html", "how-to-use.html"]) {
   await writeFile(`${DIST}/${page}`, minifiedHtml);
 }
 
+// --- copy verification file ---
+await cp("google282ade310c22413b.html", `${DIST}/google282ade310c22413b.html`);
+
 // --- copy asset files ---
 await cp("theme.js", `${DIST}/theme.js`);
 console.log("Minifying CSS...");

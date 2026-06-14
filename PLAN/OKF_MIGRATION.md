@@ -49,7 +49,7 @@ date_added: "2026-05-26T..."
 [[concept/caching-strategy]]
 ```
 
-OKF:
+OKF + Keb producer keys:
 
 ```markdown
 ---
@@ -59,9 +59,8 @@ description: Key architectural decisions and patterns in the codebase.
 resource: https://github.com/org/repo/blob/main/docs/architecture.md
 tags: [architecture, design]
 timestamp: 2026-05-26T14:30:00Z
-okf_docname: "architecture"
-okf_source: "architecture.md"
-okf_sources_list: ["summary/design"]
+keb_name: "architecture"
+keb_source: "architecture.md"
 ---
 
 <summary prose>
@@ -70,10 +69,11 @@ The [caching strategy](/concepts/caching-strategy.md) is documented as a separat
 ```
 
 **Changes:**
-- Frontmatter gets `type: Summary` (required OKF), plus `title`, `description`, `resource`, `tags`, `timestamp`
-- pi-kb-specific fields (`name`→`okf_docname`, `source`→`okf_source`, `date_added`→in `timestamp`) become producer keys (OKF §4.1 allows arbitrary extras)
+- **Standard OKF fields** added: `type: Summary` (required), `title`, `description`, `resource`, `tags`, `timestamp`
+- **Keb producer keys** (prefixed `keb_`): `name` → `keb_name`, `source` → `keb_source`
+- `date_added` is captured in `timestamp`
 - Code-generated `**Concepts**` footer is **removed** — cross-reference links go in the body as standard markdown
-- `[[concept/foo]]` → `/concepts/foo.md` (bundle-relative, OKF §5.1)
+- `[[concept/foo]]` → `/concepts/foo.md` (bundle-relative, the `wiki/` directory is the bundle root)
 - `[[summary/bar]]` → `/summaries/bar.md`
 
 ### 3.2 Concepts
@@ -97,7 +97,7 @@ needs_review: false
 [[summary/design]]
 ```
 
-OKF:
+OKF + Keb producer keys:
 
 ```markdown
 ---
@@ -106,9 +106,9 @@ title: Caching Strategy
 description: How caching is implemented across the architecture and design.
 tags: [caching, performance]
 timestamp: 2026-05-26T14:30:00Z
-okf_slug: "caching-strategy"
-okf_sources: ["summary/architecture", "summary/design"]
-okf_needs_review: false
+keb_name: "caching-strategy"
+keb_sources: ["summary/architecture", "summary/design"]
+keb_needs_review: false
 ---
 
 <concept prose>
@@ -118,10 +118,8 @@ and [design](/summaries/design.md) documents.
 ```
 
 **Changes:**
-- Frontmatter gets `type: Concept` (required OKF)
-- `name` → producer key `okf_slug`
-- `sources` → producer key `okf_sources` (keeps pi-kb's source-tracking intact)
-- `needs_review` → producer key `okf_needs_review` (used by `/kb-remove` lifecycle)
+- **Standard OKF fields** added: `type: Concept` (required), `title`, `description`, `tags`, `timestamp`
+- **Keb producer keys**: `name` → `keb_name`, `sources` → `keb_sources`, `needs_review` → `keb_needs_review`
 - `date_added` → captured in `timestamp`
 - Code-generated `**Sources**` footer **removed** — sources are in frontmatter and body links
 - `[[summary/foo]]` → `/summaries/foo.md`
@@ -166,29 +164,35 @@ OKF:
 
 ### 3.4 Registry (`registry.json`)
 
-**Eliminated.** Its data is migrated into:
+**Kept as thin operational cache, deprecated long-term.** The registry's operational data (compilation tracking, dedup) stays in `registry.json` to avoid disrupting the compilation lifecycle. Over time, these concerns can move into frontmatter producer keys or filesystem checks.
 
 | registry.json field | OKF destination |
 |---|---|
-| `name` (filename) | `okf_docname` in summary frontmatter |
-| `originalPath` | `resource` + `okf_source` in summary frontmatter |
-| `docName` (slug) | `okf_docname` |
-| `addedAt` | `timestamp` in frontmatter |
-| `compiled` | `okf_compiled` in workspace-level metadata or removed (compilation becomes all-or-nothing) |
-| `lastCompiledAt` | Removed or merged into `log.md` |
-| hash key | Removed (dedup moves to `resource`/`okf_source` comparison) |
-
-**Note:** `compiled` tracking is a pi-kb operational concern (interrupted compilation recovery). Post-migration, the compilation lifecycle can be tracked via checked filesystem state (summary exists? concept bodies reference source?) rather than a flag. But for minimum disruption, `okf_compiled: true/false` can live as a producer key on the summary concept.
+| `name` (filename) | `keb_name` in summary frontmatter |
+| `originalPath` | `resource` + `keb_source` in summary frontmatter |
+| `docName` (slug) | `keb_name` |
+| `addedAt` | `timestamp` |
+| `compiled` | kept in registry.json (operational, not knowledge) |
+| `lastCompiledAt` | kept in registry.json |
+| hash key | kept in registry.json (dedup) |
 
 ### 3.5 Source directory (`source/`)
 
 **Unchanged.** The `source/` directory is a pi-kb convention, not part of the wiki itself. It can remain as-is — OKF is intentionally silent about non-reserved files (§3.1 only reserves `.md` files named `index.md` and `log.md`).
 
-Alternatively, sources can be moved to `references/` (OKF §8 mentions a `references/` subdirectory) at the bundle root, making them first-class OKF concepts of type `Source Document`.
+### 3.6 Bundle root
 
-### 3.6 New file: `log.md`
+The `wiki/` directory **is** the OKF bundle root. It contains:
+- `wiki/index.md` — directory listing
+- `wiki/log.md` — update history (new)
+- `wiki/summaries/<docName>.md` — concept documents (type: Summary)
+- `wiki/concepts/<slug>.md` — concept documents (type: Concept)
 
-OKF §7 defines an optional `log.md` at any level. Post-migration, each workspace can have:
+All bundle-relative links (`/summaries/foo.md`, `/concepts/bar.md`) resolve from `wiki/`. The `source/` directory and `registry.json` sit outside the bundle.
+
+### 3.7 New file: `log.md`
+
+OKF §7 defines an optional `log.md` at any level. Post-migration, `wiki/log.md` is created:
 
 ```markdown
 # Workspace Update Log
@@ -201,15 +205,43 @@ OKF §7 defines an optional `log.md` at any level. Post-migration, each workspac
 * **Creation**: Added architecture summary and caching-strategy concept.
 ```
 
-The bridge handler for add/remove operations appends entries here.
+---
+
+## 4. Field Mapping Reference
+
+### Summary frontmatter
+
+| Legacy pi-kb | OKF standard | Keb producer | Source |
+|---|---|---|---|
+| `name` | — | `keb_name` | `docName` param |
+| `source` | — | `keb_source` | `originalName` param (filename in `source/`) |
+| `date_added` | `timestamp` | — | `addedAt` param |
+| — | `type: "Summary"` | — | Hardcoded (`writeSummary` always sets this) |
+| — | `title` | — | From LLM (via tool param) |
+| — | `description` | — | From LLM (via tool param) |
+| — | `resource` | — | From registry `originalPath` (URL or file path) |
+| — | `tags` | — | From LLM (via tool param) |
+
+### Concept frontmatter
+
+| Legacy pi-kb | OKF standard | Keb producer | Source |
+|---|---|---|---|
+| `name` | — | `keb_name` | `slug` param |
+| `sources` | — | `keb_sources` | `sources` param |
+| `needs_review` | — | `keb_needs_review` | `needsReview` param |
+| `date_added` | `timestamp` | — | Auto-generated (ISO now on write) |
+| — | `type: "Concept"` | — | Hardcoded (`writeConcept` always sets this) |
+| — | `title` | — | From LLM (via tool param) |
+| — | `description` | — | From LLM (via tool param) |
+| — | `tags` | — | From LLM (via tool param) |
 
 ---
 
-## 4. Layer-by-Layer Implementation Plan
+## 5. Layer-by-Layer Implementation Plan
 
 ### Layer 1: pi-kb FilesystemStore (`packages/pi-kb/extensions/kb/`)
 
-#### 4.1 Frontmatter helpers
+#### 5.1 Frontmatter helpers
 
 Add pure functions to `utils.ts`:
 
@@ -220,43 +252,48 @@ function parseOkfFrontmatter(raw: string): { frontmatter: Record<string, any>, b
 
 These are format-aware but side-effect-free. They handle:
 - `---` delimiters
-- Required `type` field (validate presence; throw on read if missing)
-- Producer key namespace (`okf_*`)
-- Serialization/deserialization of YAML lists (`tags`, `okf_sources`)
+- Required `type` field (validate presence)
+- All string values **always quoted** to avoid YAML parsing issues with colons, asterisks, etc.
+- Serialization/deserialization of YAML lists (`tags`, `keb_sources`)
 
-#### 4.2 Files changes in `filesystem-store.ts`
+#### 5.2 Files changes in `filesystem-store.ts`
 
 | Method | Change |
 |---|---|
-| `writeSummary()` | Build OKF frontmatter (type: "Summary", title, description, tags, timestamp, okf_docname, okf_source). **Remove** code-generated footer. Write to `wiki/summaries/{docName}.md`. |
-| `readSummary()` | Parse OKF frontmatter. Return body without frontmatter. |
-| `writeConcept()` | Build OKF frontmatter (type: "Concept", title, tags, timestamp, okf_slug, okf_sources, okf_needs_review). **Remove** code-generated footer. Write to `wiki/concepts/{slug}.md`. |
-| `readConcept()` | Parse OKF frontmatter. Return `ConceptInfo` with `okfType`, `title`, `description`, `tags`, `sources`, `needsReview`, `body`. |
+| `writeSummary()` | Emit standard OKF fields + `keb_name`, `keb_source`. Accept new params: `title?`, `description?`, `resource?`, `tags?`. **Remove** code-generated footer (`buildSummaryFooter`). |
+| `readSummary()` | Parse frontmatter. Try `keb_*` keys first; fall back to bare legacy keys (`name`, `source`). Strip footer from body if present (legacy files). Return body without frontmatter. |
+| `writeConcept()` | Emit standard OKF fields + `keb_name`, `keb_sources`, `keb_needs_review`. Accept new params: `title?`, `description?`, `tags?`. **Remove** code-generated footer (`buildConceptFooter`). |
+| `readConcept()` | Parse frontmatter. Try `keb_*` keys first; fall back to bare legacy keys. Strip footer from body if present. Return `ConceptInfo`. |
 | `writeIndex()` | Generate OKF-style `index.md` with standard markdown links, using `description` from frontmatter. |
 | `readIndex()` | Unchanged (returns raw string). |
-| `readRegistry()` / `writeRegistry()` | Legacy — keep for backward compatibility during migration, but deprecate. No new fields added. |
-| `isUrlInRegistry()` / `findByUrl()` | Adapt to check `resource` frontmatter field instead of registry, or keep registry as thin cache. |
+| `readRegistry()` / `writeRegistry()` | Kept — thin operational cache. No new fields added. |
+| `isUrlInRegistry()` / `findByUrl()` | Unchanged — still use registry for dedup. |
 | `syncSummaryFooters()` | **Remove entirely** — no footers to sync. |
+| `extractConceptLinks()` / `buildSummaryFooter()` / `buildConceptFooter()` | **Remove entirely.** |
 
-#### 4.3 Files changes in `tools.ts`
+#### 5.3 Files changes in `tools.ts`
 
 | Tool | Change |
 |---|---|
-| `kb_write_summary` | Call new `writeSummary(okfParams)`. Minor changes to parameter names/documentation. |
-| `kb_write_concept` | Accept `type`, `title`, `description`, `tags` as optional parameters. Default `type` to `"Concept"`. |
-| `kb_update_concept` | Same — accept OKF fields, preserve producer keys on merge. |
-| `kb_update_index` | Generate OKF-style index. The LLM still passes briefs; the tool resolves them against disk. |
+| `kb_write_summary` | Accept optional `title`, `description`, `tags` params. Pass to `store.writeSummary()`. |
+| `kb_write_concept` | Accept optional `title`, `description`, `tags` params. Pass to `store.writeConcept()`. `type` defaults to `"Concept"` automatically. |
+| `kb_update_concept` | Same — accept optional OKF fields, pass through on write. |
+| `kb_update_index` | Generate OKF-style index. **Remove** `syncSummaryFooters()` call and import. |
+| `kb_read_concept` | Show `title`, `tags` in output header alongside sources. |
 | `kb_set_docname` | No change (filename rename logic unaffected). |
 
-#### 4.4 Files changes in `prompts.ts`
+#### 5.4 Files changes in `prompts.ts`
 
-Update compile instructions to remove `[[wiki-link]]` references and add OKF conventions:
+Update compile instructions:
 
-- "Use standard markdown links: `/concepts/caching-strategy.md`, not `[[concept/caching-strategy]]`"
-- "Include a brief `description` in frontmatter — it feeds the index"
-- "Use `tags` for cross-cutting categorization"
+- Replace `[[wiki-link]]` references with standard markdown: `/concepts/foo.md`
+- Add: "Use standard markdown links: `[text](/concepts/foo.md)`"
+- Add: "Include a brief `description` in the frontmatter — it feeds the index"
+- Add: "Use `tags` for cross-cutting categorization"
+- Remove: "Do NOT write footer sections — they are generated automatically" (no more footers)
+- `buildQueryPrompt`: Change "NEVER use [[wiki-links]]" → "Use standard markdown links"
 
-#### 4.5 Type changes in `ports/types.ts`
+#### 5.5 Type changes in `ports/types.ts`
 
 ```typescript
 export interface ConceptInfo {
@@ -265,44 +302,57 @@ export interface ConceptInfo {
   dateAdded?: string;
   needsReview: boolean;
   body: string;
-  // New OKF fields (optional, populated only after migration)
-  okfType?: string;
+  // OKF fields (optional, populated from frontmatter)
   title?: string;
   description?: string;
   tags?: string[];
-  resource?: string;
 }
+```
+
+`writeSummary` signature update:
+```typescript
+writeSummary(
+  docName: string, content: string, originalName: string, addedAt: string,
+  workspace?: string,
+  okfFields?: { title?: string; description?: string; resource?: string; tags?: string[] }
+): void;
+```
+
+`writeConcept` signature update:
+```typescript
+writeConcept(
+  slug: string, content: string, sources: string[],
+  workspace?: string, needsReview?: boolean,
+  okfFields?: { title?: string; description?: string; tags?: string[] }
+): void;
 ```
 
 ### Layer 2: Bridge (`packages/bridge/src/`)
 
-#### 4.6 `adapters/pi-kb-store.js`
+#### 5.6 `adapters/pi-kb-store.js`
 
-`buildSyncData()` currently parses custom frontmatter to extract `source` and `added` for summaries, and `sources`, `updated`, `content` for concepts. It needs to:
+`buildSyncData()` currently parses custom frontmatter to extract `source` and `added` for summaries, and `sources`, `updated`, `content` for concepts. Update to:
 
-1. Try OKF frontmatter parsing first (look for `type` field)
-2. Fall back to legacy parsing if `type` is absent (backward compat during migration)
-3. Map OKF fields to the bridge's sync types:
-   - `okf_source` → `SummaryEntry.source`
-   - `timestamp` → `SummaryEntry.added`
-   - `okf_sources` → `ConceptPage.sources`
-   - `timestamp` → `ConceptPage.updated`
+1. Try `keb_*` keys first (post-migration format): `keb_source`, `keb_sources`, `timestamp`
+2. Fall back to legacy keys (`source`, `sources`, `date_added`) if `keb_*` absent
+3. Map fields:
+   - `keb_source` or `source` → `SummaryEntry.source`
+   - `timestamp` or `date_added` → `SummaryEntry.added` / `ConceptPage.updated`
+   - `keb_sources` or `sources` → `ConceptPage.sources`
 
 No handler changes needed — they call `spawnPi` which communicates with pi-kb internally.
 
 ### Layer 3: Chrome Extension (`packages/extension/src/`)
 
-#### 4.7 `lib/store.ts`
+#### 5.7 `lib/store.ts`
 
-Add optional OKF fields to `Summary` and `Concept` interfaces:
+Add optional fields to `Summary` and `Concept` interfaces:
 
 ```typescript
 export interface Summary {
   content: string;
   source: string;
   added: string;
-  // OKF additions
-  okfType?: string;
   title?: string;
   description?: string;
   tags?: string[];
@@ -312,63 +362,61 @@ export interface Concept {
   content: string;
   sources: string[];
   updated: string;
-  // OKF additions
-  okfType?: string;
   title?: string;
   description?: string;
   tags?: string[];
 }
 ```
 
-#### 4.8 `sidepanel/components/BrowsePanel.tsx`
+#### 5.8 `sidepanel/components/BrowsePanel.tsx`
 
-- `stripFrontmatterAndFooter()` currently strips custom pi-kb frontmatter and the code-generated `---\n**Concepts**...` / `---\n**Sources**...` footers.
-- Post-migration: still strips YAML frontmatter from display. **Footer strip logic becomes simpler** since there's only frontmatter to strip — bodies are clean markdown.
-- Consider showing `type` and `tags` as badges in the detail view.
+- `stripFrontmatterAndFooter()`: existing footer-strip patterns are harmless no-ops on post-migration files (no footers). No code change required. Legacy files still handled correctly during transition.
+- Optional: show `title` and `tags` as badges in the detail view.
 
 ### Layer 4: Migration Tooling
 
-#### 4.9 New script: `packages/pi-kb/scripts/migrate-to-okf.js`
+#### 5.9 New script: `packages/pi-kb/scripts/migrate-to-okf.ts`
 
-A one-time Node.js script that:
+A one-time TypeScript script (run with `npx tsx`) that:
 
 1. **Discovers all workspaces** under `~/.pi/agent/kb/`
 2. **For each workspace:**
    a. Reads existing `registry.json` to build metadata lookup
    b. For each summary in `wiki/summaries/`:
-      - Parse existing frontmatter
-      - Build OKF frontmatter using mapping in §3.1
-      - Convert `[[concept/foo]]` → `/concepts/foo.md` in body
-      - Convert `[[summary/bar]]` → `/summaries/bar.md` in body
+      - Parse existing frontmatter (`name`, `source`, `date_added`)
+      - Build new frontmatter with standard OKF fields + `keb_name`, `keb_source`
+      - Convert `[[concept/foo]]` → `[foo](/concepts/foo.md)` in body
+      - Convert `[[summary/bar]]` → `[bar](/summaries/bar.md)` in body
+      - Handle `[[link|text]]` and `[[link#fragment]]` variants
       - Strip code-generated `---\n**Concepts**` footer
       - Write back
    c. For each concept in `wiki/concepts/`:
-      - Parse existing frontmatter
-      - Build OKF frontmatter using mapping in §3.2
+      - Parse existing frontmatter (`name`, `sources`, `date_added`, `needs_review`)
+      - Build new frontmatter with standard OKF fields + `keb_name`, `keb_sources`, `keb_needs_review`
       - Strip code-generated `---\n**Sources**` footer
       - Write back
-   d. Rewrite `wiki/index.md` to OKF format using §3.3
-   e. Generate/append `log.md` entry
-   f. Add `okf_version: "0.1"` to workspace root (optional, per OKF §11)
-   g. **Optionally** archive/remove `registry.json`
+   d. Rewrite `wiki/index.md` to OKF format (standard links with descriptions from frontmatter)
+   e. Generate `wiki/log.md` with migration entry (OKF §7 format)
+   f. **Optionally** archive `registry.json` (or leave as thin cache)
 3. **Reports**:
    - Count of files migrated
    - Any files that failed to parse
    - Any broken links detected
+   - Wiki-link patterns that didn't match expected variants
 
 ---
 
-## 5. Backward Compatibility
+## 6. Backward Compatibility
 
-### 5.1 Read-path fallback
+### 6.1 Read-path fallback
 
 During migration (and for a grace period after), the `FilesystemStore` **read methods** detect format:
 
 ```
-Read summary file:
-  → Try OKF parser (look for "type" key in frontmatter)
-  → If has "type": use OKF fields
-  → If no "type": fall back to legacy pi-kb parser
+Read summary/concept file:
+  → Parse YAML frontmatter
+  → If has "type" key: use OKF fields (keb_* for Keb-specific)
+  → If no "type": fall back to legacy pi-kb parser (bare name/source/sources keys)
   → Return unified ConceptInfo
 ```
 
@@ -377,14 +425,14 @@ This means:
 - Pre-migration workspaces still work without changes
 - The migration script can be run workspace-by-workspace
 
-### 5.2 Write-path consistency
+### 6.2 Write-path consistency
 
-**Write methods always write OKF format.** This means:
+**Write methods always write OKF format** with `keb_`-prefixed producer keys. This means:
 - After the code change is deployed, `/kb-add` creates OKF files
 - Existing (pre-migration) files are left untouched until migrated
 - The migration script converts existing files in-place
 
-### 5.3 Rollback
+### 6.3 Rollback
 
 If OKF causes issues:
 1. Revert the `FilesystemStore` code changes
@@ -393,45 +441,29 @@ If OKF causes issues:
 
 ---
 
-## 6. Phasing
+## 7. Phasing
 
 ### Phase 1 — pi-kb format layer (Layer 1)
 - Rewrite `filesystem-store.ts`: frontmatter, index format, footer removal
 - Update `utils.ts`: helpers, `buildIndexContent` → OKF index
-- Update `types.ts`: add OKF fields
-- Update `tools.ts`: wire new methods
+- Update `types.ts`: add fields, update write method signatures
+- Update `tools.ts`: wire new methods, remove footer sync
 - Update `prompts.ts`: OKF conventions
 
 **Verify:** `/kb-add` + `/kb-query` end-to-end produces OKF files. Existing KBs still readable via fallback.
 
 ### Phase 2 — migration script (Layer 4)
-- Write `migrate-to-okf.js`
+- Write `migrate-to-okf.ts`
 - Test on a real KB workspace
-- Handle edge cases: empty KB, partially compiled docs, removed docs
+- Handle edge cases: empty KB, partially compiled docs, removed docs, wiki-link variants
 
 ### Phase 3 — bridge sync layer (Layer 2)
-- Update `pi-kb-store.js` frontmatter parsing in `buildSyncData()`
-- Verify extension sync works with OKF files
+- Update `pi-kb-store.js` frontmatter parsing in `buildSyncData()` with `keb_*`/legacy fallback
+- Verify extension sync works with both OKF and legacy workspaces
 
 ### Phase 4 — extension rendering (Layer 3)
-- Tweak `BrowsePanel.tsx` footer-strip logic
-- Add optional `type`/`tags` display
-
----
-
-## 7. Open Questions
-
-1. **`compiled` field** — Should we keep `okf_compiled` as a producer key, or move to a different mechanism (e.g., summary existence = compiled)? Keeping it is simpler but adds a pi-kb-specific field to OKF docs.
-
-2. **`needs_review` field** — Same question. It's critical for `/kb-remove` lifecycle. Store as `okf_needs_review` producer key.
-
-3. **`resource` in summaries** — Should we populate `resource` with the original URL/path automatically? Currently this info is in `registry.json`. Post-migration, it should go in the summary frontmatter.
-
-4. **`source/` directory** — Keep as-is, or migrate to OKF `references/`? If we move to `references/`, each source becomes an OKF concept of type `Source Document`. This is cleaner but a bigger change.
-
-5. **Link conversion** — `[[concept/foo]]` → `/concepts/foo.md`. What about bare URLs or external links in existing bodies? The migration script should only touch `[[ ... ]]` patterns; everything else stays.
-
-6. **Log file format** — Should the bridge append to `log.md` on add/remove operations, or is it purely for migration record? The OKF spec says it's optional — we can defer implementation.
+- Add optional `title`/`description`/`tags` to store types
+- Optionally show `tags` as badges in `BrowsePanel.tsx`
 
 ---
 
@@ -439,24 +471,21 @@ If OKF causes issues:
 
 | File | Phase | Change |
 |---|---|---|
-| `pi-kb/.../adapters/filesystem-store.ts` | 1 | Rewrite frontmatter read/write; remove footer logic; OKF index |
-| `pi-kb/.../ports/types.ts` | 1 | Add OKF fields to `ConceptInfo` |
-| `pi-kb/.../utils.ts` | 1 | Add `buildOkfFrontmatter`, `parseOkfFrontmatter`; update `buildIndexContent` |
-| `pi-kb/.../tools.ts` | 1 | Wire new write methods; accept OKF params |
-| `pi-kb/.../prompts.ts` | 1 | Update instructions for OKF links and conventions |
-| `pi-kb/scripts/migrate-to-okf.js` | **New** (2) | One-time migration script |
-| `bridge/.../adapters/pi-kb-store.js` | 3 | Parse OKF frontmatter in `buildSyncData` |
-| `bridge/.../ports/kb-store.js` | 3 | Optional OKF fields on `RegistryEntry` |
-| `extension/.../lib/store.ts` | 4 | Add optional OKF fields to `Summary`/`Concept` |
-| `extension/.../BrowsePanel.tsx` | 4 | Simplify footer strip; add `type`/`tags` display |
+| `pi-kb/.../adapters/filesystem-store.ts` | 1 | Rewrite frontmatter read/write with `keb_` prefix + standard OKF fields; remove footer generation, `syncSummaryFooters`, helper functions |
+| `pi-kb/.../ports/types.ts` | 1 | Add `title`/`description`/`tags` to `ConceptInfo`; update `writeSummary`/`writeConcept` signatures |
+| `pi-kb/.../utils.ts` | 1 | Add `buildOkfFrontmatter`, `parseOkfFrontmatter`; update `buildIndexContent` for standard links |
+| `pi-kb/.../tools.ts` | 1 | Accept optional OKF params; remove `syncSummaryFooters` import+call |
+| `pi-kb/.../prompts.ts` | 1 | Update instructions for standard markdown links, `description`, `tags` |
+| `pi-kb/scripts/migrate-to-okf.ts` | **New** (2) | One-time migration script (TypeScript, run with `npx tsx`) |
+| `bridge/.../adapters/pi-kb-store.js` | 3 | Parse `keb_*` frontmatter keys with legacy fallback in `buildSyncData` |
+| `extension/.../lib/store.ts` | 4 | Add optional `title`/`description`/`tags` to `Summary`/`Concept` |
+| `extension/.../BrowsePanel.tsx` | 4 | Optional: show `tags` badges in detail view |
 
 ---
 
 ## 9. Out of Scope
 
-- **Fixing the `index.md` progressive disclosure pattern** (OKF §6) — OKF defines a multi-section directory listing. pi-kb's flat index is compatible (one section is fine). No change needed unless we want multiple directories.
-- **Adding a YAML dependency** — The current code parses frontmatter manually with string operations. OKF uses YAML which technically needs a parser. However, the current custom frontmatter is already YAML-like (colon-separated key-value). We can either:
-  - Keep manual string parsing (brittle for multi-line values, but works for the simple fields pi-kb uses)
-  - Add a lightweight YAML parser like `js-yaml` (cleaner, handles edge cases)
-  This decision is deferred — the current parser is sufficient for OKF's simple key-value frontmatter.
-- **`log.md` bridge integration** — Adding entries to `log.md` on add/remove is deferred. The migration script creates an initial log entry.
+- **`js-yaml` dependency** — Manual string parsing is sufficient for the simple key-value and list fields pi-kb uses. All string values are quoted on write, avoiding YAML edge cases.
+- **Moving `source/` to `references/`** — Deferred. OKF is silent about non-reserved files.
+- **Bridge-integrated `log.md` entries** — Deferred. Migration script creates initial entry; bridge append on add/remove is future work.
+- **`index.md` progressive disclosure pattern** (OKF §6) — pi-kb's flat index with two sections (Documents, Concepts) is compatible. No structural change needed.

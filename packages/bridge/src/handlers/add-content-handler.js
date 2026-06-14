@@ -6,7 +6,7 @@
 // Processes 'add-content' messages from the extension. The extension
 // captures a page's HTML via a content script and sends it here. We
 // convert HTML → Markdown using @kreuzberg/html-to-markdown-node, then
-// spawn pi with /kb-add-content to compile it into the knowledge base.
+// spawn pi with /keb:add:content to compile it into the knowledge base.
 // ---------------------------------------------------------------------------
 
 import { createRequire } from "node:module";
@@ -21,7 +21,7 @@ const { convert } = require("@kreuzberg/html-to-markdown-node");
 
 /**
  * Handle an 'add-content' request: convert the captured page HTML to
- * markdown, then spawn pi for /kb-add-content.
+ * markdown, then spawn pi for /keb:add:content.
  *
  * @param {object} opts
  * @param {import('ws').WebSocket} opts.ws          - Connected extension client
@@ -108,10 +108,10 @@ export function handleAddContent({
     }
   }
 
-  // ── 4. Spawn pi with /kb-add-content ────────────────────────────
+  // ── 4. Spawn pi with /keb:add:content ────────────────────────────
   const prompt = workspace
-    ? `/kb-add-content -f -w ${workspace} ${fullContent}`
-    : `/kb-add-content -f ${fullContent}`;
+    ? `/keb:add:content -f -w ${workspace} ${fullContent}`
+    : `/keb:add:content -f ${fullContent}`;
 
   return spawn(prompt, "add", {
     operationId,

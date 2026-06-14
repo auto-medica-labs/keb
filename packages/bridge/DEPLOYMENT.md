@@ -338,11 +338,11 @@ docker compose -f packages/bridge/docker-compose.yml up -d
 
 Three containers now run:
 
-| Container          | Image                     | Role                                    |
-| ------------------ | ------------------------- | --------------------------------------- |
-| `chrome-kb-bridge` | `chrome-kb-bridge`        | WebSocket + HTTP server                 |
-| `chrome-kb-caddy`  | `caddy:2-alpine`          | Reverse proxy, TLS, WebSocket upgrade   |
-| `chrome-kb-backup` | `chrome-kb-backup`        | Daily R2 backup at 00:00 UTC+7          |
+| Container          | Image              | Role                                  |
+| ------------------ | ------------------ | ------------------------------------- |
+| `chrome-kb-bridge` | `chrome-kb-bridge` | WebSocket + HTTP server               |
+| `chrome-kb-caddy`  | `caddy:2-alpine`   | Reverse proxy, TLS, WebSocket upgrade |
+| `chrome-kb-backup` | `chrome-kb-backup` | Daily R2 backup at 00:00 UTC+7        |
 
 ### Verify the backup container
 

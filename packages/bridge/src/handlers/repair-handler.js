@@ -48,7 +48,7 @@ export function handleRepair({ ws, operationId, workspace, kbStore, spawn }) {
 
   log(`repair: ${pendingCount} pending doc(s)${workspace ? ` in ${workspace}` : ""}`);
 
-  const prompt = workspace ? `/kb-repair -w ${workspace}` : `/kb-repair`;
+  const prompt = workspace ? `/keb:repair -w ${workspace}` : `/keb:repair`;
 
   return spawn(prompt, "repair", {
     operationId,

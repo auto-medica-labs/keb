@@ -11,12 +11,12 @@ import { safeStringify, log, isUrl, findByUrl } from "../lib/utils.js";
 
 /**
  * Handle an 'add' request: dedup-check the registry, check document
- * limit, then spawn pi for /kb-add.
+ * limit, then spawn pi for /keb:add.
  *
  * If the URL is already registered and fully compiled, a short-circuit
  * "Already in KB" message is sent instead of spawning pi. If the entry
  * exists but was never fully compiled (compiled === false), we pass
- * through so /kb-add can re-compile it.
+ * through so /keb:add can re-compile it.
  *
  * @param {object} opts
  * @param {import('ws').WebSocket} opts.ws       - Connected extension client
@@ -79,7 +79,7 @@ export function handleAddUrl({ ws, operationId, url, workspace, kbStore, spawn, 
     }
   }
 
-  const prompt = workspace ? `/kb-add -f -w ${workspace} ${url}` : `/kb-add -f ${url}`;
+  const prompt = workspace ? `/keb:add -f -w ${workspace} ${url}` : `/keb:add -f ${url}`;
 
   return spawn(prompt, "add", {
     operationId,

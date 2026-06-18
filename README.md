@@ -33,7 +33,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 │  packages/bridge/                                   │
 │                                                     │
 │  ┌──────────┐  ┌──────────────────────────────┐     │
-│  │ HTTP Auth │  │  WebSocket KEB Operations     │     │
+│  │ HTTP Auth │  │  WebSocket Keb Operations     │     │
 │  │ /api/*    │  │  add / query / sync / repair │     │
 │  │           │  │  clear                       │     │
 │  └─────┬─────┘  └──────────┬───────────────────┘     │
@@ -56,7 +56,7 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
                 └── ...
 ```
 
-1. **`@keb/bridge`** — Combined HTTP + WebSocket server. HTTP handles user auth (signup, login, token verification). WebSocket handles KEB operations (add, add-content, query, sync, repair). Written in JS with full JSDoc type annotations.
+1. **`@keb/bridge`** — Combined HTTP + WebSocket server. HTTP handles user auth (signup, login, token verification). WebSocket handles Keb operations (add, add-content, query, sync, repair). Written in JS with full JSDoc type annotations.
 2. **`@keb/extension`** — React side panel + TypeScript service worker. Built with Vite.
 3. **`pi-keb`** — pi extension providing the knowledge base. Included as a git submodule at `packages/pi-keb/`. The bridge imports its `FilesystemStore` directly for filesystem reads and workspace creation.
 
@@ -304,7 +304,7 @@ A `Caddyfile` is included in `packages/bridge/`. It proxies `api.mdevd.co/keb/v1
 
 ### Backup sidecar
 
-The project includes a dedicated backup sidecar (`keb-backup`) that archives the KEB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. It runs as an Alpine container with `rclone` + `dcron`, mounting the data directory read-only. Configure it via `R2_*` environment variables (see table above). See `packages/bridge/DEPLOYMENT.md` for full setup instructions.
+The project includes a dedicated backup sidecar (`keb-backup`) that archives the Keb data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. It runs as an Alpine container with `rclone` + `dcron`, mounting the data directory read-only. Configure it via `R2_*` environment variables (see table above). See `packages/bridge/DEPLOYMENT.md` for full setup instructions.
 
 ### Docker Compose snippet
 
@@ -358,7 +358,7 @@ To scale horizontally, swap the adapters to distributed backends — the port/ad
 
 ```
 UserStore port  →  swap SQLite for a Postgres adapter     (shared users.db)
-KebStore port    →  swap FilesystemStore for S3/Postgres    (shared KEB data)
+KebStore port    →  swap FilesystemStore for S3/Postgres    (shared Keb data)
 ```
 
 With both stores backed by distributed databases, multiple bridge instances can share state safely. The bridge server itself is stateless (JWT verification uses only the shared secret, no session store).
@@ -422,7 +422,7 @@ Response: `{"type":"auth_ok", "username":"alice"}` or error + close.
 
 In local mode, no auth message is needed — clients can send any operation immediately.
 
-### KEB Operations
+### Keb Operations
 
 | Message | Fields | Description |
 |---|---|---|

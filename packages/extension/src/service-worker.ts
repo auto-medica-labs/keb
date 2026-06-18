@@ -2,8 +2,8 @@
 //
 // The service worker does NOT hold a WebSocket connection (the side panel does).
 // It handles:
-//   1. Context menu "Add to KEB" → gets page URL, opens side panel, relays the URL
-//   2. Context menu "Add content to KEB" → captures page HTML, relays to side panel
+//   1. Context menu "Add to Keb" → gets page URL, opens side panel, relays the URL
+//   2. Context menu "Add content to Keb" → captures page HTML, relays to side panel
 //   3. Action icon click → opens side panel
 //   4. Runtime messages between contexts
 

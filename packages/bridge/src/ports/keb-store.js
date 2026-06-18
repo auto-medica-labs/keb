@@ -40,7 +40,7 @@
  */
 
 /**
- * Complete KEB state snapshot sent to the extension on sync.
+ * Complete Keb state snapshot sent to the extension on sync.
  * @typedef {Object} SyncData
  * @property {Registry} registry   - All registered documents
  * @property {string} index        - Raw index.md content

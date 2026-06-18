@@ -95,7 +95,7 @@ mkdir -p packages/bridge/data/keb
 
 This directory is bind-mounted into the container at `/root/.pi/agent/keb`. It persists:
 
-- KEB documents (summaries, concepts, index)
+- Keb documents (summaries, concepts, index)
 - `users.db` — SQLite database of registered user accounts
 
 ## Step 5 — Verify the Caddyfile
@@ -234,7 +234,7 @@ VITE_HOSTED_BRIDGE_URL=wss://your-domain.com/keb/v1 pnpm build
 
 ```bash
 ls -la packages/bridge/data/keb/
-# Should show: users.db, <username>/ directories with KEB files
+# Should show: users.db, <username>/ directories with Keb files
 ```
 
 ## Day-to-day operations
@@ -259,7 +259,7 @@ docker compose -f packages/bridge/docker-compose.yml down
 
 ### Automated R2 backup
 
-The backup sidecar container (`keb-backup`) archives the KEB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. See [Daily R2 Backups](#daily-r2-backups) for setup.
+The backup sidecar container (`keb-backup`) archives the Keb data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. See [Daily R2 Backups](#daily-r2-backups) for setup.
 
 ### Manual restore from backup
 
@@ -412,7 +412,7 @@ Upgrading replaces the bridge container with a freshly built image while keeping
 | Trigger                          | What changed                                              |
 | -------------------------------- | --------------------------------------------------------- |
 | Bridge code updated (`git pull`) | New bridge features, bug fixes, handlers, adapters        |
-| pi-keb submodule updated         | KEB extension improvements, new compile prompts, bug fixes |
+| pi-keb submodule updated         | Keb extension improvements, new compile prompts, bug fixes |
 | `.env` config changed            | New env vars, LLM provider/model switch, mode change      |
 | Base image security patches      | OS-level or Node.js runtime updates                       |
 
@@ -517,7 +517,7 @@ Ubuntu Instance
          ├── HTTP: POST /api/signup, /api/login, GET /api/me
          ├── WebSocket: add, query, repair, sync
          └── Spawns `pi` child processes for LLM work
-              └── Reads/writes KEB files in /root/.pi/agent/keb
+              └── Reads/writes Keb files in /root/.pi/agent/keb
 ```
 
 The bridge is never exposed to the internet directly — Caddy is the only public-facing service. The bridge only listens on the internal Docker network (`bridge:9876`).

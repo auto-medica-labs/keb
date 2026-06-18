@@ -18,7 +18,7 @@ The bridge follows the same pattern as pi-keb. **Always follow this when adding 
 
 ```
 ports/          ← interfaces (contracts)
-  keb-store.js       what a KEB storage backend must do
+  keb-store.js       what a Keb storage backend must do
   user-store.js     what a user credential store must do
 
 adapters/       ← concrete implementations
@@ -139,7 +139,7 @@ Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses J
 Lightweight Alpine image with `rclone` (cloud storage sync) and `dcron` (Alpine's cron daemon). Packages the backup script and schedules it via `crontabs/root` at `0 0 * * *`. At runtime, the container sets `TZ=Asia/Bangkok` for midnight Bangkok time scheduling.
 
 #### `scripts/backup-to-r2.sh`
-Bash script that creates a `tar.gz` archive of the KEB data directory, uploads it to Cloudflare R2 via `rclone` (using inline `:s3,provider=Cloudflare,...` URL-style config — no config file needed), and prunes backups older than `R2_BACKUP_RETENTION_DAYS`. Sourced from env vars; skips gracefully if the data directory is empty.
+Bash script that creates a `tar.gz` archive of the Keb data directory, uploads it to Cloudflare R2 via `rclone` (using inline `:s3,provider=Cloudflare,...` URL-style config — no config file needed), and prunes backups older than `R2_BACKUP_RETENTION_DAYS`. Sourced from env vars; skips gracefully if the data directory is empty.
 
 #### `docker-compose.yml` (backup service)
 The `backup` service builds from `backup.Dockerfile`, mounts `./data/keb:/data:ro`, and passes `R2_*` env vars. It shares the same Docker network as bridge and caddy. Starts with `docker compose up -d` alongside the other services.
@@ -252,7 +252,7 @@ curl -X POST http://127.0.0.1:9876/api/login \
 Build-time constants inlined by Vite. Exports `HOSTED_BRIDGE_URL` — the immutable WebSocket URL used in hosted mode. Defaults to `wss://api.mdevd.co/keb/v1`, overridable at build time via `VITE_HOSTED_BRIDGE_URL` env var. This value is NOT configurable at runtime; the Settings panel hides the URL input in hosted mode.
 
 #### `lib/store.ts`
-chrome.storage.local cache wrapper. Stores bridge config (mode, bridgeUrl, token, username) and KEB state (registry, index, summaries, concepts). `DEFAULT_BRIDGE_CONFIG` defaults to hosted mode with `wss://api.mdevd.co/keb/v1`. `persistBridgeConfig` / `setBridgeConfig` handle partial updates, so mode-specific defaults (e.g. `ws://127.0.0.1:9876` for local) are applied by the caller. Note: in hosted mode, `App.tsx` ignores any stored `bridgeUrl` and always uses `HOSTED_BRIDGE_URL` from `env.ts`.
+chrome.storage.local cache wrapper. Stores bridge config (mode, bridgeUrl, token, username) and Keb state (registry, index, summaries, concepts). `DEFAULT_BRIDGE_CONFIG` defaults to hosted mode with `wss://api.mdevd.co/keb/v1`. `persistBridgeConfig` / `setBridgeConfig` handle partial updates, so mode-specific defaults (e.g. `ws://127.0.0.1:9876` for local) are applied by the caller. Note: in hosted mode, `App.tsx` ignores any stored `bridgeUrl` and always uses `HOSTED_BRIDGE_URL` from `env.ts`.
 
 ## Health check endpoint
 

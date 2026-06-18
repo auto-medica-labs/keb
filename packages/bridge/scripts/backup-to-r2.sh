@@ -1,9 +1,9 @@
 #!/bin/sh
 # =============================================================================
-# backup-to-r2.sh — Daily KEB data backup to Cloudflare R2
+# backup-to-r2.sh — Daily Keb data backup to Cloudflare R2
 #
 # Runs from a dedicated Alpine sidecar container (backup.Dockerfile).
-# Creates a tar.gz of the KEB data directory and uploads it to an R2 bucket.
+# Creates a tar.gz of the Keb data directory and uploads it to an R2 bucket.
 # Old backups beyond the retention period are pruned automatically.
 #
 # Environment variables (all required except RETENTION_DAYS):
@@ -12,7 +12,7 @@
 #   R2_SECRET_ACCESS_KEY   — R2 API token secret access key
 #   R2_BUCKET              — R2 bucket name (e.g., "keb-backups")
 #   R2_BACKUP_RETENTION_DAYS — max age in days before pruning (default: 30)
-#   BACKUP_DATA_DIR        — path to KEB data directory (default: /data)
+#   BACKUP_DATA_DIR        — path to Keb data directory (default: /data)
 #
 # Usage:
 #   # Manual invocation (inside container):

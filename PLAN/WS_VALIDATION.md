@@ -167,5 +167,5 @@ When validation fails, the LLM gets an error message telling it exactly which wo
 ## Verification
 
 1. Run a compile with `-w alice`, verify all tool calls pass `workspace: "alice"` → content lands in `workspaces/alice/wiki/`
-2. Run a compile with no `-w` flag, verify LLM omits `workspace` param → content lands in default KEB root
+2. Run a compile with no `-w` flag, verify LLM omits `workspace` param → content lands in default Keb root
 3. (Adversarial) Force the LLM to pass `workspace: "bob"` when `-w alice` was used → verify error returned and LLM retries with correct workspace

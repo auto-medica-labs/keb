@@ -174,7 +174,7 @@ NODESETTINGS
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Ensure KEB directory exists (for sync operations)
+# 4. Ensure Keb directory exists (for sync operations)
 # ---------------------------------------------------------------------------
 mkdir -p "${PI_AGENT_DIR}/keb"
 

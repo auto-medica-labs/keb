@@ -454,8 +454,8 @@ If OKF causes issues:
 
 ### Phase 2 — migration script (Layer 4)
 - Write `migrate-to-okf.ts`
-- Test on a real KEB workspace
-- Handle edge cases: empty KEB, partially compiled docs, removed docs, wiki-link variants
+- Test on a real Keb workspace
+- Handle edge cases: empty Keb, partially compiled docs, removed docs, wiki-link variants
 
 ### Phase 3 — bridge sync layer (Layer 2)
 - Update `pi-keb-store.js` frontmatter parsing in `buildSyncData()` with `keb_*`/legacy fallback

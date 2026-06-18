@@ -224,7 +224,7 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "add", operationId: id, url })) {
-      callbacks.onError("Not connected to KEB bridge");
+      callbacks.onError("Not connected to Keb bridge");
       this.operations.delete(id);
     }
     return id;
@@ -246,7 +246,7 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "add-content", operationId: id, html, url, title })) {
-      callbacks.onError("Not connected to KEB bridge");
+      callbacks.onError("Not connected to Keb bridge");
       this.operations.delete(id);
     }
     return id;
@@ -260,7 +260,7 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "query", operationId: id, text })) {
-      callbacks.onError("Not connected to KEB bridge");
+      callbacks.onError("Not connected to Keb bridge");
       this.operations.delete(id);
     }
     return id;
@@ -274,7 +274,7 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "repair", operationId: id })) {
-      callbacks.onError("Not connected to KEB bridge");
+      callbacks.onError("Not connected to Keb bridge");
       this.operations.delete(id);
     }
     return id;

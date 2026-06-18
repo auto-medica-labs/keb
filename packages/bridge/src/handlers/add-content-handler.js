@@ -30,7 +30,7 @@ const { convert } = require("@kreuzberg/html-to-markdown-node");
  * @param {string} [opts.url]                        - Page URL for metadata
  * @param {string} [opts.title]                      - Page title for metadata
  * @param {string|undefined} opts.workspace          - Target workspace
- * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - KEB storage adapter
+ * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - Keb storage adapter
  * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn - pi process spawner
  * @param {number} [opts.maxDocuments] - Document limit (hosted free tier)
  * @returns {import('node:child_process').ChildProcess|null} Spawned child
@@ -88,7 +88,7 @@ export function handleAddContent({
   const fullContent = header + markdownContent;
 
   log(
-    `add-content: converted ${(html.length / 1024).toFixed(1)}KEB HTML → ${(markdownContent.length / 1024).toFixed(1)}KEB markdown${title ? ` (${title.slice(0, 60)})` : ""}`,
+    `add-content: converted ${(html.length / 1024).toFixed(1)}KiB HTML → ${(markdownContent.length / 1024).toFixed(1)}KiB markdown${title ? ` (${title.slice(0, 60)})` : ""}`,
   );
 
   // ── 3. Document limit check (hosted free tier) ──────────────────

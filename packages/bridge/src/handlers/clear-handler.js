@@ -18,7 +18,7 @@ import { safeStringify, log } from "../lib/utils.js";
  * @param {object} opts
  * @param {import('ws').WebSocket} opts.ws       - Connected extension client
  * @param {string|undefined} opts.workspace       - Target workspace
- * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - KEB storage adapter
+ * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - Keb storage adapter
  * @returns {void}
  */
 export function handleClear({ ws, workspace, kebStore }) {

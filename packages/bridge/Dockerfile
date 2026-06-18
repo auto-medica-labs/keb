@@ -54,7 +54,7 @@
 #                            LLM_* env vars when present)
 #   auth.json              — legacy: mount host's ~/.pi/agent/auth.json
 #   settings.json          — mount for additional settings overrides
-#   keb-data                — persistent volume for KEB documents and user database
+#   keb-data                — persistent volume for Keb documents and user database
 #                            (recommended — stores both workspace content and
 #                            users.db with registered accounts)
 # =============================================================================

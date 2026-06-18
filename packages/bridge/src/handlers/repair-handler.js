@@ -18,7 +18,7 @@ import { safeStringify, log } from "../lib/utils.js";
  * @param {import('ws').WebSocket} opts.ws       - Connected extension client
  * @param {string} opts.operationId              - Client-assigned operation ID
  * @param {string|undefined} opts.workspace      - Target workspace
- * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - KEB storage adapter
+ * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - Keb storage adapter
  * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn - pi process spawner
  * @returns {import('node:child_process').ChildProcess|null} Spawned child, or null if short-circuited
  */

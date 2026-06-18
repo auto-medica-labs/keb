@@ -1,4 +1,4 @@
-// lib/store.ts — chrome.storage.local cache wrapper for KEB state
+// lib/store.ts — chrome.storage.local cache wrapper for Keb state
 //
 // The bridge sends sync results; this module stores them and provides
 // convenient getter functions for the side panel UI.

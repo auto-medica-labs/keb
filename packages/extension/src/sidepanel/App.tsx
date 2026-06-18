@@ -276,7 +276,7 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      // Load saved KEB config (workspace)
+      // Load saved Keb config (workspace)
       const kebConfig = await getConfig();
       if (kebConfig.workspace && kebConfig.workspace !== "default") {
         setWorkspaceState(kebConfig.workspace);

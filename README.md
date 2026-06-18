@@ -33,14 +33,14 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 │  packages/bridge/                                   │
 │                                                     │
 │  ┌──────────┐  ┌──────────────────────────────┐     │
-│  │ HTTP Auth │  │  WebSocket KB Operations     │     │
+│  │ HTTP Auth │  │  WebSocket KEB Operations     │     │
 │  │ /api/*    │  │  add / query / sync / repair │     │
 │  │           │  │  clear                       │     │
 │  └─────┬─────┘  └──────────┬───────────────────┘     │
 │        │                   │                         │
 │        ▼                   ▼                         │
 │  ┌──────────┐  ┌───────────────────────────┐        │
-│  │ UserStore│  │  KbStore (pi-keb adapter)  │        │
+│  │ UserStore│  │  KebStore (pi-keb adapter)  │        │
 │  │ (SQLite) │  │  → FilesystemStore        │        │
 │  └──────────┘  └──────────┬────────────────┘        │
 │                           │                          │
@@ -50,13 +50,13 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 └──────────────────────────┬──────────────────────────┘
                            │
                            ▼
-              ~/.pi/agent/kb/workspaces/
+              ~/.pi/agent/keb/workspaces/
                 ├── alice/    (registry, source/, wiki/)
                 ├── bob/
                 └── ...
 ```
 
-1. **`@keb/bridge`** — Combined HTTP + WebSocket server. HTTP handles user auth (signup, login, token verification). WebSocket handles KB operations (add, add-content, query, sync, repair). Written in JS with full JSDoc type annotations.
+1. **`@keb/bridge`** — Combined HTTP + WebSocket server. HTTP handles user auth (signup, login, token verification). WebSocket handles KEB operations (add, add-content, query, sync, repair). Written in JS with full JSDoc type annotations.
 2. **`@keb/extension`** — React side panel + TypeScript service worker. Built with Vite.
 3. **`pi-keb`** — pi extension providing the knowledge base. Included as a git submodule at `packages/pi-keb/`. The bridge imports its `FilesystemStore` directly for filesystem reads and workspace creation.
 
@@ -66,7 +66,7 @@ The bridge follows the same port/adapter architecture as pi-keb:
 
 | Port | Adapter (today) | Swappable to |
 |---|---|---|
-| `KbStore` (kb read/workspace ops) | `PiKebStore` → pi-keb's `FilesystemStore` | — |
+| `KebStore` (keb read/workspace ops) | `PiKebStore` → pi-keb's `FilesystemStore` | — |
 | `UserStore` (user credentials) | `SqliteUserStore` (SQLite) | PostgreSQL |
 | (spawnPi) | `PiRpcSpawner` → spawns `pi --mode rpc` | — |
 
@@ -205,7 +205,7 @@ keb/
 ├── AGENTS.md                     # AI agent instructions for this project
 ├── packages/
 │   ├── pi-keb/                   # git submodule → github.com/auto-medica-labs/pi-keb
-│   │   ├── extensions/kb/        #   pi extension source (TS)
+│   │   ├── extensions/keb/        #   pi extension source (TS)
 │   │   │   ├── adapters/         #   FilesystemStore, HttpFetcher
 │   │   │   ├── ports/types.ts    #   KnowledgeBaseStore interface
 │   │   │   └── utils.ts          #   slugify, docNameFromFile, etc.
@@ -227,11 +227,11 @@ keb/
 │   │   └── src/
 │   │       ├── bridge-server.js   # HTTP + WebSocket server entry point
 │   │       ├── adapters/
-│   │       │   ├── pi-keb-store.js      # KbStore → wraps pi-keb's FilesystemStore
+│   │       │   ├── pi-keb-store.js      # KebStore → wraps pi-keb's FilesystemStore
 │   │       │   ├── pi-rpc-spawner.js   # spawns pi --mode rpc child processes
 │   │       │   └── user-store-sqlite.js  # UserStore → SQLite adapter
 │   │       ├── ports/
-│   │       │   ├── kb-store.js         # KbStore interface
+│   │       │   ├── keb-store.js         # KebStore interface
 │   │       │   └── user-store.js       # UserStore interface
 │   │       ├── handlers/
 │   │       │   ├── auth-handler.js     # HTTP /api/signup, /api/login, /api/me
@@ -286,7 +286,7 @@ docker run -d \
   --name keb-bridge \
   -p 9876:9876 \
   --env-file packages/bridge/.env \
-  -v kb-data:/root/.pi/agent/kb \
+  -v keb-data:/root/.pi/agent/keb \
   keb-bridge
 ```
 
@@ -304,7 +304,7 @@ A `Caddyfile` is included in `packages/bridge/`. It proxies `api.mdevd.co/keb/v1
 
 ### Backup sidecar
 
-The project includes a dedicated backup sidecar (`keb-backup`) that archives the KB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. It runs as an Alpine container with `rclone` + `dcron`, mounting the data directory read-only. Configure it via `R2_*` environment variables (see table above). See `packages/bridge/DEPLOYMENT.md` for full setup instructions.
+The project includes a dedicated backup sidecar (`keb-backup`) that archives the KEB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. It runs as an Alpine container with `rclone` + `dcron`, mounting the data directory read-only. Configure it via `R2_*` environment variables (see table above). See `packages/bridge/DEPLOYMENT.md` for full setup instructions.
 
 ### Docker Compose snippet
 
@@ -316,7 +316,7 @@ services:
       dockerfile: Dockerfile
     env_file: packages/bridge/.env
     volumes:
-      - kb-data:/root/.pi/agent/kb
+      - keb-data:/root/.pi/agent/keb
     restart: unless-stopped
 
   caddy:
@@ -335,11 +335,11 @@ services:
       dockerfile: backup.Dockerfile
     env_file: packages/bridge/.env
     volumes:
-      - kb-data:/data:ro
+      - keb-data:/data:ro
     restart: unless-stopped
 
 volumes:
-  kb-data:
+  keb-data:
   caddy-data:
 ```
 
@@ -350,7 +350,7 @@ Running multiple bridge instances behind a load balancer is **not safe** with th
 | Component | Default adapter | Multi-instance issue |
 |---|---|---|
 | `UserStore` | SQLite (`users.db`) | File-level locking — concurrent writes from two instances will corrupt or block. |
-| `KbStore` | FilesystemStore (markdown + JSON) | pi child processes writing to the same workspace will race on registry entries and files. |
+| `KebStore` | FilesystemStore (markdown + JSON) | pi child processes writing to the same workspace will race on registry entries and files. |
 
 Even with sticky sessions, cross-user writes collide on the shared `users.db`. The architecture is designed for vertical scaling (single instance, more resources) out of the box.
 
@@ -358,7 +358,7 @@ To scale horizontally, swap the adapters to distributed backends — the port/ad
 
 ```
 UserStore port  →  swap SQLite for a Postgres adapter     (shared users.db)
-KbStore port    →  swap FilesystemStore for S3/Postgres    (shared KB data)
+KebStore port    →  swap FilesystemStore for S3/Postgres    (shared KEB data)
 ```
 
 With both stores backed by distributed databases, multiple bridge instances can share state safely. The bridge server itself is stateless (JWT verification uses only the shared secret, no session store).
@@ -400,8 +400,8 @@ In local mode all HTTP routes (except `/api/healthcheck`) return 404.
 **Signup flow:**
 1. Validates username (slugified, 3-30 chars, `[a-z0-9-]`) and password (min 8 chars)
 2. Hashes password with bcrypt (12 rounds)
-3. Stores user in `~/.pi/agent/kb/users.db`
-4. Creates workspace at `~/.pi/agent/kb/workspaces/<username>/`
+3. Stores user in `~/.pi/agent/keb/users.db`
+4. Creates workspace at `~/.pi/agent/keb/workspaces/<username>/`
 5. Returns JWT (30-day expiry)
 
 **Error responses:** `{"error":"..."}` with HTTP 400 (validation), 401 (auth), 409 (duplicate), 500 (internal).
@@ -422,7 +422,7 @@ Response: `{"type":"auth_ok", "username":"alice"}` or error + close.
 
 In local mode, no auth message is needed — clients can send any operation immediately.
 
-### KB Operations
+### KEB Operations
 
 | Message | Fields | Description |
 |---|---|---|

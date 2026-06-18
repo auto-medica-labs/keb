@@ -18,22 +18,22 @@ The bridge follows the same pattern as pi-keb. **Always follow this when adding 
 
 ```
 ports/          ← interfaces (contracts)
-  kb-store.js       what a KB storage backend must do
+  keb-store.js       what a KEB storage backend must do
   user-store.js     what a user credential store must do
 
 adapters/       ← concrete implementations
-  pi-keb-store.js    KbStore backed by pi-keb's FilesystemStore
+  pi-keb-store.js    KebStore backed by pi-keb's FilesystemStore
   user-store-sqlite.js  UserStore backed by SQLite
   pi-rpc-spawner.js   spawns pi child processes
 
 handlers/       ← orchestration (depends on ports, never on adapters)
   auth-handler.js       HTTP auth endpoints → uses UserStore port
-  add-url-handler.js    add (URL) → uses KbStore port + spawnPi
+  add-url-handler.js    add (URL) → uses KebStore port + spawnPi
   add-content-handler.js add-content → HTML→Markdown + spawnPi
   query-handler.js      query → uses spawnPi
-  repair-handler.js     repair → uses KbStore port + spawnPi
-  sync-handler.js       sync → uses KbStore port
-  clear-handler.js      clear → uses KbStore port (no pi process)
+  repair-handler.js     repair → uses KebStore port + spawnPi
+  sync-handler.js       sync → uses KebStore port
+  clear-handler.js      clear → uses KebStore port (no pi process)
 
 bridge-server.js  ← composition root (wires adapters to handlers)
 ```
@@ -62,15 +62,15 @@ bridge-server.js  ← composition root (wires adapters to handlers)
 The bridge imports TypeScript source from the submodule. These files must be compiled before the bridge can run:
 
 ```
-packages/pi-keb/extensions/kb/adapters/filesystem-store.ts  ──┐
-packages/pi-keb/extensions/kb/ports/types.ts                 ──┤ compiled by
-packages/pi-keb/extensions/kb/utils.ts                       ──┘ tsconfig.build-pi-keb.json
+packages/pi-keb/extensions/keb/adapters/filesystem-store.ts  ──┐
+packages/pi-keb/extensions/keb/ports/types.ts                 ──┤ compiled by
+packages/pi-keb/extensions/keb/utils.ts                       ──┘ tsconfig.build-pi-keb.json
                                                                   │
                                                                   ▼
                                           packages/pi-keb/dist/standalone/
-                                            extensions/kb/adapters/filesystem-store.js
-                                            extensions/kb/ports/types.js (+ .d.ts)
-                                            extensions/kb/utils.js (+ .d.ts)
+                                            extensions/keb/adapters/filesystem-store.js
+                                            extensions/keb/ports/types.js (+ .d.ts)
+                                            extensions/keb/utils.js (+ .d.ts)
                                             package.json ← {"type":"module"}
 ```
 
@@ -78,7 +78,7 @@ The bridge imports from this compiled output:
 
 ```js
 // src/adapters/pi-keb-store.js
-import { FilesystemStore } from "../../../pi-keb/dist/standalone/extensions/kb/adapters/filesystem-store.js";
+import { FilesystemStore } from "../../../pi-keb/dist/standalone/extensions/keb/adapters/filesystem-store.js";
 ```
 
 ### When pi-keb updates
@@ -107,7 +107,7 @@ JWT sign/verify (`generateToken`, `verifyToken`), bcrypt password hashing (`hash
 HTTP request handler. Routes `POST /api/signup`, `POST /api/login`, `GET /api/me`. On signup, creates workspace via `ensureWorkspace()`. Returns JSON. Returns `false` for non-auth routes (so the HTTP server can 404).
 
 ### `handlers/add-url-handler.js`
-Handles `add` WebSocket messages. Dedup-checks URL against `KbStore` registry before spawning pi. Enforces document limit (hosted free tier). Prompt: `/keb:add -f -w <workspace> <url>`.
+Handles `add` WebSocket messages. Dedup-checks URL against `KebStore` registry before spawning pi. Enforces document limit (hosted free tier). Prompt: `/keb:add -f -w <workspace> <url>`.
 
 ### `handlers/add-content-handler.js`
 Handles `add-content` WebSocket messages. Converts captured page HTML to Markdown via `@kreuzberg/html-to-markdown-node`, prepends metadata, enforces document limit, then spawns pi with `/keb:add:content -f -w <workspace> <content>`.
@@ -119,16 +119,16 @@ Handles `repair` WebSocket messages. Counts pending (compiled === false) registr
 Handles `query` WebSocket messages. Spawns pi with `/keb:query -w <workspace> <text>` and wires stdout/stderr back to WebSocket.
 
 ### `handlers/sync-handler.js`
-Handles `sync` WebSocket messages. Pure read — calls `kbStore.buildSyncData(workspace)` and sends `sync_result` back. No pi process needed.
+Handles `sync` WebSocket messages. Pure read — calls `kebStore.buildSyncData(workspace)` and sends `sync_result` back. No pi process needed.
 
 ### `handlers/clear-handler.js`
-Handles `clear` WebSocket messages. Calls `kbStore.clearWorkspace(workspace)` to wipe all workspace content (source/, wiki/, registry), then sends back an empty `sync_result`. Pure filesystem operation — no pi process needed.
+Handles `clear` WebSocket messages. Calls `kebStore.clearWorkspace(workspace)` to wipe all workspace content (source/, wiki/, registry), then sends back an empty `sync_result`. Pure filesystem operation — no pi process needed.
 
 ### `adapters/pi-keb-store.js`
-Bridge-specific wrapper around pi-keb's `FilesystemStore`. Implements the bridge's `KbStore` port. Adds `buildSyncData()` (reads all summaries/concepts and builds the sync payload). Also exports `ensureWorkspace()` and `workspaceExists()` for the auth flow.
+Bridge-specific wrapper around pi-keb's `FilesystemStore`. Implements the bridge's `KebStore` port. Adds `buildSyncData()` (reads all summaries/concepts and builds the sync payload). Also exports `ensureWorkspace()` and `workspaceExists()` for the auth flow.
 
 ### `adapters/user-store-sqlite.js`
-Stores users in `~/.pi/agent/kb/users.db` using better-sqlite3. Uses a `users` table with columns `username`, `passwordHash`, `createdAt`. Eliminates race conditions present in the JSON file adapter. Implements `UserStore` port.
+Stores users in `~/.pi/agent/keb/users.db` using better-sqlite3. Uses a `users` table with columns `username`, `passwordHash`, `createdAt`. Eliminates race conditions present in the JSON file adapter. Implements `UserStore` port.
 
 ### `adapters/pi-rpc-spawner.js`
 Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses JSONL stdout, forwards events via callbacks (`onEvent`, `onDone`, `onStderr`, `onError`). Detects pre-agent errors (fetch failures) and fails fast. The caller sends a prompt over stdin.
@@ -139,10 +139,10 @@ Spawns `pi --mode rpc --no-session --no-builtin-tools` child processes. Parses J
 Lightweight Alpine image with `rclone` (cloud storage sync) and `dcron` (Alpine's cron daemon). Packages the backup script and schedules it via `crontabs/root` at `0 0 * * *`. At runtime, the container sets `TZ=Asia/Bangkok` for midnight Bangkok time scheduling.
 
 #### `scripts/backup-to-r2.sh`
-Bash script that creates a `tar.gz` archive of the KB data directory, uploads it to Cloudflare R2 via `rclone` (using inline `:s3,provider=Cloudflare,...` URL-style config — no config file needed), and prunes backups older than `R2_BACKUP_RETENTION_DAYS`. Sourced from env vars; skips gracefully if the data directory is empty.
+Bash script that creates a `tar.gz` archive of the KEB data directory, uploads it to Cloudflare R2 via `rclone` (using inline `:s3,provider=Cloudflare,...` URL-style config — no config file needed), and prunes backups older than `R2_BACKUP_RETENTION_DAYS`. Sourced from env vars; skips gracefully if the data directory is empty.
 
 #### `docker-compose.yml` (backup service)
-The `backup` service builds from `backup.Dockerfile`, mounts `./data/kb:/data:ro`, and passes `R2_*` env vars. It shares the same Docker network as bridge and caddy. Starts with `docker compose up -d` alongside the other services.
+The `backup` service builds from `backup.Dockerfile`, mounts `./data/keb:/data:ro`, and passes `R2_*` env vars. It shares the same Docker network as bridge and caddy. Starts with `docker compose up -d` alongside the other services.
 
 ### Extension key files
 
@@ -252,7 +252,7 @@ curl -X POST http://127.0.0.1:9876/api/login \
 Build-time constants inlined by Vite. Exports `HOSTED_BRIDGE_URL` — the immutable WebSocket URL used in hosted mode. Defaults to `wss://api.mdevd.co/keb/v1`, overridable at build time via `VITE_HOSTED_BRIDGE_URL` env var. This value is NOT configurable at runtime; the Settings panel hides the URL input in hosted mode.
 
 #### `lib/store.ts`
-chrome.storage.local cache wrapper. Stores bridge config (mode, bridgeUrl, token, username) and KB state (registry, index, summaries, concepts). `DEFAULT_BRIDGE_CONFIG` defaults to hosted mode with `wss://api.mdevd.co/keb/v1`. `persistBridgeConfig` / `setBridgeConfig` handle partial updates, so mode-specific defaults (e.g. `ws://127.0.0.1:9876` for local) are applied by the caller. Note: in hosted mode, `App.tsx` ignores any stored `bridgeUrl` and always uses `HOSTED_BRIDGE_URL` from `env.ts`.
+chrome.storage.local cache wrapper. Stores bridge config (mode, bridgeUrl, token, username) and KEB state (registry, index, summaries, concepts). `DEFAULT_BRIDGE_CONFIG` defaults to hosted mode with `wss://api.mdevd.co/keb/v1`. `persistBridgeConfig` / `setBridgeConfig` handle partial updates, so mode-specific defaults (e.g. `ws://127.0.0.1:9876` for local) are applied by the caller. Note: in hosted mode, `App.tsx` ignores any stored `bridgeUrl` and always uses `HOSTED_BRIDGE_URL` from `env.ts`.
 
 ## Health check endpoint
 
@@ -342,7 +342,7 @@ docker run -d \
   --name keb-bridge \
   -p 9876:9876 \
   --env-file packages/bridge/.env \
-  -v kb-data:/root/.pi/agent/kb \
+  -v keb-data:/root/.pi/agent/keb \
   keb-bridge
 ```
 
@@ -358,11 +358,11 @@ See `packages/bridge/DEPLOYMENT.md` for full step-by-step production deployment 
 
 ### Horizontal scaling
 
-Multiple bridge instances behind a load balancer are **not safe** with the default adapters: SQLite (`UserStore`) uses file-level locking, and `FilesystemStore` (`KbStore`) races on registry entries when pi child processes write concurrently. Even sticky sessions don't fully protect against cross-user `users.db` corruption.
+Multiple bridge instances behind a load balancer are **not safe** with the default adapters: SQLite (`UserStore`) uses file-level locking, and `FilesystemStore` (`KebStore`) races on registry entries when pi child processes write concurrently. Even sticky sessions don't fully protect against cross-user `users.db` corruption.
 
 To scale horizontally, swap adapters to distributed backends:
 - `UserStore` → Postgres (shared user DB across instances)
-- `KbStore` → S3, Postgres, or NFS with proper locking
+- `KebStore` → S3, Postgres, or NFS with proper locking
 
 The bridge server itself is stateless — JWT verification uses only `JWT_SECRET`, no session store needed.
 

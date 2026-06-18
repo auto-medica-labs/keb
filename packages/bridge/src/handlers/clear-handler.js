@@ -18,14 +18,14 @@ import { safeStringify, log } from "../lib/utils.js";
  * @param {object} opts
  * @param {import('ws').WebSocket} opts.ws       - Connected extension client
  * @param {string|undefined} opts.workspace       - Target workspace
- * @param {import('../ports/kb-store.js').KbStore} opts.kbStore - KB storage adapter
+ * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - KEB storage adapter
  * @returns {void}
  */
-export function handleClear({ ws, workspace, kbStore }) {
-  const clearedPath = kbStore.clearWorkspace(workspace);
+export function handleClear({ ws, workspace, kebStore }) {
+  const clearedPath = kebStore.clearWorkspace(workspace);
   log(`clear: ${clearedPath}`);
 
   // Send back an empty sync snapshot so the extension resets its local state
-  const data = kbStore.buildSyncData(workspace);
+  const data = kebStore.buildSyncData(workspace);
   ws.send(safeStringify({ type: "sync_result", data }));
 }

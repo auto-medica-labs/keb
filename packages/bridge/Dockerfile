@@ -11,7 +11,7 @@
 #     --name keb-bridge \
 #     -p 9876:9876 \
 #     --env-file .env \
-#     -v kb-data:/root/.pi/agent/kb \
+#     -v keb-data:/root/.pi/agent/keb \
 #     keb-bridge
 #
 # Run (mount host pi config files directly):
@@ -19,7 +19,7 @@
 #     --name keb-bridge \
 #     -p 9876:9876 \
 #     -v ~/.pi/agent/models.json:/root/.pi/agent/models.json:ro \
-#     -v kb-data:/root/.pi/agent/kb \
+#     -v keb-data:/root/.pi/agent/keb \
 #     keb-bridge
 #
 # Environment variables:
@@ -54,7 +54,7 @@
 #                            LLM_* env vars when present)
 #   auth.json              — legacy: mount host's ~/.pi/agent/auth.json
 #   settings.json          — mount for additional settings overrides
-#   kb-data                — persistent volume for KB documents and user database
+#   keb-data                — persistent volume for KEB documents and user database
 #                            (recommended — stores both workspace content and
 #                            users.db with registered accounts)
 # =============================================================================

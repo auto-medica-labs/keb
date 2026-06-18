@@ -14,8 +14,8 @@
     "outDir": "../pi-keb/dist/standalone"
   },
   "include": [
-    "../pi-keb/extensions/kb/adapters/filesystem-store.ts",
-    "../pi-keb/extensions/kb/ports/types.ts",
-    "../pi-keb/extensions/kb/utils.ts"
+    "../pi-keb/extensions/keb/adapters/filesystem-store.ts",
+    "../pi-keb/extensions/keb/ports/types.ts",
+    "../pi-keb/extensions/keb/utils.ts"
   ]
 }

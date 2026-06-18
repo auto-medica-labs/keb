@@ -19,7 +19,7 @@ services:
     env_file:
       - .env
     volumes:
-      - ./data/kb:/root/.pi/agent/kb
+      - ./data/keb:/root/.pi/agent/keb
     expose:
       - "9876"
     healthcheck:
@@ -65,7 +65,7 @@ services:
       - R2_BACKUP_RETENTION_DAYS=${R2_BACKUP_RETENTION_DAYS:-30}
       - TZ=Asia/Bangkok
     volumes:
-      - ./data/kb:/data:ro
+      - ./data/keb:/data:ro
     networks:
       - keb
 

@@ -276,7 +276,7 @@ export default function App() {
 
   useEffect(() => {
     (async () => {
-      // Load saved KB config (workspace)
+      // Load saved KEB config (workspace)
       const kbConfig = await getConfig();
       if (kbConfig.workspace && kbConfig.workspace !== "default") {
         setWorkspaceState(kbConfig.workspace);
@@ -319,8 +319,8 @@ export default function App() {
     const msgListener = (msg: { type: string; url?: string; storageKey?: string }) => {
       if (msg.type === "add-url-from-context" && msg.url) {
         setActiveTab("add");
-        localStorage.setItem("kb:context-url", msg.url);
-        window.dispatchEvent(new Event("kb:context-url"));
+        localStorage.setItem("keb:context-url", msg.url);
+        window.dispatchEvent(new Event("keb:context-url"));
       }
       if (msg.type === "add-content-from-context" && msg.storageKey) {
         (async () => {

@@ -36,7 +36,7 @@
 #   -v $HOME/.pi/agent/models.json:/root/.pi/agent/models.json:ro
 #   -v $HOME/.pi/agent/auth.json:/root/.pi/agent/auth.json:ro
 #   -v $HOME/.pi/agent/settings.json:/root/.pi/agent/settings.json:ro
-#   -v kb-data:/root/.pi/agent/kb
+#   -v keb-data:/root/.pi/agent/keb
 # =============================================================================
 
 set -e
@@ -174,9 +174,9 @@ NODESETTINGS
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Ensure KB directory exists (for sync operations)
+# 4. Ensure KEB directory exists (for sync operations)
 # ---------------------------------------------------------------------------
-mkdir -p "${PI_AGENT_DIR}/kb"
+mkdir -p "${PI_AGENT_DIR}/keb"
 
 # ---------------------------------------------------------------------------
 # 5. Execute the bridge server

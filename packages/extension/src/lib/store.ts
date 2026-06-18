@@ -1,17 +1,17 @@
-// lib/store.ts — chrome.storage.local cache wrapper for KB state
+// lib/store.ts — chrome.storage.local cache wrapper for KEB state
 //
 // The bridge sends sync results; this module stores them and provides
 // convenient getter functions for the side panel UI.
 
 const KEYS = {
-  config: "kb:config",
-  bridgeConfig: "kb:bridgeConfig",
-  registry: "kb:registry",
-  index: "kb:index",
-  summaries: "kb:summaries",
-  concepts: "kb:concepts",
-  workspaces: "kb:workspaces",
-  connectionState: "kb:connectionState",
+  config: "keb:config",
+  bridgeConfig: "keb:bridgeConfig",
+  registry: "keb:registry",
+  index: "keb:index",
+  summaries: "keb:summaries",
+  concepts: "keb:concepts",
+  workspaces: "keb:workspaces",
+  connectionState: "keb:connectionState",
 } as const;
 
 // ── Types ───────────────────────────────────────────────────────────────
@@ -187,7 +187,7 @@ export async function clearAll(): Promise<void> {
 
 // ── First-use tracking ──────────────────────────────────────────────────
 
-const FIRST_USE_KEY = "kb:firstUse";
+const FIRST_USE_KEY = "keb:firstUse";
 
 export async function isFirstUse(): Promise<boolean> {
   const { [FIRST_USE_KEY]: firstUse } = await chrome.storage.local.get(FIRST_USE_KEY);

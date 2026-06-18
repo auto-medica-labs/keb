@@ -2,8 +2,8 @@
 //
 // The service worker does NOT hold a WebSocket connection (the side panel does).
 // It handles:
-//   1. Context menu "Add to KB" → gets page URL, opens side panel, relays the URL
-//   2. Context menu "Add content to KB" → captures page HTML, relays to side panel
+//   1. Context menu "Add to KEB" → gets page URL, opens side panel, relays the URL
+//   2. Context menu "Add content to KEB" → captures page HTML, relays to side panel
 //   3. Action icon click → opens side panel
 //   4. Runtime messages between contexts
 
@@ -14,13 +14,13 @@ chrome.runtime.onInstalled.addListener(async () => {
   await chrome.sidePanel.setOptions({ enabled: true });
 
   chrome.contextMenus.create({
-    id: "kb-add-page",
+    id: "keb-add-page",
     title: "Add this URL to Knowledge Bases",
     contexts: ["page"],
   });
 
   chrome.contextMenus.create({
-    id: "kb-add-content",
+    id: "keb-add-content",
     title: "Add this content into Knowledge base",
     contexts: ["page"],
   });
@@ -43,7 +43,7 @@ chrome.action.onClicked.addListener(async (tab) => {
 
 chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   const menuId = info.menuItemId;
-  if (menuId !== "kb-add-page" && menuId !== "kb-add-content") return;
+  if (menuId !== "keb-add-page" && menuId !== "keb-add-content") return;
 
   const url = tab?.url || info.pageUrl;
   if (!url || !url.startsWith("http")) {
@@ -59,7 +59,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 
   // ── "Add this URL" — just send the URL ──────────────────────
-  if (menuId === "kb-add-page") {
+  if (menuId === "keb-add-page") {
     setTimeout(() => {
       chrome.runtime.sendMessage({ type: "add-url-from-context", url }).catch(() => {});
     }, 300);
@@ -67,7 +67,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
   }
 
   // ── "Add this content" — capture page HTML and relay ─────────
-  if (menuId === "kb-add-content") {
+  if (menuId === "keb-add-content") {
     if (!tab?.id) {
       console.warn("[keb] No tab id for content capture");
       return;
@@ -91,7 +91,7 @@ chrome.contextMenus.onClicked.addListener(async (info, tab) => {
       }
 
       const { html, title, url: pageUrl } = result.result;
-      const storageKey = `kb:captured-content:${Date.now()}`;
+      const storageKey = `keb:captured-content:${Date.now()}`;
 
       // Store captured content for the side panel to read
       await chrome.storage.local.set({

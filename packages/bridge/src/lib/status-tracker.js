@@ -20,8 +20,8 @@ export class StatusTracker {
   /** @type {number} */
   #serverStartTime;
 
-  /** @type {import('../ports/kb-store.js').KbStore} */
-  #kbStore;
+  /** @type {import('../ports/keb-store.js').KebStore} */
+  #kebStore;
 
   /** @type {'local' | 'hosted'} */
   #mode;
@@ -31,14 +31,14 @@ export class StatusTracker {
 
   /**
    * @param {object} opts
-   * @param {import('../ports/kb-store.js').KbStore} opts.kbStore
+   * @param {import('../ports/keb-store.js').KebStore} opts.kebStore
    * @param {'local' | 'hosted'} opts.mode
    * @param {import('ws').WebSocketServer} opts.wss
    */
-  constructor({ kbStore, mode, wss }) {
+  constructor({ kebStore, mode, wss }) {
     this.#activeOperations = new Map();
     this.#serverStartTime = Date.now();
-    this.#kbStore = kbStore;
+    this.#kebStore = kebStore;
     this.#mode = mode;
     this.#wss = wss;
   }
@@ -74,10 +74,10 @@ export class StatusTracker {
       byType[op.type] = (byType[op.type] || 0) + 1;
     }
 
-    const workspaceNames = this.#kbStore.listWorkspaces();
+    const workspaceNames = this.#kebStore.listWorkspaces();
     const workspaces = workspaceNames.map((name) => ({
       name,
-      documents: this.#kbStore.countDocuments(name),
+      documents: this.#kebStore.countDocuments(name),
       lastDocumentAdded: this.#deriveLastDocumentAdded(name),
     }));
 
@@ -130,7 +130,7 @@ export class StatusTracker {
    * @returns {string|null}
    */
   #deriveLastDocumentAdded(name) {
-    const reg = this.#kbStore.readRegistry(name);
+    const reg = this.#kebStore.readRegistry(name);
     let latest = null;
     for (const entry of Object.values(reg)) {
       if (entry.addedAt && (!latest || entry.addedAt > latest)) {

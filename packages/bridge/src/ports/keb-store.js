@@ -3,8 +3,8 @@
 // ---------------------------------------------------------------------------
 // Port: Knowledge-base storage (types & contract)
 //
-// Defines the domain types and the KbStore interface. An adapter
-// (e.g. filesystem-kb-store) implements these operations.
+// Defines the domain types and the KebStore interface. An adapter
+// (e.g. filesystem-keb-store) implements these operations.
 // ---------------------------------------------------------------------------
 
 /**
@@ -40,7 +40,7 @@
  */
 
 /**
- * Complete KB state snapshot sent to the extension on sync.
+ * Complete KEB state snapshot sent to the extension on sync.
  * @typedef {Object} SyncData
  * @property {Registry} registry   - All registered documents
  * @property {string} index        - Raw index.md content
@@ -56,7 +56,7 @@
  * (filesystem reads) and never throw — missing / corrupt files yield
  * empty defaults.
  *
- * @typedef {Object} KbStore
+ * @typedef {Object} KebStore
  * @property {(workspace?: string) => Registry} readRegistry
  * @property {(workspace?: string) => string} readIndex
  * @property {(workspace?: string) => string[]} listSummaries

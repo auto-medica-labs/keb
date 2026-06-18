@@ -1,17 +1,17 @@
 # OKF Migration Plan
 
-**Migrate pi-kb and the Keb stack from proprietary format to [Open Knowledge Format v0.1](OKF_SPEC.md).**
+**Migrate pi-keb and the Keb stack from proprietary format to [Open Knowledge Format v0.1](OKF_SPEC.md).**
 
 ---
 
 ## 1. Motivation
 
-pi-kb's current on-disk format uses a custom frontmatter schema, proprietary `[[wiki-link]]` syntax, code-generated footers, and a separate `registry.json`. OKF standardizes all of this: YAML frontmatter with a required `type` field, standard markdown links, and reserved filenames (`index.md`, `log.md`). Migrating makes the knowledge base:
+pi-keb's current on-disk format uses a custom frontmatter schema, proprietary `[[wiki-link]]` syntax, code-generated footers, and a separate `registry.json`. OKF standardizes all of this: YAML frontmatter with a required `type` field, standard markdown links, and reserved filenames (`index.md`, `log.md`). Migrating makes the knowledge base:
 
-- **Interoperable** — any OKF-compatible tool can read/write pi-kb bundles.
+- **Interoperable** — any OKF-compatible tool can read/write pi-keb bundles.
 - **Self-describing** — no `registry.json` needed; metadata lives in frontmatter.
 - **Simpler** — removes code-generated footers, wiki-link parsing, and frontmatter custom schemas.
-- **Forward-compatible** — pi-kb becomes a reference implementation of OKF.
+- **Forward-compatible** — pi-keb becomes a reference implementation of OKF.
 
 ---
 
@@ -21,10 +21,10 @@ This plan covers all 4 layers of the Keb stack:
 
 | Layer | Package | Impact |
 |---|---|---|
-| **1. pi-kb extension** | `packages/pi-kb/extensions/kb/` | High — file format rewrite |
+| **1. pi-keb extension** | `packages/pi-keb/extensions/keb/` | High — file format rewrite |
 | **2. Bridge** | `packages/bridge/src/` | Medium — sync data parsing |
 | **3. Chrome Extension** | `packages/extension/src/` | Low — rendering adapts |
-| **4. Migration tooling** | `packages/pi-kb/scripts/` | New — one-time conversion |
+| **4. Migration tooling** | `packages/pi-keb/scripts/` | New — one-time conversion |
 
 ---
 
@@ -32,7 +32,7 @@ This plan covers all 4 layers of the Keb stack:
 
 ### 3.1 Summaries
 
-Current (pi-kb):
+Current (pi-keb):
 
 ```markdown
 ---
@@ -78,7 +78,7 @@ The [caching strategy](/concepts/caching-strategy.md) is documented as a separat
 
 ### 3.2 Concepts
 
-Current (pi-kb):
+Current (pi-keb):
 
 ```markdown
 ---
@@ -126,7 +126,7 @@ and [design](/summaries/design.md) documents.
 
 ### 3.3 Index
 
-Current (pi-kb):
+Current (pi-keb):
 
 ```markdown
 # Knowledge Base Index
@@ -178,7 +178,7 @@ OKF:
 
 ### 3.5 Source directory (`source/`)
 
-**Unchanged.** The `source/` directory is a pi-kb convention, not part of the wiki itself. It can remain as-is — OKF is intentionally silent about non-reserved files (§3.1 only reserves `.md` files named `index.md` and `log.md`).
+**Unchanged.** The `source/` directory is a pi-keb convention, not part of the wiki itself. It can remain as-is — OKF is intentionally silent about non-reserved files (§3.1 only reserves `.md` files named `index.md` and `log.md`).
 
 ### 3.6 Bundle root
 
@@ -211,7 +211,7 @@ OKF §7 defines an optional `log.md` at any level. Post-migration, `wiki/log.md`
 
 ### Summary frontmatter
 
-| Legacy pi-kb | OKF standard | Keb producer | Source |
+| Legacy pi-keb | OKF standard | Keb producer | Source |
 |---|---|---|---|
 | `name` | — | `keb_name` | `docName` param |
 | `source` | — | `keb_source` | `originalName` param (filename in `source/`) |
@@ -224,7 +224,7 @@ OKF §7 defines an optional `log.md` at any level. Post-migration, `wiki/log.md`
 
 ### Concept frontmatter
 
-| Legacy pi-kb | OKF standard | Keb producer | Source |
+| Legacy pi-keb | OKF standard | Keb producer | Source |
 |---|---|---|---|
 | `name` | — | `keb_name` | `slug` param |
 | `sources` | — | `keb_sources` | `sources` param |
@@ -239,7 +239,7 @@ OKF §7 defines an optional `log.md` at any level. Post-migration, `wiki/log.md`
 
 ## 5. Layer-by-Layer Implementation Plan
 
-### Layer 1: pi-kb FilesystemStore (`packages/pi-kb/extensions/kb/`)
+### Layer 1: pi-keb FilesystemStore (`packages/pi-keb/extensions/keb/`)
 
 #### 5.1 Frontmatter helpers
 
@@ -329,7 +329,7 @@ writeConcept(
 
 ### Layer 2: Bridge (`packages/bridge/src/`)
 
-#### 5.6 `adapters/pi-kb-store.js`
+#### 5.6 `adapters/pi-keb-store.js`
 
 `buildSyncData()` currently parses custom frontmatter to extract `source` and `added` for summaries, and `sources`, `updated`, `content` for concepts. Update to:
 
@@ -340,7 +340,7 @@ writeConcept(
    - `timestamp` or `date_added` → `SummaryEntry.added` / `ConceptPage.updated`
    - `keb_sources` or `sources` → `ConceptPage.sources`
 
-No handler changes needed — they call `spawnPi` which communicates with pi-kb internally.
+No handler changes needed — they call `spawnPi` which communicates with pi-keb internally.
 
 ### Layer 3: Chrome Extension (`packages/extension/src/`)
 
@@ -375,11 +375,11 @@ export interface Concept {
 
 ### Layer 4: Migration Tooling
 
-#### 5.9 New script: `packages/pi-kb/scripts/migrate-to-okf.ts`
+#### 5.9 New script: `packages/pi-keb/scripts/migrate-to-okf.ts`
 
 A one-time TypeScript script (run with `npx tsx`) that:
 
-1. **Discovers all workspaces** under `~/.pi/agent/kb/`
+1. **Discovers all workspaces** under `~/.pi/agent/keb/`
 2. **For each workspace:**
    a. Reads existing `registry.json` to build metadata lookup
    b. For each summary in `wiki/summaries/`:
@@ -416,7 +416,7 @@ During migration (and for a grace period after), the `FilesystemStore` **read me
 Read summary/concept file:
   → Parse YAML frontmatter
   → If has "type" key: use OKF fields (keb_* for Keb-specific)
-  → If no "type": fall back to legacy pi-kb parser (bare name/source/sources keys)
+  → If no "type": fall back to legacy pi-keb parser (bare name/source/sources keys)
   → Return unified ConceptInfo
 ```
 
@@ -428,7 +428,7 @@ This means:
 ### 6.2 Write-path consistency
 
 **Write methods always write OKF format** with `keb_`-prefixed producer keys. This means:
-- After the code change is deployed, `/kb-add` creates OKF files
+- After the code change is deployed, `/keb-add` creates OKF files
 - Existing (pre-migration) files are left untouched until migrated
 - The migration script converts existing files in-place
 
@@ -443,22 +443,22 @@ If OKF causes issues:
 
 ## 7. Phasing
 
-### Phase 1 — pi-kb format layer (Layer 1)
+### Phase 1 — pi-keb format layer (Layer 1)
 - Rewrite `filesystem-store.ts`: frontmatter, index format, footer removal
 - Update `utils.ts`: helpers, `buildIndexContent` → OKF index
 - Update `types.ts`: add fields, update write method signatures
 - Update `tools.ts`: wire new methods, remove footer sync
 - Update `prompts.ts`: OKF conventions
 
-**Verify:** `/kb-add` + `/kb-query` end-to-end produces OKF files. Existing KBs still readable via fallback.
+**Verify:** `/keb-add` + `/keb-query` end-to-end produces OKF files. Existing KBs still readable via fallback.
 
 ### Phase 2 — migration script (Layer 4)
 - Write `migrate-to-okf.ts`
-- Test on a real KB workspace
-- Handle edge cases: empty KB, partially compiled docs, removed docs, wiki-link variants
+- Test on a real KEB workspace
+- Handle edge cases: empty KEB, partially compiled docs, removed docs, wiki-link variants
 
 ### Phase 3 — bridge sync layer (Layer 2)
-- Update `pi-kb-store.js` frontmatter parsing in `buildSyncData()` with `keb_*`/legacy fallback
+- Update `pi-keb-store.js` frontmatter parsing in `buildSyncData()` with `keb_*`/legacy fallback
 - Verify extension sync works with both OKF and legacy workspaces
 
 ### Phase 4 — extension rendering (Layer 3)
@@ -471,13 +471,13 @@ If OKF causes issues:
 
 | File | Phase | Change |
 |---|---|---|
-| `pi-kb/.../adapters/filesystem-store.ts` | 1 | Rewrite frontmatter read/write with `keb_` prefix + standard OKF fields; remove footer generation, `syncSummaryFooters`, helper functions |
-| `pi-kb/.../ports/types.ts` | 1 | Add `title`/`description`/`tags` to `ConceptInfo`; update `writeSummary`/`writeConcept` signatures |
-| `pi-kb/.../utils.ts` | 1 | Add `buildOkfFrontmatter`, `parseOkfFrontmatter`; update `buildIndexContent` for standard links |
-| `pi-kb/.../tools.ts` | 1 | Accept optional OKF params; remove `syncSummaryFooters` import+call |
-| `pi-kb/.../prompts.ts` | 1 | Update instructions for standard markdown links, `description`, `tags` |
-| `pi-kb/scripts/migrate-to-okf.ts` | **New** (2) | One-time migration script (TypeScript, run with `npx tsx`) |
-| `bridge/.../adapters/pi-kb-store.js` | 3 | Parse `keb_*` frontmatter keys with legacy fallback in `buildSyncData` |
+| `pi-keb/.../adapters/filesystem-store.ts` | 1 | Rewrite frontmatter read/write with `keb_` prefix + standard OKF fields; remove footer generation, `syncSummaryFooters`, helper functions |
+| `pi-keb/.../ports/types.ts` | 1 | Add `title`/`description`/`tags` to `ConceptInfo`; update `writeSummary`/`writeConcept` signatures |
+| `pi-keb/.../utils.ts` | 1 | Add `buildOkfFrontmatter`, `parseOkfFrontmatter`; update `buildIndexContent` for standard links |
+| `pi-keb/.../tools.ts` | 1 | Accept optional OKF params; remove `syncSummaryFooters` import+call |
+| `pi-keb/.../prompts.ts` | 1 | Update instructions for standard markdown links, `description`, `tags` |
+| `pi-keb/scripts/migrate-to-okf.ts` | **New** (2) | One-time migration script (TypeScript, run with `npx tsx`) |
+| `bridge/.../adapters/pi-keb-store.js` | 3 | Parse `keb_*` frontmatter keys with legacy fallback in `buildSyncData` |
 | `extension/.../lib/store.ts` | 4 | Add optional `title`/`description`/`tags` to `Summary`/`Concept` |
 | `extension/.../BrowsePanel.tsx` | 4 | Optional: show `tags` badges in detail view |
 
@@ -485,7 +485,7 @@ If OKF causes issues:
 
 ## 9. Out of Scope
 
-- **`js-yaml` dependency** — Manual string parsing is sufficient for the simple key-value and list fields pi-kb uses. All string values are quoted on write, avoiding YAML edge cases.
+- **`js-yaml` dependency** — Manual string parsing is sufficient for the simple key-value and list fields pi-keb uses. All string values are quoted on write, avoiding YAML edge cases.
 - **Moving `source/` to `references/`** — Deferred. OKF is silent about non-reserved files.
 - **Bridge-integrated `log.md` entries** — Deferred. Migration script creates initial entry; bridge append on add/remove is future work.
-- **`index.md` progressive disclosure pattern** (OKF §6) — pi-kb's flat index with two sections (Documents, Concepts) is compatible. No structural change needed.
+- **`index.md` progressive disclosure pattern** (OKF §6) — pi-keb's flat index with two sections (Documents, Concepts) is compatible. No structural change needed.

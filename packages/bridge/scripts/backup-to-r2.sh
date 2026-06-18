@@ -1,9 +1,9 @@
 #!/bin/sh
 # =============================================================================
-# backup-to-r2.sh — Daily KB data backup to Cloudflare R2
+# backup-to-r2.sh — Daily KEB data backup to Cloudflare R2
 #
 # Runs from a dedicated Alpine sidecar container (backup.Dockerfile).
-# Creates a tar.gz of the KB data directory and uploads it to an R2 bucket.
+# Creates a tar.gz of the KEB data directory and uploads it to an R2 bucket.
 # Old backups beyond the retention period are pruned automatically.
 #
 # Environment variables (all required except RETENTION_DAYS):
@@ -12,7 +12,7 @@
 #   R2_SECRET_ACCESS_KEY   — R2 API token secret access key
 #   R2_BUCKET              — R2 bucket name (e.g., "keb-backups")
 #   R2_BACKUP_RETENTION_DAYS — max age in days before pruning (default: 30)
-#   BACKUP_DATA_DIR        — path to KB data directory (default: /data)
+#   BACKUP_DATA_DIR        — path to KEB data directory (default: /data)
 #
 # Usage:
 #   # Manual invocation (inside container):
@@ -48,7 +48,7 @@ RETENTION_DAYS="${R2_BACKUP_RETENTION_DAYS:-30}"
 RCLONE_REMOTE=":s3,provider=Cloudflare,access_key_id=${R2_ACCESS_KEY_ID},secret_access_key=${R2_SECRET_ACCESS_KEY},region=auto,endpoint=https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com:${R2_BUCKET}"
 
 TIMESTAMP=$(date -u +%Y%m%dT%H%M%SZ)
-BACKUP_FILE="/tmp/kb-backup-${TIMESTAMP}.tar.gz"
+BACKUP_FILE="/tmp/keb-backup-${TIMESTAMP}.tar.gz"
 BACKUP_PATH="keb-backups/${TIMESTAMP}.tar.gz"
 
 # ---------------------------------------------------------------------------

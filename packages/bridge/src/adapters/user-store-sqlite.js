@@ -7,7 +7,7 @@
 // ACID-compliant database with zero external infrastructure.
 // Eliminates the race condition present in the JSON-file adapter.
 //
-// Database: ~/.pi/agent/kb/users.db
+// Database: ~/.pi/agent/keb/users.db
 // Table: users (username TEXT PRIMARY KEY, passwordHash TEXT, createdAt TEXT)
 // ---------------------------------------------------------------------------
 
@@ -17,7 +17,7 @@ import { join } from "node:path";
 import { homedir } from "node:os";
 
 /** @type {string} */
-const DB_DIR = join(homedir(), ".pi", "agent", "kb");
+const DB_DIR = join(homedir(), ".pi", "agent", "keb");
 
 /** @type {string} */
 const DB_PATH = join(DB_DIR, "users.db");

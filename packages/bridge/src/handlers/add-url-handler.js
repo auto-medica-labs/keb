@@ -14,7 +14,7 @@ import { safeStringify, log, isUrl, findByUrl } from "../lib/utils.js";
  * limit, then spawn pi for /keb:add.
  *
  * If the URL is already registered and fully compiled, a short-circuit
- * "Already in KB" message is sent instead of spawning pi. If the entry
+ * "Already in KEB" message is sent instead of spawning pi. If the entry
  * exists but was never fully compiled (compiled === false), we pass
  * through so /keb:add can re-compile it.
  *
@@ -23,21 +23,21 @@ import { safeStringify, log, isUrl, findByUrl } from "../lib/utils.js";
  * @param {string} opts.operationId              - Client-assigned operation ID
  * @param {string} opts.url                      - URL to add
  * @param {string|undefined} opts.workspace      - Target workspace
- * @param {import('../ports/kb-store.js').KbStore} opts.kbStore - KB storage adapter
+ * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - KEB storage adapter
  * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn - pi process spawner
  * @param {number} [opts.maxDocuments] - Document limit (hosted free tier)
  * @returns {import('node:child_process').ChildProcess|null} Spawned child, or null if short-circuited
  */
-export function handleAddUrl({ ws, operationId, url, workspace, kbStore, spawn, maxDocuments }) {
+export function handleAddUrl({ ws, operationId, url, workspace, kebStore, spawn, maxDocuments }) {
   // Dedup check for HTTP URLs: scan registry before spawning pi
   if (isUrl(url)) {
-    const reg = kbStore.readRegistry(workspace);
+    const reg = kebStore.readRegistry(workspace);
     const entry = findByUrl(url, reg);
 
     if (entry) {
       // compiled !== false → already processed, no LLM needed
       if (entry.compiled !== false) {
-        log(`add: already in KB: ${url} (added ${entry.addedAt?.slice(0, 10) || "?"})`);
+        log(`add: already in KEB: ${url} (added ${entry.addedAt?.slice(0, 10) || "?"})`);
         ws.send(
           safeStringify({
             type: "event",
@@ -46,7 +46,7 @@ export function handleAddUrl({ ws, operationId, url, workspace, kbStore, spawn, 
               type: "message_update",
               assistantMessageEvent: {
                 type: "text_delta",
-                delta: `Already in KB: ${url} (added ${entry.addedAt?.slice(0, 10) || "previously"})`,
+                delta: `Already in KEB: ${url} (added ${entry.addedAt?.slice(0, 10) || "previously"})`,
               },
             },
           }),
@@ -64,7 +64,7 @@ export function handleAddUrl({ ws, operationId, url, workspace, kbStore, spawn, 
 
   // ── Document limit check (hosted free tier) ──────────────────
   if (maxDocuments != null) {
-    const docCount = kbStore.countDocuments(workspace);
+    const docCount = kebStore.countDocuments(workspace);
     if (docCount >= maxDocuments) {
       const message = `Free tier limit reached (${maxDocuments} documents). Upgrade to Standard for unlimited documents.`;
       log(`add: blocked (limit): ${url} — ${docCount}/${maxDocuments} docs`);

@@ -90,12 +90,12 @@ First build takes 2–5 minutes. Subsequent builds leverage Docker layer caching
 ## Step 4 — Create the data directory
 
 ```bash
-mkdir -p packages/bridge/data/kb
+mkdir -p packages/bridge/data/keb
 ```
 
-This directory is bind-mounted into the container at `/root/.pi/agent/kb`. It persists:
+This directory is bind-mounted into the container at `/root/.pi/agent/keb`. It persists:
 
-- KB documents (summaries, concepts, index)
+- KEB documents (summaries, concepts, index)
 - `users.db` — SQLite database of registered user accounts
 
 ## Step 5 — Verify the Caddyfile
@@ -233,8 +233,8 @@ VITE_HOSTED_BRIDGE_URL=wss://your-domain.com/keb/v1 pnpm build
 ## Step 8 — Verify data persistence
 
 ```bash
-ls -la packages/bridge/data/kb/
-# Should show: users.db, <username>/ directories with KB files
+ls -la packages/bridge/data/keb/
+# Should show: users.db, <username>/ directories with KEB files
 ```
 
 ## Day-to-day operations
@@ -259,13 +259,13 @@ docker compose -f packages/bridge/docker-compose.yml down
 
 ### Automated R2 backup
 
-The backup sidecar container (`keb-backup`) archives the KB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. See [Daily R2 Backups](#daily-r2-backups) for setup.
+The backup sidecar container (`keb-backup`) archives the KEB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. See [Daily R2 Backups](#daily-r2-backups) for setup.
 
 ### Manual restore from backup
 
 ```bash
 docker compose -f packages/bridge/docker-compose.yml down
-rm -rf packages/bridge/data/kb
+rm -rf packages/bridge/data/keb
 # Download the latest backup from R2 (see rclone instructions below)
 docker compose -f packages/bridge/docker-compose.yml up -d
 ```
@@ -291,7 +291,7 @@ The project includes a dedicated backup sidecar container that runs daily. It us
                            │
                     reads  │  tar.gz
                     ┌──────▼────────────┐     ┌────────────────┐
-                    │ ./data/kb/        │────▶│ Cloudflare R2  │
+                    │ ./data/keb/        │────▶│ Cloudflare R2  │
                     │ (bind mount, ro)  │     │ keb-backups/   │
                     └───────────────────┘     └────────────────┘
 ```
@@ -360,7 +360,7 @@ docker compose -f packages/bridge/docker-compose.yml logs backup
 Expected output from a manual run:
 
 ```
-[backup] Creating archive: /tmp/kb-backup-20250613T170000Z.tar.gz
+[backup] Creating archive: /tmp/keb-backup-20250613T170000Z.tar.gz
 [backup] Uploading to R2: s3://keb-backups/keb-backups/20250613T170000Z.tar.gz
 [backup] Pruning backups older than 30 days
 [backup] Done — keb-backups/20250613T170000Z.tar.gz
@@ -384,9 +384,9 @@ RCLONE_REMOTE=":s3,provider=Cloudflare,access_key_id=ACCESS_KEY,secret_access_ke
  rclone copy "${RCLONE_REMOTE}/keb-backups/20250613T170000Z.tar.gz" /tmp/
 
 # 3. Extract into data directory
-rm -rf packages/bridge/data/kb
-mkdir -p packages/bridge/data/kb
-tar -xzf /tmp/20250613T170000Z.tar.gz -C packages/bridge/data/kb/
+rm -rf packages/bridge/data/keb
+mkdir -p packages/bridge/data/keb
+tar -xzf /tmp/20250613T170000Z.tar.gz -C packages/bridge/data/keb/
 
 # 4. Restart
 docker compose -f packages/bridge/docker-compose.yml up -d
@@ -397,7 +397,7 @@ docker compose -f packages/bridge/docker-compose.yml up -d
 - **Script**: `packages/bridge/scripts/backup-to-r2.sh` — creates a tar.gz archive, uploads via `rclone`, prunes old backups, cleans up
 - **Image**: `packages/bridge/backup.Dockerfile` — Alpine 3.21 with `rclone` and `dcron` (the cron daemon for Alpine)
 - **Scheduling**: dcron runs the script daily at `0 0 * * *` (midnight) with `TZ=Asia/Bangkok` for UTC+7
-- **Data access**: the sidecar mounts `./data/kb:/data:ro` — read-only access
+- **Data access**: the sidecar mounts `./data/keb:/data:ro` — read-only access
 - **rclone config**: passed inline via `:s3,key=value...` syntax — no config file needed
 - **Credentials**: sourced from the `.env` file via `docker-compose.yml` environment variables
 
@@ -405,14 +405,14 @@ docker compose -f packages/bridge/docker-compose.yml up -d
 
 ## Upgrading the Bridge
 
-Upgrading replaces the bridge container with a freshly built image while keeping user data intact (`data/kb/` is bind-mounted, not stored in the container).
+Upgrading replaces the bridge container with a freshly built image while keeping user data intact (`data/keb/` is bind-mounted, not stored in the container).
 
 ### When to upgrade
 
 | Trigger                          | What changed                                              |
 | -------------------------------- | --------------------------------------------------------- |
 | Bridge code updated (`git pull`) | New bridge features, bug fixes, handlers, adapters        |
-| pi-keb submodule updated         | KB extension improvements, new compile prompts, bug fixes |
+| pi-keb submodule updated         | KEB extension improvements, new compile prompts, bug fixes |
 | `.env` config changed            | New env vars, LLM provider/model switch, mode change      |
 | Base image security patches      | OS-level or Node.js runtime updates                       |
 
@@ -498,7 +498,7 @@ docker compose -f packages/bridge/docker-compose.yml up -d --force-recreate
 curl https://api.mdevd.co/keb/v1/api/healthcheck
 ```
 
-User data in `data/kb/` is unaffected by rollbacks — it lives outside the container.
+User data in `data/keb/` is unaffected by rollbacks — it lives outside the container.
 
 ## Architecture
 
@@ -517,7 +517,7 @@ Ubuntu Instance
          ├── HTTP: POST /api/signup, /api/login, GET /api/me
          ├── WebSocket: add, query, repair, sync
          └── Spawns `pi` child processes for LLM work
-              └── Reads/writes KB files in /root/.pi/agent/kb
+              └── Reads/writes KEB files in /root/.pi/agent/keb
 ```
 
 The bridge is never exposed to the internet directly — Caddy is the only public-facing service. The bridge only listens on the internal Docker network (`bridge:9876`).
@@ -557,7 +557,7 @@ docker logs keb-bridge
 Common causes:
 
 - Missing or invalid `LLM_API_KEY` — the bridge starts but pi child processes may fail
-- `users.db` permission issues — ensure `packages/bridge/data/kb/` is writable
+- `users.db` permission issues — ensure `packages/bridge/data/keb/` is writable
 - pi-keb standalone adapter not compiled — did you build the Docker image with the full context (repo root)?
 
 ### Build fails with "Cannot find module '.../filesystem-store.js'"
@@ -573,11 +573,11 @@ The pi-keb standalone adapter isn't being compiled. Make sure:
 Multiple bridge instances behind a load balancer are **not safe** with the default adapters:
 
 - SQLite (`UserStore`) uses file-level locking
-- `FilesystemStore` (`KbStore`) races on registry entries from concurrent pi child processes
+- `FilesystemStore` (`KebStore`) races on registry entries from concurrent pi child processes
 
 To scale horizontally, swap adapters to distributed backends:
 
 - `UserStore` → PostgreSQL (shared user database)
-- `KbStore` → S3, PostgreSQL, or NFS with proper locking
+- `KebStore` → S3, PostgreSQL, or NFS with proper locking
 
 See `AGENTS.md` for the Ports & Adapters pattern documentation.

@@ -89,11 +89,11 @@ function extractBearer(req) {
  *
  * @param {object} deps
  * @param {import('../ports/user-store.js').UserStore} deps.userStore
- * @param {import('../ports/kb-store.js').KbStore} deps.kbStore
+ * @param {import('../ports/keb-store.js').KebStore} deps.kebStore
  * @returns {(req: import('node:http').IncomingMessage, res: import('node:http').ServerResponse) => Promise<boolean>}
  *     Returns true if the request was handled (route matched), false otherwise.
  */
-export function createAuthHandler({ userStore, kbStore }) {
+export function createAuthHandler({ userStore, kebStore }) {
   return async function authHandler(req, res) {
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
     const path = url.pathname;
@@ -133,7 +133,7 @@ export function createAuthHandler({ userStore, kbStore }) {
         await userStore.createUser(username, passwordHash);
 
         // Create workspace
-        const created = kbStore.ensureWorkspace(username);
+        const created = kebStore.ensureWorkspace(username);
         log(
           `auth: user "${username}" signed up${created ? " (workspace created)" : " (workspace already existed)"}`,
         );

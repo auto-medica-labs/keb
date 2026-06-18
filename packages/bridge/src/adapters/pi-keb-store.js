@@ -4,7 +4,7 @@
 // Adapter: PiKebStore
 //
 // Wraps pi-keb's FilesystemStore (from the git submodule) to implement
-// the bridge's KbStore port. The heavy lifting (registry reads, concept
+// the bridge's KebStore port. The heavy lifting (registry reads, concept
 // parsing, workspace listing, etc.) lives in pi-keb. This adapter adds
 // only the bridge-specific `buildSyncData` method for the sync protocol.
 //
@@ -12,7 +12,7 @@
 //   npx tsc -p tsconfig.build-pi-keb.json
 // ---------------------------------------------------------------------------
 
-import { FilesystemStore } from "../../../pi-keb/dist/standalone/extensions/kb/adapters/filesystem-store.js";
+import { FilesystemStore } from "../../../pi-keb/dist/standalone/extensions/keb/adapters/filesystem-store.js";
 
 /** @type {FilesystemStore} */
 const store = new FilesystemStore();
@@ -41,12 +41,12 @@ export function workspaceExists(name) {
 }
 
 // ---------------------------------------------------------------------------
-// Public factory — KbStore port
+// Public factory — KebStore port
 // ---------------------------------------------------------------------------
 
 /**
- * Create a pi-keb-backed KbStore adapter.
- * @returns {import('../ports/kb-store.js').KbStore}
+ * Create a pi-keb-backed KebStore adapter.
+ * @returns {import('../ports/keb-store.js').KebStore}
  */
 export function createPiKebStore() {
   return {
@@ -102,7 +102,7 @@ export function createPiKebStore() {
       const summariesList = store.listSummaries(workspace);
       const conceptsList = store.listConcepts(workspace);
 
-      /** @type {Object<string, import('../ports/kb-store.js').SummaryEntry>} */
+      /** @type {Object<string, import('../ports/keb-store.js').SummaryEntry>} */
       const summaries = {};
       for (const name of summariesList) {
         const raw = store.readSummary(name, workspace);
@@ -134,7 +134,7 @@ export function createPiKebStore() {
         summaries[name] = { content, source, added };
       }
 
-      /** @type {Object<string, import('../ports/kb-store.js').ConceptPage>} */
+      /** @type {Object<string, import('../ports/keb-store.js').ConceptPage>} */
       const concepts = {};
       for (const slug of conceptsList) {
         const c = store.readConcept(slug, workspace);

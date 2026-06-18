@@ -8,7 +8,7 @@
 
 ## Problem
 
-When the bridge invokes `/keb-add -w alice <url>`, the source file and registry entry are written to the correct workspace before the LLM is invoked. But the LLM then uses tools like `kb_write_summary`, `kb_read_concept`, etc. — all of which accept `workspace` as an **optional** parameter.
+When the bridge invokes `/keb-add -w alice <url>`, the source file and registry entry are written to the correct workspace before the LLM is invoked. But the LLM then uses tools like `keb_write_summary`, `keb_read_concept`, etc. — all of which accept `workspace` as an **optional** parameter.
 
 The prompt instructs the LLM:
 
@@ -82,15 +82,15 @@ if (wsErr) return wsErr;
 
 Tools to validate (9 total):
 
-- `kb_read_index`
-- `kb_list_concepts`
-- `kb_read_concept`
-- `kb_read_summary`
-- `kb_write_summary`
-- `kb_write_concept`
-- `kb_update_concept`
-- `kb_update_index`
-- `kb_set_docname`
+- `keb_read_index`
+- `keb_list_concepts`
+- `keb_read_concept`
+- `keb_read_summary`
+- `keb_write_summary`
+- `keb_write_concept`
+- `keb_update_concept`
+- `keb_update_index`
+- `keb_set_docname`
 
 ### 2. `documents.ts` — Set expected workspace
 
@@ -159,7 +159,7 @@ When validation fails, the LLM gets an error message telling it exactly which wo
 | Case                                        | Analysis                                                                                              |
 | ------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | **`/keb-repair` with multiple pending docs** | All docs in same workspace; `_expectedWorkspace` stays constant across iterations ✅                  |
-| **`/keb-remove` Phase 2**                    | Uses `kb_read_concept` / `kb_write_concept` — validated against remove command's workspace ✅         |
+| **`/keb-remove` Phase 2**                    | Uses `keb_read_concept` / `keb_write_concept` — validated against remove command's workspace ✅         |
 | **Concurrent pi RPC processes**             | Each `pi --mode rpc` is a separate OS process — module-level state is isolated ✅                     |
 | **`/keb-list`, `/keb-status`**                | No LLM prompts sent, no tool calls involved — no impact ✅                                            |
 | **Bridge in local mode (no workspace)**     | `workspace = undefined` → `_expectedWorkspace = undefined` → LLM omits `workspace` param → matches ✅ |

@@ -12,7 +12,7 @@ import {
   type WSClientConfig,
 } from "../lib/ws";
 import {
-  setKBState,
+  setKebState,
   getConfig,
   setConfig,
   getBridgeConfig,
@@ -189,7 +189,7 @@ export default function App() {
   // ── Sync result handler ───────────────────────────────────────
 
   function handleSyncResult(data: SyncResult) {
-    setKBState(data).then(() => {
+    setKebState(data).then(() => {
       setDocCount(Object.keys(data.summaries || {}).length);
       setConceptCount(Object.keys(data.concepts || {}).length);
       const pending = Object.values(data.registry || {}).some(
@@ -277,9 +277,9 @@ export default function App() {
   useEffect(() => {
     (async () => {
       // Load saved KEB config (workspace)
-      const kbConfig = await getConfig();
-      if (kbConfig.workspace && kbConfig.workspace !== "default") {
-        setWorkspaceState(kbConfig.workspace);
+      const kebConfig = await getConfig();
+      if (kebConfig.workspace && kebConfig.workspace !== "default") {
+        setWorkspaceState(kebConfig.workspace);
       }
 
       // Load bridge config

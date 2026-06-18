@@ -275,12 +275,12 @@ These are format-aware but side-effect-free. They handle:
 
 | Tool | Change |
 |---|---|
-| `kb_write_summary` | Accept optional `title`, `description`, `tags` params. Pass to `store.writeSummary()`. |
-| `kb_write_concept` | Accept optional `title`, `description`, `tags` params. Pass to `store.writeConcept()`. `type` defaults to `"Concept"` automatically. |
-| `kb_update_concept` | Same — accept optional OKF fields, pass through on write. |
-| `kb_update_index` | Generate OKF-style index. **Remove** `syncSummaryFooters()` call and import. |
-| `kb_read_concept` | Show `title`, `tags` in output header alongside sources. |
-| `kb_set_docname` | No change (filename rename logic unaffected). |
+| `keb_write_summary` | Accept optional `title`, `description`, `tags` params. Pass to `store.writeSummary()`. |
+| `keb_write_concept` | Accept optional `title`, `description`, `tags` params. Pass to `store.writeConcept()`. `type` defaults to `"Concept"` automatically. |
+| `keb_update_concept` | Same — accept optional OKF fields, pass through on write. |
+| `keb_update_index` | Generate OKF-style index. **Remove** `syncSummaryFooters()` call and import. |
+| `keb_read_concept` | Show `title`, `tags` in output header alongside sources. |
+| `keb_set_docname` | No change (filename rename logic unaffected). |
 
 #### 5.4 Files changes in `prompts.ts`
 
@@ -450,7 +450,7 @@ If OKF causes issues:
 - Update `tools.ts`: wire new methods, remove footer sync
 - Update `prompts.ts`: OKF conventions
 
-**Verify:** `/keb-add` + `/keb-query` end-to-end produces OKF files. Existing KBs still readable via fallback.
+**Verify:** `/keb-add` + `/keb-query` end-to-end produces OKF files. Existing KEBs still readable via fallback.
 
 ### Phase 2 — migration script (Layer 4)
 - Write `migrate-to-okf.ts`

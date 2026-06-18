@@ -23,12 +23,12 @@ const store = new FilesystemStore();
 
 /**
  * Create a named workspace. Idempotent — returns false if already exists.
- * Delegates to pi-keb's FilesystemStore.ensureKbDir().
+ * Delegates to pi-keb's FilesystemStore.ensureKebDir().
  * @param {string} name - Workspace name (slugified username)
  * @returns {boolean} true if newly created, false if already existed
  */
 export function ensureWorkspace(name) {
-  return store.ensureKbDir(name);
+  return store.ensureKebDir(name);
 }
 
 /**
@@ -90,7 +90,7 @@ export function createPiKebStore() {
     },
 
     ensureWorkspace(name) {
-      return store.ensureKbDir(name);
+      return store.ensureKebDir(name);
     },
 
     clearWorkspace(workspace) {

@@ -34,7 +34,7 @@ export interface BridgeConfig {
   username?: string;
 }
 
-export interface KBConfig {
+export interface KebConfig {
   workspace: string;
 }
 
@@ -52,7 +52,7 @@ export interface Concept {
 
 /** Mirror of pi-keb's RegistryEntry. `compiled` tracks whether ALL wiki
  *  artifacts (summary, concepts, index) were written. Set to false on add,
- *  flipped to true by the final kb_update_index compilation step. */
+ *  flipped to true by the final keb_update_index compilation step. */
 export interface RegistryEntry {
   name: string;
   sourcePath: string;
@@ -66,7 +66,7 @@ export interface RegistryEntry {
 
 export type Registry = Record<string, RegistryEntry>;
 
-export interface KBSyncData {
+export interface KebSyncData {
   registry?: Registry;
   index?: string;
   summaries?: Record<string, Summary>;
@@ -87,7 +87,7 @@ export async function getConnectionState(): Promise<ConnectionState> {
 
 // ── Full state sync ──────────────────────────────────────────────────────
 
-export async function setKBState(data: KBSyncData): Promise<void> {
+export async function setKebState(data: KebSyncData): Promise<void> {
   const batch: Record<string, unknown> = {};
   if (data.registry) batch[KEYS.registry] = data.registry;
   if (data.index) batch[KEYS.index] = data.index;
@@ -153,12 +153,12 @@ export async function setBridgeConfig(cfg: Partial<BridgeConfig>): Promise<void>
 
 // ── Config (workspace) ───────────────────────────────────────────────────
 
-export async function getConfig(): Promise<KBConfig> {
+export async function getConfig(): Promise<KebConfig> {
   const { [KEYS.config]: cfg } = await chrome.storage.local.get(KEYS.config);
-  return (cfg as KBConfig) || { workspace: "default" };
+  return (cfg as KebConfig) || { workspace: "default" };
 }
 
-export async function setConfig(cfg: Partial<KBConfig>): Promise<void> {
+export async function setConfig(cfg: Partial<KebConfig>): Promise<void> {
   const current = await getConfig();
   await chrome.storage.local.set({
     [KEYS.config]: { ...current, ...cfg },

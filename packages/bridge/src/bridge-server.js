@@ -16,7 +16,7 @@
  * Architecture (port & adapter):
  *   Ports          Adapters                Handlers
  *   ────────────   ─────────────────────   ─────────────────────
- *   KebStore   ←    FilesystemKbStore   ←   SyncHandler
+ *   KebStore   ←    FilesystemKebStore   ←   SyncHandler
  *   UserStore ←    JsonUserStore       ←   AuthHandler (HTTP, hosted only)
  *   (spawnPi) ←    PiRpcSpawner        ←   QueryHandler
  *                                      ←   CommandHandler

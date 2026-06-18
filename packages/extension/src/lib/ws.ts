@@ -1,6 +1,6 @@
 // lib/ws.ts — WebSocket client for the bridge server
 //
-// Manages the WebSocket connection to the pi-kb bridge server,
+// Manages the WebSocket connection to the keb bridge server,
 // handling reconnection, message routing, and typed events.
 //
 // Supports two modes:
@@ -233,7 +233,7 @@ export class WSClient {
   /**
    * Start an 'add-content' operation (captured page HTML).
    * Sends raw page HTML to the bridge, which converts it to markdown
-   * and compiles it via /kb-add-content.
+   * and compiles it via /keb:add:content.
    * @param operationId - Optional pre-generated ID.
    */
   addContent(

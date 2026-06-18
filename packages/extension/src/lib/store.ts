@@ -50,7 +50,7 @@ export interface Concept {
   updated: string;
 }
 
-/** Mirror of pi-kb's RegistryEntry. `compiled` tracks whether ALL wiki
+/** Mirror of pi-keb's RegistryEntry. `compiled` tracks whether ALL wiki
  *  artifacts (summary, concepts, index) were written. Set to false on add,
  *  flipped to true by the final kb_update_index compilation step. */
 export interface RegistryEntry {

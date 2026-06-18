@@ -1,9 +1,9 @@
 #!/bin/sh
 # =============================================================================
-# Entrypoint for chrome-kb bridge container.
+# Entrypoint for keb bridge container.
 #
 # Generates pi config files from environment variables so that spawned
-# child pi processes (for /kb-add, /kb-query) have the credentials and
+# child pi processes (for /keb:add, /keb:query) have the credentials and
 # model selection they need.
 #
 # Primary (recommended) — custom provider via ~/.pi/agent/models.json:

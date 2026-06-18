@@ -75,14 +75,14 @@ This must remain stable across restarts. If the JWT secret changes, all user ses
 Run from the **repo root** (`keb/` directory). The Dockerfile references files across packages and needs the full monorepo context:
 
 ```bash
-docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+docker build -f packages/bridge/Dockerfile -t keb-bridge .
 ```
 
 This is a multi-stage build:
 
-1. **`pi-layer`** — Installs the `pi` CLI + pi-kb extension globally
+1. **`pi-layer`** — Installs the `pi` CLI + pi-keb extension globally
 2. **`deps-layer`** — Installs bridge npm dependencies (including TypeScript)
-3. **`pi-kb-build`** — Compiles pi-kb TypeScript source to standalone JS
+3. **`pi-keb-build`** — Compiles pi-keb TypeScript source to standalone JS
 4. **Final** — Minimal `node:22-slim` image with production deps only
 
 First build takes 2–5 minutes. Subsequent builds leverage Docker layer caching.
@@ -133,10 +133,10 @@ docker compose -f packages/bridge/docker-compose.yml up -d
 
 This starts two containers:
 
-| Container          | Image                     | Role                                              |
-| ------------------ | ------------------------- | ------------------------------------------------- |
-| `chrome-kb-bridge` | `chrome-kb-bridge:latest` | WebSocket + HTTP server on port 9876              |
-| `chrome-kb-caddy`  | `caddy:2-alpine`          | Reverse proxy, TLS termination, WebSocket upgrade |
+| Container    | Image               | Role                                              |
+| ------------ | ------------------- | ------------------------------------------------- |
+| `keb-bridge` | `keb-bridge:latest` | WebSocket + HTTP server on port 9876              |
+| `keb-caddy`  | `caddy:2-alpine`    | Reverse proxy, TLS termination, WebSocket upgrade |
 
 Verify both are running:
 
@@ -148,18 +148,18 @@ Expected:
 
 ```
 NAME                STATUS
-chrome-kb-bridge    Up (healthy)
-chrome-kb-caddy     Up
+keb-bridge    Up (healthy)
+keb-caddy     Up
 ```
 
 Check logs:
 
 ```bash
-docker logs chrome-kb-bridge
+docker logs keb-bridge
 # Should show: [entrypoint] Starting bridge server...
 # Should show: Bridge server listening on 0.0.0.0:9876
 
-docker logs chrome-kb-caddy
+docker logs keb-caddy
 # Should show TLS certificate being obtained
 ```
 
@@ -259,7 +259,7 @@ docker compose -f packages/bridge/docker-compose.yml down
 
 ### Automated R2 backup
 
-The backup sidecar container (`chrome-kb-backup`) archives the KB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. See [Daily R2 Backups](#daily-r2-backups) for setup.
+The backup sidecar container (`keb-backup`) archives the KB data directory daily at midnight Bangkok time (00:00 UTC+7) and uploads it to Cloudflare R2. See [Daily R2 Backups](#daily-r2-backups) for setup.
 
 ### Manual restore from backup
 
@@ -280,7 +280,7 @@ The project includes a dedicated backup sidecar container that runs daily. It us
 
 ```
                     ┌──────────────────┐
-                    │  chrome-kb-backup │
+                    │  keb-backup │
                     │  (Alpine + rclone │
                     │   + dcron)        │
                     │                   │
@@ -338,11 +338,11 @@ docker compose -f packages/bridge/docker-compose.yml up -d
 
 Three containers now run:
 
-| Container          | Image              | Role                                  |
-| ------------------ | ------------------ | ------------------------------------- |
-| `chrome-kb-bridge` | `chrome-kb-bridge` | WebSocket + HTTP server               |
-| `chrome-kb-caddy`  | `caddy:2-alpine`   | Reverse proxy, TLS, WebSocket upgrade |
-| `chrome-kb-backup` | `chrome-kb-backup` | Daily R2 backup at 00:00 UTC+7        |
+| Container    | Image            | Role                                  |
+| ------------ | ---------------- | ------------------------------------- |
+| `keb-bridge` | `keb-bridge`     | WebSocket + HTTP server               |
+| `keb-caddy`  | `caddy:2-alpine` | Reverse proxy, TLS, WebSocket upgrade |
+| `keb-backup` | `keb-backup`     | Daily R2 backup at 00:00 UTC+7        |
 
 ### Verify the backup container
 
@@ -351,7 +351,7 @@ Three containers now run:
 docker compose -f packages/bridge/docker-compose.yml ps
 
 # Run a manual backup to verify everything works:
- docker exec chrome-kb-backup /usr/local/bin/backup-to-r2.sh
+ docker exec keb-backup /usr/local/bin/backup-to-r2.sh
 
 # Check backup logs
 docker compose -f packages/bridge/docker-compose.yml logs backup
@@ -412,7 +412,7 @@ Upgrading replaces the bridge container with a freshly built image while keeping
 | Trigger                          | What changed                                              |
 | -------------------------------- | --------------------------------------------------------- |
 | Bridge code updated (`git pull`) | New bridge features, bug fixes, handlers, adapters        |
-| pi-kb submodule updated          | KB extension improvements, new compile prompts, bug fixes |
+| pi-keb submodule updated         | KB extension improvements, new compile prompts, bug fixes |
 | `.env` config changed            | New env vars, LLM provider/model switch, mode change      |
 | Base image security patches      | OS-level or Node.js runtime updates                       |
 
@@ -422,7 +422,7 @@ For **config-only changes** (`.env` edits, no code changes), skip the build step
 docker compose -f packages/bridge/docker-compose.yml up -d --force-recreate
 ```
 
-### Full upgrade (code + pi-kb changes)
+### Full upgrade (code + pi-keb changes)
 
 ```bash
 # 1. Pull latest code
@@ -431,7 +431,7 @@ git pull origin main
 git submodule update --init --recursive
 
 # 2. Rebuild the Docker image
-docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+docker build -f packages/bridge/Dockerfile -t keb-bridge .
 
 # 3. Recreate the container with the new image
 docker compose -f packages/bridge/docker-compose.yml up -d --force-recreate
@@ -457,8 +457,8 @@ The Caddy container is unaffected — it keeps serving and will proxy to the new
 # Check container status
 $ docker compose -f packages/bridge/docker-compose.yml ps
 NAME                STATUS
-chrome-kb-bridge    Up (healthy)
-chrome-kb-caddy     Up
+keb-bridge    Up (healthy)
+keb-caddy     Up
 
 # Confirm the health check responds
 $ curl -s https://api.mdevd.co/keb/v1/api/healthcheck | jq
@@ -468,7 +468,7 @@ $ curl -s https://api.mdevd.co/keb/v1/api/healthcheck | jq
 }
 
 # Check logs for startup confirmation
-$ docker logs chrome-kb-bridge --tail 20
+$ docker logs keb-bridge --tail 20
 ```
 
 ### Upgrade checklist
@@ -478,7 +478,7 @@ $ docker logs chrome-kb-bridge --tail 20
 - [ ] Docker build completed without errors
 - [ ] `docker compose ps` shows `Up (healthy)` for the bridge
 - [ ] `curl .../api/healthcheck` returns `{"status":"ok"}`
-- [ ] `docker logs chrome-kb-bridge` shows `Bridge listening on 0.0.0.0:9876`
+- [ ] `docker logs keb-bridge` shows `Bridge listening on 0.0.0.0:9876`
 - [ ] Test a signup/login flow (hosted mode) or a WebSocket connection (local mode)
 
 ### Rollback
@@ -491,7 +491,7 @@ git checkout <previous-commit-hash>
 git submodule update --init --recursive
 
 # Rebuild and deploy
-docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+docker build -f packages/bridge/Dockerfile -t keb-bridge .
 docker compose -f packages/bridge/docker-compose.yml up -d --force-recreate
 
 # Verify
@@ -545,28 +545,28 @@ Check that:
 dig api.mdevd.co
 
 # Check Caddy logs for certificate errors
-docker logs chrome-kb-caddy
+docker logs keb-caddy
 ```
 
 ### Bridge healthcheck failing
 
 ```bash
-docker logs chrome-kb-bridge
+docker logs keb-bridge
 ```
 
 Common causes:
 
 - Missing or invalid `LLM_API_KEY` — the bridge starts but pi child processes may fail
 - `users.db` permission issues — ensure `packages/bridge/data/kb/` is writable
-- pi-kb standalone adapter not compiled — did you build the Docker image with the full context (repo root)?
+- pi-keb standalone adapter not compiled — did you build the Docker image with the full context (repo root)?
 
 ### Build fails with "Cannot find module '.../filesystem-store.js'"
 
-The pi-kb standalone adapter isn't being compiled. Make sure:
+The pi-keb standalone adapter isn't being compiled. Make sure:
 
 1. The git submodule is initialized: `git submodule update --init --recursive`
-2. You're building from the repo root: `docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .`
-3. The `pi-kb-build` stage completed without errors
+2. You're building from the repo root: `docker build -f packages/bridge/Dockerfile -t keb-bridge .`
+3. The `pi-keb-build` stage completed without errors
 
 ## Horizontal scaling
 

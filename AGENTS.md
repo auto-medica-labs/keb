@@ -8,7 +8,7 @@ Keb is a Chrome extension + bridge server that turns web pages into a personal k
 |---|---|---|
 | `packages/bridge` | JS + JSDoc | HTTP + WebSocket server. Supports local mode (no auth) and hosted mode (JWT auth). Spawns `pi` child processes for LLM work. |
 | `packages/extension` | TypeScript + React | Chrome side panel (Manifest V3). Supports local and hosted bridge modes with built-in login/signup. Built with Vite + Tailwind + shadcn/ui. |
-| `packages/pi-kb` | TypeScript | **Git submodule** → `github.com/dheerapat/pi-keb`. The knowledge base pi extension. Bridge imports its `FilesystemStore` for filesystem reads. |
+| `packages/pi-keb` | TypeScript | **Git submodule** → `github.com/auto-medica-labs/pi-keb`. The knowledge base pi extension. Bridge imports its `FilesystemStore` for filesystem reads. |
 
 The root `package.json` orchestrates both packages via `pnpm`.
 
@@ -22,7 +22,7 @@ ports/          ← interfaces (contracts)
   user-store.js     what a user credential store must do
 
 adapters/       ← concrete implementations
-  pi-kb-store.js    KbStore backed by pi-keb's FilesystemStore
+  pi-keb-store.js    KbStore backed by pi-keb's FilesystemStore
   user-store-sqlite.js  UserStore backed by SQLite
   pi-rpc-spawner.js   spawns pi child processes
 
@@ -55,19 +55,19 @@ bridge-server.js  ← composition root (wires adapters to handlers)
 
 ## pi-keb submodule
 
-`packages/pi-kb/` is a **git submodule** pointing to `https://github.com/dheerapat/pi-kb.git`. The bridge does NOT use pi-keb as a pi extension at runtime — it directly imports the `FilesystemStore` class for filesystem reads.
+`packages/pi-keb/` is a **git submodule** pointing to `https://github.com/auto-medica-labs/pi-keb.git`. The bridge does NOT use pi-keb as a pi extension at runtime — it directly imports the `FilesystemStore` class for filesystem reads.
 
 ### Build step
 
 The bridge imports TypeScript source from the submodule. These files must be compiled before the bridge can run:
 
 ```
-packages/pi-kb/extensions/kb/adapters/filesystem-store.ts  ──┐
-packages/pi-kb/extensions/kb/ports/types.ts                 ──┤ compiled by
-packages/pi-kb/extensions/kb/utils.ts                       ──┘ tsconfig.build-pi-kb.json
+packages/pi-keb/extensions/kb/adapters/filesystem-store.ts  ──┐
+packages/pi-keb/extensions/kb/ports/types.ts                 ──┤ compiled by
+packages/pi-keb/extensions/kb/utils.ts                       ──┘ tsconfig.build-pi-keb.json
                                                                   │
                                                                   ▼
-                                          packages/pi-kb/dist/standalone/
+                                          packages/pi-keb/dist/standalone/
                                             extensions/kb/adapters/filesystem-store.js
                                             extensions/kb/ports/types.js (+ .d.ts)
                                             extensions/kb/utils.js (+ .d.ts)
@@ -77,23 +77,23 @@ packages/pi-kb/extensions/kb/utils.ts                       ──┘ tsconfig.b
 The bridge imports from this compiled output:
 
 ```js
-// src/adapters/pi-kb-store.js
-import { FilesystemStore } from "../../../pi-kb/dist/standalone/extensions/kb/adapters/filesystem-store.js";
+// src/adapters/pi-keb-store.js
+import { FilesystemStore } from "../../../pi-keb/dist/standalone/extensions/kb/adapters/filesystem-store.js";
 ```
 
 ### When pi-keb updates
 
 ```bash
-cd packages/pi-kb
+cd packages/pi-keb
 git pull origin main          # get latest
 cd ../bridge
-pnpm build:pi-kb            # recompile standalone adapter
+pnpm build:pi-keb            # recompile standalone adapter
 # commit the updated submodule pointer in the keb repo
 ```
 
 ### When you add a file to the compiled set
 
-Update `tsconfig.build-pi-kb.json`'s `include` array. Only add files that have **zero pi-specific dependencies** (no `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, `typebox`). The three files above only use `node:fs`, `node:path`, `node:crypto`, `node:os`.
+Update `tsconfig.build-pi-keb.json`'s `include` array. Only add files that have **zero pi-specific dependencies** (no `@earendil-works/pi-ai`, `@earendil-works/pi-coding-agent`, `typebox`). The three files above only use `node:fs`, `node:path`, `node:crypto`, `node:os`.
 
 ## Key files and responsibilities
 
@@ -124,7 +124,7 @@ Handles `sync` WebSocket messages. Pure read — calls `kbStore.buildSyncData(wo
 ### `handlers/clear-handler.js`
 Handles `clear` WebSocket messages. Calls `kbStore.clearWorkspace(workspace)` to wipe all workspace content (source/, wiki/, registry), then sends back an empty `sync_result`. Pure filesystem operation — no pi process needed.
 
-### `adapters/pi-kb-store.js`
+### `adapters/pi-keb-store.js`
 Bridge-specific wrapper around pi-keb's `FilesystemStore`. Implements the bridge's `KbStore` port. Adds `buildSyncData()` (reads all summaries/concepts and builds the sync payload). Also exports `ensureWorkspace()` and `workspaceExists()` for the auth flow.
 
 ### `adapters/user-store-sqlite.js`
@@ -170,7 +170,7 @@ git clone --recurse-submodules https://github.com/auto-medica-labs/keb.git
 cd keb
 pnpm install
 pnpm build          # builds extension + landing page
-pnpm build:pi-kb    # compiles pi-keb standalone adapter
+pnpm build:pi-keb    # compiles pi-keb standalone adapter
 
 # Create .env from example (optional — defaults to local mode)
 cp packages/bridge/.env.example packages/bridge/.env
@@ -179,7 +179,7 @@ cp packages/bridge/.env.example packages/bridge/.env
 ### Day-to-day
 
 ```bash
-# Bridge dev (auto-restarts on file changes, builds pi-kb automatically)
+# Bridge dev (auto-restarts on file changes, builds pi-keb automatically)
 pnpm bridge:dev
 
 # Extension dev (Vite HMR)
@@ -193,7 +193,7 @@ pnpm lint
 pnpm format
 ```
 
-`pnpm bridge` and `pnpm bridge:dev` are defined in the root `package.json` and run `build:pi-kb` before starting the bridge. The bridge package itself has no `prestart`/`predev` hooks — the root orchestrates both steps.
+`pnpm bridge` and `pnpm bridge:dev` are defined in the root `package.json` and run `build:pi-keb` before starting the bridge. The bridge package itself has no `prestart`/`predev` hooks — the root orchestrates both steps.
 
 ### Before committing
 
@@ -206,7 +206,7 @@ pnpm format:check   # must pass (CI checks this)
 ### After touching pi-keb submodule or its build config
 
 ```bash
-pnpm build:pi-kb    # recompile standalone adapter
+pnpm build:pi-keb    # recompile standalone adapter
 ```
 
 ### Testing auth endpoints manually
@@ -335,21 +335,21 @@ In hosted mode, `workspace` is **ignored** from the client — the server enforc
 
 ```bash
 # Build
-docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+docker build -f packages/bridge/Dockerfile -t keb-bridge .
 
 # Run
 docker run -d \
-  --name chrome-kb-bridge \
+  --name keb-bridge \
   -p 9876:9876 \
   --env-file packages/bridge/.env \
   -v kb-data:/root/.pi/agent/kb \
-  chrome-kb-bridge
+  keb-bridge
 ```
 
 The Dockerfile has four stages:
 1. `pi-layer` — installs pi + pi-keb globally
 2. `deps-layer` — installs bridge npm deps (including TypeScript)
-3. `pi-kb-build` — compiles pi-keb standalone adapter to JS
+3. `pi-keb-build` — compiles pi-keb standalone adapter to JS
 4. `final` — minimal `node:22-slim` with production deps only
 
 `Caddyfile` provides a production reverse-proxy config for `api.mdevd.co/keb/v1`. It uses `handle_path /keb/v1*` to strip the path prefix before proxying to the bridge — this is critical so the bridge receives clean `/api/*` paths. **Note:** the pattern uses `/keb/v1*` (not `/keb/v1/*`) so the WebSocket root path `/keb/v1` (no trailing slash) matches. Caddy handles TLS and WebSocket upgrades automatically.
@@ -369,10 +369,10 @@ The bridge server itself is stateless — JWT verification uses only `JWT_SECRET
 ## Troubleshooting
 
 ### `Cannot find module '.../filesystem-store.js'`
-Run `pnpm build:pi-kb` to compile the submodule. This runs automatically via `pnpm bridge` but you may need to run it manually after a fresh clone.
+Run `pnpm build:pi-keb` to compile the submodule. This runs automatically via `pnpm bridge` but you may need to run it manually after a fresh clone.
 
 ### `MODULE_TYPELESS_PACKAGE_JSON` warning
-The compiled standalone output needs a `package.json` with `{"type":"module"}`. The `build:pi-kb` script creates this automatically.
+The compiled standalone output needs a `package.json` with `{"type":"module"}`. The `build:pi-keb` script creates this automatically.
 
 ### Port already in use
 ```bash

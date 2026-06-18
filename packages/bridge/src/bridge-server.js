@@ -32,7 +32,7 @@
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { log } from "./lib/utils.js";
-import { createPiKbStore } from "./adapters/pi-kb-store.js";
+import { createPiKbStore } from "./adapters/pi-keb-store.js";
 import { createSqliteUserStore } from "./adapters/user-store-sqlite.js";
 import { createAuthHandler } from "./handlers/auth-handler.js";
 import { spawnPi } from "./adapters/pi-rpc-spawner.js";

@@ -6,10 +6,10 @@ import { fileURLToPath } from "node:url";
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const root = resolve(__dirname, "..");
 
-const tsconfig = JSON.parse(readFileSync(resolve(root, "tsconfig.build-pi-kb.json"), "utf-8"));
+const tsconfig = JSON.parse(readFileSync(resolve(root, "tsconfig.build-pi-keb.json"), "utf-8"));
 const outDir = resolve(root, tsconfig.compilerOptions.outDir);
 
-execSync("tsc -p tsconfig.build-pi-kb.json", {
+execSync("tsc -p tsconfig.build-pi-keb.json", {
   cwd: root,
   stdio: "inherit",
 });

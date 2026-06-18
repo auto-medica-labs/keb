@@ -1,9 +1,9 @@
 # =============================================================================
-# Docker Compose — chrome-kb bridge + Caddy reverse proxy
+# Docker Compose — keb bridge + Caddy reverse proxy
 #
 # Quick start:
 #   1. cp .env.example .env   # fill in secrets
-#   2. docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+#   2. docker build -f packages/bridge/Dockerfile -t keb-bridge .
 #   3. docker compose -f packages/bridge/docker-compose.yml up -d
 #
 # Caddy handles TLS (Let's Encrypt) automatically and strips the
@@ -13,8 +13,8 @@
 
 services:
   bridge:
-    image: chrome-kb-bridge
-    container_name: chrome-kb-bridge
+    image: keb-bridge
+    container_name: keb-bridge
     restart: unless-stopped
     env_file:
       - .env
@@ -39,7 +39,7 @@ services:
 
   caddy:
     image: caddy:2-alpine
-    container_name: chrome-kb-caddy
+    container_name: keb-caddy
     restart: unless-stopped
     ports:
       - "80:80"
@@ -55,7 +55,7 @@ services:
     build:
       context: .
       dockerfile: packages/bridge/backup.Dockerfile
-    container_name: chrome-kb-backup
+    container_name: keb-backup
     restart: unless-stopped
     environment:
       - R2_ACCOUNT_ID=${R2_ACCOUNT_ID}

@@ -3,27 +3,27 @@
 // ---------------------------------------------------------------------------
 // Adapter: PiKbStore
 //
-// Wraps pi-kb's FilesystemStore (from the git submodule) to implement
+// Wraps pi-keb's FilesystemStore (from the git submodule) to implement
 // the bridge's KbStore port. The heavy lifting (registry reads, concept
-// parsing, workspace listing, etc.) lives in pi-kb. This adapter adds
+// parsing, workspace listing, etc.) lives in pi-keb. This adapter adds
 // only the bridge-specific `buildSyncData` method for the sync protocol.
 //
-// Requires pi-kb to be compiled first:
-//   npx tsc -p tsconfig.build-pi-kb.json
+// Requires pi-keb to be compiled first:
+//   npx tsc -p tsconfig.build-pi-keb.json
 // ---------------------------------------------------------------------------
 
-import { FilesystemStore } from "../../../pi-kb/dist/standalone/extensions/kb/adapters/filesystem-store.js";
+import { FilesystemStore } from "../../../pi-keb/dist/standalone/extensions/kb/adapters/filesystem-store.js";
 
 /** @type {FilesystemStore} */
 const store = new FilesystemStore();
 
 // ---------------------------------------------------------------------------
-// Re-export pi-kb workspace utilities for signup flow
+// Re-export pi-keb workspace utilities for signup flow
 // ---------------------------------------------------------------------------
 
 /**
  * Create a named workspace. Idempotent — returns false if already exists.
- * Delegates to pi-kb's FilesystemStore.ensureKbDir().
+ * Delegates to pi-keb's FilesystemStore.ensureKbDir().
  * @param {string} name - Workspace name (slugified username)
  * @returns {boolean} true if newly created, false if already existed
  */
@@ -45,7 +45,7 @@ export function workspaceExists(name) {
 // ---------------------------------------------------------------------------
 
 /**
- * Create a pi-kb-backed KbStore adapter.
+ * Create a pi-keb-backed KbStore adapter.
  * @returns {import('../ports/kb-store.js').KbStore}
  */
 export function createPiKbStore() {
@@ -107,7 +107,7 @@ export function createPiKbStore() {
       for (const name of summariesList) {
         const raw = store.readSummary(name, workspace);
         if (!raw) continue;
-        // Parse pi-kb summary frontmatter: source, date_added
+        // Parse pi-keb summary frontmatter: source, date_added
         let source = "",
           added = "",
           content = raw;

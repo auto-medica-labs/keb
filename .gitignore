@@ -3,7 +3,7 @@ dist/
 *PLAN.md
 *.zip
 dist/standalone/
-/packages/pi-kb/dist/
-!/packages/pi-kb/dist/standalone/package.json
+/packages/pi-keb/dist/
+!/packages/pi-keb/dist/standalone/package.json
 .env
 packages/bridge/.env

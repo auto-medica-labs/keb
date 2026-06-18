@@ -176,7 +176,7 @@ Add context menu:
 
 ```typescript
 chrome.contextMenus.create({
-  id: "kb-talk-page",
+  id: "keb-talk-page",
   title: "Talk with this page",
   contexts: ["page"],
 });
@@ -234,4 +234,4 @@ Side panel closes    ──► ws.on("close") → bridge kills child
 | `packages/extension/src/service-worker.ts` | Add "Talk with this page" context menu |
 | `packages/extension/public/manifest.json` | No changes needed |
 
-**Not changed:** `store.ts`, `AddPanel.tsx`, `QueryPanel.tsx`, `BrowsePanel.tsx`, `filesystem-kb-store.js`, `sync-handler.js`, `command-handler.js`, `add-content-handler.js`, `query-handler.js` — existing features untouched.
+**Not changed:** `store.ts`, `AddPanel.tsx`, `QueryPanel.tsx`, `BrowsePanel.tsx`, `filesystem-keb-store.js`, `sync-handler.js`, `command-handler.js`, `add-content-handler.js`, `query-handler.js` — existing features untouched.

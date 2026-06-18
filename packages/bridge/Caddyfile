@@ -1,5 +1,5 @@
 # =============================================================================
-# Caddyfile — reverse proxy for chrome-kb bridge
+# Caddyfile — reverse proxy for chrome-keb bridge
 #
 # Mounted at /etc/caddy/Caddyfile inside the caddy container.
 # Caddy auto-obtains Let's Encrypt certificates and handles WebSocket

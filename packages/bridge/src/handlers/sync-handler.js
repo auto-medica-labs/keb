@@ -3,7 +3,7 @@
 // ---------------------------------------------------------------------------
 // Handler: sync
 //
-// Processes 'sync' messages from the extension. Reads the entire KB
+// Processes 'sync' messages from the extension. Reads the entire Keb
 // state from disk (no pi process needed) and returns it as a snapshot.
 // ---------------------------------------------------------------------------
 
@@ -16,11 +16,11 @@ import { safeStringify, log } from "../lib/utils.js";
  * @param {object} opts
  * @param {import('ws').WebSocket} opts.ws       - Connected extension client
  * @param {string|undefined} opts.workspace       - Target workspace
- * @param {import('../ports/kb-store.js').KbStore} opts.kbStore - KB storage adapter
+ * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - Keb storage adapter
  * @returns {void}
  */
-export function handleSync({ ws, workspace, kbStore }) {
-  const data = kbStore.buildSyncData(workspace);
+export function handleSync({ ws, workspace, kebStore }) {
+  const data = kebStore.buildSyncData(workspace);
   ws.send(safeStringify({ type: "sync_result", data }));
   log(
     `sync: ${Object.keys(data.registry).length} docs, ${Object.keys(data.concepts).length} concepts`,

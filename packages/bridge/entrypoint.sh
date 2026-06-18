@@ -1,9 +1,9 @@
 #!/bin/sh
 # =============================================================================
-# Entrypoint for chrome-kb bridge container.
+# Entrypoint for keb bridge container.
 #
 # Generates pi config files from environment variables so that spawned
-# child pi processes (for /kb-add, /kb-query) have the credentials and
+# child pi processes (for /keb:add, /keb:query) have the credentials and
 # model selection they need.
 #
 # Primary (recommended) — custom provider via ~/.pi/agent/models.json:
@@ -36,7 +36,7 @@
 #   -v $HOME/.pi/agent/models.json:/root/.pi/agent/models.json:ro
 #   -v $HOME/.pi/agent/auth.json:/root/.pi/agent/auth.json:ro
 #   -v $HOME/.pi/agent/settings.json:/root/.pi/agent/settings.json:ro
-#   -v kb-data:/root/.pi/agent/kb
+#   -v keb-data:/root/.pi/agent/keb
 # =============================================================================
 
 set -e
@@ -174,9 +174,9 @@ NODESETTINGS
 fi
 
 # ---------------------------------------------------------------------------
-# 4. Ensure KB directory exists (for sync operations)
+# 4. Ensure Keb directory exists (for sync operations)
 # ---------------------------------------------------------------------------
-mkdir -p "${PI_AGENT_DIR}/kb"
+mkdir -p "${PI_AGENT_DIR}/keb"
 
 # ---------------------------------------------------------------------------
 # 5. Execute the bridge server

@@ -1,26 +1,26 @@
 # =============================================================================
-# Dockerfile for chrome-kb bridge
+# Dockerfile for keb bridge
 #
 # Build:
-#   docker build -f packages/bridge/Dockerfile -t chrome-kb-bridge .
+#   docker build -f packages/bridge/Dockerfile -t keb-bridge .
 #
 # Run (recommended: env file with custom provider — keeps secrets out of
 # shell history):
 #   cp .env.example .env   # fill in LLM_PROVIDER, LLM_BASE_URL, LLM_MODEL, etc.
 #   docker run -d \
-#     --name chrome-kb-bridge \
+#     --name keb-bridge \
 #     -p 9876:9876 \
 #     --env-file .env \
-#     -v kb-data:/root/.pi/agent/kb \
-#     chrome-kb-bridge
+#     -v keb-data:/root/.pi/agent/keb \
+#     keb-bridge
 #
 # Run (mount host pi config files directly):
 #   docker run -d \
-#     --name chrome-kb-bridge \
+#     --name keb-bridge \
 #     -p 9876:9876 \
 #     -v ~/.pi/agent/models.json:/root/.pi/agent/models.json:ro \
-#     -v kb-data:/root/.pi/agent/kb \
-#     chrome-kb-bridge
+#     -v keb-data:/root/.pi/agent/keb \
+#     keb-bridge
 #
 # Environment variables:
 #
@@ -54,7 +54,7 @@
 #                            LLM_* env vars when present)
 #   auth.json              — legacy: mount host's ~/.pi/agent/auth.json
 #   settings.json          — mount for additional settings overrides
-#   kb-data                — persistent volume for KB documents and user database
+#   keb-data                — persistent volume for Keb documents and user database
 #                            (recommended — stores both workspace content and
 #                            users.db with registered accounts)
 # =============================================================================
@@ -76,7 +76,7 @@ FROM base AS pi-layer
 ARG PI_VERSION=latest
 
 RUN npm install -g --ignore-scripts @earendil-works/pi-coding-agent@${PI_VERSION} && \
-    pi install git:github.com/dheerapat/pi-kb
+    pi install git:github.com/auto-medica-labs/pi-keb
 
 # ---------------------------------------------------------------------------
 # Bridge dependencies layer — install npm deps
@@ -88,25 +88,25 @@ WORKDIR /app
 # Copy only the bridge package manifest
 COPY packages/bridge/package.json /app/bridge/package.json
 
-# Install ALL dependencies (including devDeps like typescript for pi-kb build)
+# Install ALL dependencies (including devDeps like typescript for pi-keb build)
 WORKDIR /app/bridge
 RUN npm install
 
 # ---------------------------------------------------------------------------
-# pi-kb standalone build layer — compile adapter files
+# pi-keb standalone build layer — compile adapter files
 # ---------------------------------------------------------------------------
-FROM deps-layer AS pi-kb-build
+FROM deps-layer AS pi-keb-build
 
-# Copy the pi-kb source files needed for compilation (preserve dir structure)
-COPY packages/pi-kb/extensions /app/pi-kb/extensions
+# Copy the pi-keb source files needed for compilation (preserve dir structure)
+COPY packages/pi-keb/extensions /app/pi-keb/extensions
 
-# Copy the bridge's pi-kb build tsconfig
-COPY packages/bridge/tsconfig.build-pi-kb.json /app/bridge/tsconfig.build-pi-kb.json
+# Copy the bridge's pi-keb build tsconfig
+COPY packages/bridge/tsconfig.build-pi-keb.json /app/bridge/tsconfig.build-pi-keb.json
 
-# Compile pi-kb standalone adapter to JS
+# Compile pi-keb standalone adapter to JS
 WORKDIR /app/bridge
-RUN npx tsc -p tsconfig.build-pi-kb.json && \
-    node -e "require('fs').writeFileSync('../pi-kb/dist/standalone/package.json', JSON.stringify({type:'module'})+String.fromCharCode(10))"
+RUN npx tsc -p tsconfig.build-pi-keb.json && \
+    node -e "require('fs').writeFileSync('../pi-keb/dist/standalone/package.json', JSON.stringify({type:'module'})+String.fromCharCode(10))"
 
 # ---------------------------------------------------------------------------
 # Final stage — minimal runtime image
@@ -119,7 +119,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy pi CLI + pi-kb from the pi-layer
+# Copy pi CLI + pi-keb from the pi-layer
 COPY --from=pi-layer /usr/local/lib/node_modules/@earendil-works/pi-coding-agent \
     /usr/local/lib/node_modules/@earendil-works/pi-coding-agent
 # Don't COPY pi directly — it's a symlink in the pi-layer and Docker
@@ -128,8 +128,8 @@ COPY --from=pi-layer /usr/local/lib/node_modules/@earendil-works/pi-coding-agent
 # symlink manually so Node resolves imports relative to the package dir.
 RUN ln -sf ../lib/node_modules/@earendil-works/pi-coding-agent/dist/cli.js /usr/local/bin/pi
 
-# Copy pi-kb extension + installed packages manifest from the pi-layer.
-# pi-layer ran `pi install git:github.com/dheerapat/pi-kb` which cloned
+# Copy pi-keb extension + installed packages manifest from the pi-layer.
+# pi-layer ran `pi install git:github.com/auto-medica-labs/pi-keb` which cloned
 # the extension to ~/.pi/agent/git/ and wrote a settings.json with the
 # packages list. The entrypoint merges LLM_* or PI_DEFAULT_* env vars
 # into this settings.json to set defaultProvider/defaultModel.
@@ -141,8 +141,8 @@ COPY packages/bridge/package.json /app/bridge/package.json
 WORKDIR /app/bridge
 RUN npm install --omit=dev
 
-# Copy pi-kb compiled standalone output from pi-kb-build stage
-COPY --from=pi-kb-build /app/pi-kb/dist/standalone /app/pi-kb/dist/standalone
+# Copy pi-keb compiled standalone output from pi-keb-build stage
+COPY --from=pi-keb-build /app/pi-keb/dist/standalone /app/pi-keb/dist/standalone
 
 # Copy entrypoint and bridge source code
 COPY packages/bridge/entrypoint.sh /app/bridge/entrypoint.sh

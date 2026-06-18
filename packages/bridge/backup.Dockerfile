@@ -1,5 +1,5 @@
 # =============================================================================
-# backup.Dockerfile — Dedicated backup sidecar for chrome-kb bridge
+# backup.Dockerfile — Dedicated backup sidecar for chrome-keb bridge
 #
 # Lightweight Alpine image with rclone + dcron. Runs the backup-to-r2.sh
 # script daily at midnight Bangkok time (TZ=Asia/Bangkok).
@@ -8,7 +8,7 @@
 #   docker compose -f packages/bridge/docker-compose.yml build backup
 #
 # Or standalone:
-#   docker build -f packages/bridge/backup.Dockerfile -t chrome-kb-backup .
+#   docker build -f packages/bridge/backup.Dockerfile -t chrome-keb-backup .
 #
 # Run (for testing):
 #   docker run --rm \
@@ -16,8 +16,8 @@
 #     -e R2_ACCESS_KEY_ID=... \
 #     -e R2_SECRET_ACCESS_KEY=... \
 #     -e R2_BUCKET=keb-backups \
-#     -v ./data/kb:/data:ro \
-#     chrome-kb-backup \
+#     -v ./data/keb:/data:ro \
+#     chrome-keb-backup \
 #     /usr/local/bin/backup-to-r2.sh
 # =============================================================================
 

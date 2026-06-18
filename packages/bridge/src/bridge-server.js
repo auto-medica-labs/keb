@@ -16,7 +16,7 @@
  * Architecture (port & adapter):
  *   Ports          Adapters                Handlers
  *   ────────────   ─────────────────────   ─────────────────────
- *   KbStore   ←    FilesystemKbStore   ←   SyncHandler
+ *   KebStore   ←    FilesystemKebStore   ←   SyncHandler
  *   UserStore ←    JsonUserStore       ←   AuthHandler (HTTP, hosted only)
  *   (spawnPi) ←    PiRpcSpawner        ←   QueryHandler
  *                                      ←   CommandHandler
@@ -32,7 +32,7 @@
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { log } from "./lib/utils.js";
-import { createPiKbStore } from "./adapters/pi-kb-store.js";
+import { createPiKebStore } from "./adapters/pi-keb-store.js";
 import { createSqliteUserStore } from "./adapters/user-store-sqlite.js";
 import { createAuthHandler } from "./handlers/auth-handler.js";
 import { spawnPi } from "./adapters/pi-rpc-spawner.js";
@@ -142,13 +142,13 @@ const ADMIN_KEY = process.env.ADMIN_KEY || undefined;
 // Bootstrap adapters
 // ---------------------------------------------------------------------------
 
-/** @type {import('./ports/kb-store.js').KbStore} */
-const kbStore = createPiKbStore();
+/** @type {import('./ports/keb-store.js').KebStore} */
+const kebStore = createPiKebStore();
 
 /** @type {import('./ports/user-store.js').UserStore} */
 const userStore = createSqliteUserStore();
 
-const authHandler = createAuthHandler({ userStore, kbStore });
+const authHandler = createAuthHandler({ userStore, kebStore });
 
 // ---------------------------------------------------------------------------
 // Server: HTTP + WebSocket on same port
@@ -165,7 +165,7 @@ function startBridge(port, host) {
   const wss = new WebSocketServer({ noServer: true });
 
   // ── Status tracker ────────────────────────────────────────────
-  const statusTracker = new StatusTracker({ kbStore, mode: MODE, wss });
+  const statusTracker = new StatusTracker({ kebStore, mode: MODE, wss });
 
   // ── HTTP server ───────────────────────────────────────────────
   const httpServer = createServer(
@@ -228,7 +228,7 @@ function startBridge(port, host) {
   wss.on("connection", (ws) => {
     log(`🔗 Client connected`);
     new Connection(ws, {
-      kbStore,
+      kebStore,
       spawnPi,
       mode: MODE,
       maxDocuments: MAX_DOCUMENTS,

@@ -23,5 +23,5 @@
     "tailwindcss/no-deprecated-classes": "error",
     "tailwindcss/enforce-sort-order": "warn"
   },
-  "ignorePatterns": ["packages/pi-kb"]
+  "ignorePatterns": ["packages/pi-keb"]
 }

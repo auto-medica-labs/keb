@@ -6,7 +6,7 @@
 // Processes 'add-content' messages from the extension. The extension
 // captures a page's HTML via a content script and sends it here. We
 // convert HTML → Markdown using @kreuzberg/html-to-markdown-node, then
-// spawn pi with /kb-add-content to compile it into the knowledge base.
+// spawn pi with /keb:add:content to compile it into the knowledge base.
 // ---------------------------------------------------------------------------
 
 import { createRequire } from "node:module";
@@ -21,7 +21,7 @@ const { convert } = require("@kreuzberg/html-to-markdown-node");
 
 /**
  * Handle an 'add-content' request: convert the captured page HTML to
- * markdown, then spawn pi for /kb-add-content.
+ * markdown, then spawn pi for /keb:add:content.
  *
  * @param {object} opts
  * @param {import('ws').WebSocket} opts.ws          - Connected extension client
@@ -30,7 +30,7 @@ const { convert } = require("@kreuzberg/html-to-markdown-node");
  * @param {string} [opts.url]                        - Page URL for metadata
  * @param {string} [opts.title]                      - Page title for metadata
  * @param {string|undefined} opts.workspace          - Target workspace
- * @param {import('../ports/kb-store.js').KbStore} opts.kbStore - KB storage adapter
+ * @param {import('../ports/keb-store.js').KebStore} opts.kebStore - Keb storage adapter
  * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} opts.spawn - pi process spawner
  * @param {number} [opts.maxDocuments] - Document limit (hosted free tier)
  * @returns {import('node:child_process').ChildProcess|null} Spawned child
@@ -42,7 +42,7 @@ export function handleAddContent({
   url,
   title,
   workspace,
-  kbStore,
+  kebStore,
   spawn,
   maxDocuments,
 }) {
@@ -88,12 +88,12 @@ export function handleAddContent({
   const fullContent = header + markdownContent;
 
   log(
-    `add-content: converted ${(html.length / 1024).toFixed(1)}KB HTML → ${(markdownContent.length / 1024).toFixed(1)}KB markdown${title ? ` (${title.slice(0, 60)})` : ""}`,
+    `add-content: converted ${(html.length / 1024).toFixed(1)}KiB HTML → ${(markdownContent.length / 1024).toFixed(1)}KiB markdown${title ? ` (${title.slice(0, 60)})` : ""}`,
   );
 
   // ── 3. Document limit check (hosted free tier) ──────────────────
   if (maxDocuments != null) {
-    const docCount = kbStore.countDocuments(workspace);
+    const docCount = kebStore.countDocuments(workspace);
     if (docCount >= maxDocuments) {
       const message = `Free tier limit reached (${maxDocuments} documents). Upgrade to Standard for unlimited documents.`;
       log(`add-content: blocked (limit): ${docCount}/${maxDocuments} docs`);
@@ -108,10 +108,10 @@ export function handleAddContent({
     }
   }
 
-  // ── 4. Spawn pi with /kb-add-content ────────────────────────────
+  // ── 4. Spawn pi with /keb:add:content ────────────────────────────
   const prompt = workspace
-    ? `/kb-add-content -f -w ${workspace} ${fullContent}`
-    : `/kb-add-content -f ${fullContent}`;
+    ? `/keb:add:content -f -w ${workspace} ${fullContent}`
+    : `/keb:add:content -f ${fullContent}`;
 
   return spawn(prompt, "add", {
     operationId,

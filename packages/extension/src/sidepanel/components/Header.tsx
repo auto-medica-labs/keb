@@ -31,7 +31,7 @@ const statusColors: Record<ConnectionStatus, string> = {
   max_retries: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
 };
 
-const KB_WORKSPACES_KEY = "kb:workspaces";
+const KebWorkspacesKey = "keb:workspaces";
 
 export default function Header({
   connectionStatus,
@@ -87,7 +87,7 @@ export default function Header({
   useEffect(() => {
     if (mode === "hosted") return;
     const onChanged = (changes: Record<string, chrome.storage.StorageChange>, area: string) => {
-      if (area === "local" && changes[KB_WORKSPACES_KEY]) {
+      if (area === "local" && changes[KebWorkspacesKey]) {
         refreshWorkspaces();
       }
     };

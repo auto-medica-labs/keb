@@ -21,16 +21,16 @@ export default function AddPanel({ operations, connected, onAdd }: AddPanelProps
   // Listen for context menu URL
   useEffect(() => {
     const handler = () => {
-      const ctxUrl = localStorage.getItem("kb:context-url");
+      const ctxUrl = localStorage.getItem("keb:context-url");
       if (ctxUrl) {
         setUrl(ctxUrl);
-        localStorage.removeItem("kb:context-url");
+        localStorage.removeItem("keb:context-url");
         inputRef.current?.focus();
       }
     };
-    window.addEventListener("kb:context-url", handler);
+    window.addEventListener("keb:context-url", handler);
     handler();
-    return () => window.removeEventListener("kb:context-url", handler);
+    return () => window.removeEventListener("keb:context-url", handler);
   }, []);
 
   // Flash check icon when the last in-progress add finishes

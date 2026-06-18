@@ -1,6 +1,6 @@
 // lib/ws.ts — WebSocket client for the bridge server
 //
-// Manages the WebSocket connection to the pi-kb bridge server,
+// Manages the WebSocket connection to the keb bridge server,
 // handling reconnection, message routing, and typed events.
 //
 // Supports two modes:
@@ -224,7 +224,7 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "add", operationId: id, url })) {
-      callbacks.onError("Not connected to KB bridge");
+      callbacks.onError("Not connected to Keb bridge");
       this.operations.delete(id);
     }
     return id;
@@ -233,7 +233,7 @@ export class WSClient {
   /**
    * Start an 'add-content' operation (captured page HTML).
    * Sends raw page HTML to the bridge, which converts it to markdown
-   * and compiles it via /kb-add-content.
+   * and compiles it via /keb:add:content.
    * @param operationId - Optional pre-generated ID.
    */
   addContent(
@@ -246,7 +246,7 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "add-content", operationId: id, html, url, title })) {
-      callbacks.onError("Not connected to KB bridge");
+      callbacks.onError("Not connected to Keb bridge");
       this.operations.delete(id);
     }
     return id;
@@ -260,7 +260,7 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "query", operationId: id, text })) {
-      callbacks.onError("Not connected to KB bridge");
+      callbacks.onError("Not connected to Keb bridge");
       this.operations.delete(id);
     }
     return id;
@@ -274,7 +274,7 @@ export class WSClient {
     const id = operationId || nanoid();
     this.operations.set(id, callbacks);
     if (!this._send({ type: "repair", operationId: id })) {
-      callbacks.onError("Not connected to KB bridge");
+      callbacks.onError("Not connected to Keb bridge");
       this.operations.delete(id);
     }
     return id;

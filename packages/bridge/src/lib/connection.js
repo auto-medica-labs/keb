@@ -27,8 +27,8 @@ export class Connection {
   /** @type {import('ws').WebSocket} */
   #ws;
 
-  /** @type {import('../ports/kb-store.js').KbStore} */
-  #kbStore;
+  /** @type {import('../ports/keb-store.js').KebStore} */
+  #kebStore;
 
   /** @type {import('../adapters/pi-rpc-spawner.js').spawnPi} */
   #spawnPi;
@@ -57,16 +57,16 @@ export class Connection {
   /**
    * @param {import('ws').WebSocket} ws
    * @param {object} deps
-   * @param {import('../ports/kb-store.js').KbStore} deps.kbStore
+   * @param {import('../ports/keb-store.js').KebStore} deps.kebStore
    * @param {import('../adapters/pi-rpc-spawner.js').spawnPi} deps.spawnPi
    * @param {'local' | 'hosted'} deps.mode
    * @param {number|undefined} deps.maxDocuments
    * @param {import('./status-tracker.js').StatusTracker} deps.statusTracker
    * @param {Set<import('node:child_process').ChildProcess>} deps.childProcesses
    */
-  constructor(ws, { kbStore, spawnPi, mode, maxDocuments, statusTracker, childProcesses }) {
+  constructor(ws, { kebStore, spawnPi, mode, maxDocuments, statusTracker, childProcesses }) {
     this.#ws = ws;
-    this.#kbStore = kbStore;
+    this.#kebStore = kebStore;
     this.#spawnPi = spawnPi;
     this.#mode = mode;
     this.#maxDocuments = maxDocuments;
@@ -158,7 +158,7 @@ export class Connection {
           operationId,
           url: msg.url,
           workspace,
-          kbStore: this.#kbStore,
+          kebStore: this.#kebStore,
           spawn: this.#spawnPi,
           maxDocuments: this.#maxDocuments,
         });
@@ -171,7 +171,7 @@ export class Connection {
           ws: this.#ws,
           operationId,
           workspace,
-          kbStore: this.#kbStore,
+          kebStore: this.#kebStore,
           spawn: this.#spawnPi,
         });
         this.#trySpawnChild(child, operationId, "repair", workspace);
@@ -197,7 +197,7 @@ export class Connection {
           url: msg.url,
           title: msg.title,
           workspace,
-          kbStore: this.#kbStore,
+          kebStore: this.#kebStore,
           spawn: this.#spawnPi,
           maxDocuments: this.#maxDocuments,
         });
@@ -227,7 +227,7 @@ export class Connection {
       // ── Sync action (pure read, no pi needed) ───────────────
       case "sync": {
         try {
-          handleSync({ ws: this.#ws, workspace, kbStore: this.#kbStore });
+          handleSync({ ws: this.#ws, workspace, kebStore: this.#kebStore });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           this.#ws.send(safeStringify({ type: "error", message: `Sync failed: ${message}` }));
@@ -239,7 +239,7 @@ export class Connection {
       // ── Clear action (pure write, no pi needed) ──────────────
       case "clear": {
         try {
-          handleClear({ ws: this.#ws, workspace, kbStore: this.#kbStore });
+          handleClear({ ws: this.#ws, workspace, kebStore: this.#kebStore });
         } catch (err) {
           const message = err instanceof Error ? err.message : String(err);
           this.#ws.send(safeStringify({ type: "error", message: `Clear failed: ${message}` }));

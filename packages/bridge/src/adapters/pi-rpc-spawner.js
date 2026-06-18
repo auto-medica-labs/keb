@@ -81,7 +81,7 @@ const AGENT_EVENT_TYPES = new Set([
  * child process is killed. This catches cases like URL fetch failures
  * where pi never starts an agent turn.
  *
- * @param {string} promptText - The pi prompt to execute (e.g. "/kb-add https://...")
+ * @param {string} promptText - The pi prompt to execute (e.g. "/keb:add https://...")
  * @param {'add'|'query'|'repair'} command - Operation type (used for logging)
  * @param {SpawnCallbacks & { operationId?: string }} callbacks - Output wiring + optional operationId
  * @returns {import('node:child_process').ChildProcess} The spawned child process

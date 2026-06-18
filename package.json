@@ -6,14 +6,14 @@
   "scripts": {
     "build": "pnpm --filter @keb/extension --filter @keb/landing build",
     "build:local": "VITE_HOSTED_BRIDGE_URL=ws://127.0.0.1:19876 pnpm --filter @keb/extension build",
-    "build:pi-kb": "pnpm --filter @keb/bridge build:pi-kb",
-    "typecheck": "pnpm --filter './packages/*' --filter '!./packages/pi-kb' typecheck",
+    "build:pi-keb": "pnpm --filter @keb/bridge build:pi-keb",
+    "typecheck": "pnpm --filter './packages/*' --filter '!./packages/pi-keb' typecheck",
     "preview": "pnpm --filter @keb/extension preview",
-    "bridge": "pnpm --filter @keb/bridge build:pi-kb && pnpm --filter @keb/bridge start",
-    "bridge:dev": "pnpm --filter @keb/bridge build:pi-kb && pnpm --filter @keb/bridge dev",
+    "bridge": "pnpm --filter @keb/bridge build:pi-keb && pnpm --filter @keb/bridge start",
+    "bridge:dev": "pnpm --filter @keb/bridge build:pi-keb && pnpm --filter @keb/bridge dev",
     "lint": "oxlint",
-    "format": "oxfmt --write packages",
-    "format:check": "oxfmt --check packages"
+    "format": "oxfmt --write --ignore-path=.oxfmtignore packages",
+    "format:check": "oxfmt --check --ignore-path=.oxfmtignore packages"
   },
   "devDependencies": {
     "oxfmt": "^0.51.0",

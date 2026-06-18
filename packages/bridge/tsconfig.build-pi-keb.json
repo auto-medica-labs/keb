@@ -10,12 +10,12 @@
     "declaration": true,
     "declarationMap": false,
     "sourceMap": false,
-    "rootDir": "../pi-kb",
-    "outDir": "../pi-kb/dist/standalone"
+    "rootDir": "../pi-keb",
+    "outDir": "../pi-keb/dist/standalone"
   },
   "include": [
-    "../pi-kb/extensions/kb/adapters/filesystem-store.ts",
-    "../pi-kb/extensions/kb/ports/types.ts",
-    "../pi-kb/extensions/kb/utils.ts"
+    "../pi-keb/extensions/keb/adapters/filesystem-store.ts",
+    "../pi-keb/extensions/keb/ports/types.ts",
+    "../pi-keb/extensions/keb/utils.ts"
   ]
 }

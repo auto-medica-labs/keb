@@ -64,7 +64,7 @@ export function isUrl(str) {
 /**
  * Check if a normalized URL is already in a registry.
  * @param {string} url - Raw URL
- * @param {import('../ports/kb-store.js').Registry} registry
+ * @param {import('../ports/keb-store.js').Registry} registry
  * @returns {boolean}
  */
 export function isUrlInRegistry(url, registry) {
@@ -75,8 +75,8 @@ export function isUrlInRegistry(url, registry) {
 /**
  * Find a registry entry by URL (normalized comparison).
  * @param {string} url - Raw URL
- * @param {import('../ports/kb-store.js').Registry} registry
- * @returns {import('../ports/kb-store.js').RegistryEntry|null}
+ * @param {import('../ports/keb-store.js').Registry} registry
+ * @returns {import('../ports/keb-store.js').RegistryEntry|null}
  */
 export function findByUrl(url, registry) {
   const normalized = normalizeUrl(url);

@@ -1,34 +1,34 @@
 // @ts-check
 
 // ---------------------------------------------------------------------------
-// Adapter: PiKbStore
+// Adapter: PiKebStore
 //
-// Wraps pi-kb's FilesystemStore (from the git submodule) to implement
-// the bridge's KbStore port. The heavy lifting (registry reads, concept
-// parsing, workspace listing, etc.) lives in pi-kb. This adapter adds
+// Wraps pi-keb's FilesystemStore (from the git submodule) to implement
+// the bridge's KebStore port. The heavy lifting (registry reads, concept
+// parsing, workspace listing, etc.) lives in pi-keb. This adapter adds
 // only the bridge-specific `buildSyncData` method for the sync protocol.
 //
-// Requires pi-kb to be compiled first:
-//   npx tsc -p tsconfig.build-pi-kb.json
+// Requires pi-keb to be compiled first:
+//   npx tsc -p tsconfig.build-pi-keb.json
 // ---------------------------------------------------------------------------
 
-import { FilesystemStore } from "../../../pi-kb/dist/standalone/extensions/kb/adapters/filesystem-store.js";
+import { FilesystemStore } from "../../../pi-keb/dist/standalone/extensions/keb/adapters/filesystem-store.js";
 
 /** @type {FilesystemStore} */
 const store = new FilesystemStore();
 
 // ---------------------------------------------------------------------------
-// Re-export pi-kb workspace utilities for signup flow
+// Re-export pi-keb workspace utilities for signup flow
 // ---------------------------------------------------------------------------
 
 /**
  * Create a named workspace. Idempotent — returns false if already exists.
- * Delegates to pi-kb's FilesystemStore.ensureKbDir().
+ * Delegates to pi-keb's FilesystemStore.ensureKebDir().
  * @param {string} name - Workspace name (slugified username)
  * @returns {boolean} true if newly created, false if already existed
  */
 export function ensureWorkspace(name) {
-  return store.ensureKbDir(name);
+  return store.ensureKebDir(name);
 }
 
 /**
@@ -41,14 +41,14 @@ export function workspaceExists(name) {
 }
 
 // ---------------------------------------------------------------------------
-// Public factory — KbStore port
+// Public factory — KebStore port
 // ---------------------------------------------------------------------------
 
 /**
- * Create a pi-kb-backed KbStore adapter.
- * @returns {import('../ports/kb-store.js').KbStore}
+ * Create a pi-keb-backed KebStore adapter.
+ * @returns {import('../ports/keb-store.js').KebStore}
  */
-export function createPiKbStore() {
+export function createPiKebStore() {
   return {
     readRegistry(workspace) {
       return store.readRegistry(workspace);
@@ -90,7 +90,7 @@ export function createPiKbStore() {
     },
 
     ensureWorkspace(name) {
-      return store.ensureKbDir(name);
+      return store.ensureKebDir(name);
     },
 
     clearWorkspace(workspace) {
@@ -102,12 +102,12 @@ export function createPiKbStore() {
       const summariesList = store.listSummaries(workspace);
       const conceptsList = store.listConcepts(workspace);
 
-      /** @type {Object<string, import('../ports/kb-store.js').SummaryEntry>} */
+      /** @type {Object<string, import('../ports/keb-store.js').SummaryEntry>} */
       const summaries = {};
       for (const name of summariesList) {
         const raw = store.readSummary(name, workspace);
         if (!raw) continue;
-        // Parse pi-kb summary frontmatter: source, date_added
+        // Parse pi-keb summary frontmatter: source, date_added
         let source = "",
           added = "",
           content = raw;
@@ -134,7 +134,7 @@ export function createPiKbStore() {
         summaries[name] = { content, source, added };
       }
 
-      /** @type {Object<string, import('../ports/kb-store.js').ConceptPage>} */
+      /** @type {Object<string, import('../ports/keb-store.js').ConceptPage>} */
       const concepts = {};
       for (const slug of conceptsList) {
         const c = store.readConcept(slug, workspace);

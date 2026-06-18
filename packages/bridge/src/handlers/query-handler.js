@@ -4,7 +4,7 @@
 // Handler: query
 //
 // Processes 'query' messages from the extension. Spawns a pi child
-// process for `/kb-query` and wires stdout/stderr back to the WebSocket.
+// process for `/keb:query` and wires stdout/stderr back to the WebSocket.
 // ---------------------------------------------------------------------------
 
 import { safeStringify } from "../lib/utils.js";
@@ -21,7 +21,7 @@ import { safeStringify } from "../lib/utils.js";
  * @returns {import('node:child_process').ChildProcess} The spawned child
  */
 export function handleQuery({ ws, operationId, text, workspace, spawn }) {
-  const prompt = workspace ? `/kb-query -w ${workspace} ${text}` : `/kb-query ${text}`;
+  const prompt = workspace ? `/keb:query -w ${workspace} ${text}` : `/keb:query ${text}`;
 
   return spawn(prompt, "query", {
     operationId,

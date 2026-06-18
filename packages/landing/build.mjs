@@ -77,7 +77,7 @@ console.log(`\nDone! Build output: ${DIST}/`);
 // --- summary ---
 async function size(path) {
   const s = await stat(path);
-  return (s.size / 1024).toFixed(1) + " KB";
+  return (s.size / 1024).toFixed(1) + " KiB";
 }
 
 const PAGE_FILES = ["index.html", "privacy.html", "how-to-use.html"];

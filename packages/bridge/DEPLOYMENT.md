@@ -111,7 +111,7 @@ api.mdevd.co {
     handle_path /keb/v1/* {
         reverse_proxy bridge:9876 {
             transport http {
-                read_timeout 120s
+                read_timeout 240s
             }
         }
     }
@@ -121,8 +121,8 @@ api.mdevd.co {
 Key behaviors:
 
 - **Auto TLS** — Caddy obtains Let's Encrypt certificates automatically
-- **Path stripping** — `/keb/v1/api/signup` → `/api/signup` to the bridge
-- **120s timeout** — LLM compilation can take 30–90 seconds
+- **Path stripping** — `/keb/v1/api/signup` → `/api/signup`, `/keb/v1/ws` → `/ws` to the bridge
+- **240s timeout** — LLM compilation can take 30–90 seconds
 - **WebSocket upgrade** — Handled automatically by Caddy
 
 ## Step 6 — Start with Docker Compose
@@ -214,7 +214,7 @@ curl -X POST https://api.mdevd.co/keb/v1/api/login \
 ```bash
 npm install -g wscat
 
-wscat -c wss://api.mdevd.co/keb/v1/
+wscat -c wss://api.mdevd.co/keb/v1/ws
 # Connected (press CTRL+C to quit)
 
 # Send auth message:
@@ -224,7 +224,7 @@ wscat -c wss://api.mdevd.co/keb/v1/
 
 ### Extension
 
-The Keb Chrome extension in hosted mode connects to `wss://api.mdevd.co/keb/v1` (build-time constant in `packages/extension/lib/env.ts`). If deploying to a different domain, rebuild the extension with:
+The Keb Chrome extension in hosted mode uses `wss://api.mdevd.co/keb/v1` as the base bridge URL (build-time constant in `packages/extension/lib/env.ts`) and connects to `/ws` automatically. If deploying to a different domain, rebuild the extension with:
 
 ```bash
 VITE_HOSTED_BRIDGE_URL=wss://your-domain.com/keb/v1 pnpm build
@@ -409,12 +409,12 @@ Upgrading replaces the bridge container with a freshly built image while keeping
 
 ### When to upgrade
 
-| Trigger                          | What changed                                              |
-| -------------------------------- | --------------------------------------------------------- |
-| Bridge code updated (`git pull`) | New bridge features, bug fixes, handlers, adapters        |
+| Trigger                          | What changed                                               |
+| -------------------------------- | ---------------------------------------------------------- |
+| Bridge code updated (`git pull`) | New bridge features, bug fixes, handlers, adapters         |
 | pi-keb submodule updated         | Keb extension improvements, new compile prompts, bug fixes |
-| `.env` config changed            | New env vars, LLM provider/model switch, mode change      |
-| Base image security patches      | OS-level or Node.js runtime updates                       |
+| `.env` config changed            | New env vars, LLM provider/model switch, mode change       |
+| Base image security patches      | OS-level or Node.js runtime updates                        |
 
 For **config-only changes** (`.env` edits, no code changes), skip the build step — just recreate the container:
 

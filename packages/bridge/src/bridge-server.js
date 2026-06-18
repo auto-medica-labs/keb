@@ -219,6 +219,11 @@ function startBridge(port, host) {
 
   // ── WebSocket upgrade handling ───────────────────────────────
   httpServer.on("upgrade", (request, socket, head) => {
+    if (request.url !== "/ws") {
+      socket.write("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
+      socket.destroy();
+      return;
+    }
     wss.handleUpgrade(request, socket, head, (ws) => {
       wss.emit("connection", ws, request);
     });
@@ -258,7 +263,7 @@ function startBridge(port, host) {
     } else {
       log(`   Mode:  local (no auth)`);
     }
-    log(`   WS:    ws://${host}:${port}`);
+    log(`   WS:    ws://${host}:${port}/ws`);
     log(`   Press Ctrl+C to stop.`);
   });
 }

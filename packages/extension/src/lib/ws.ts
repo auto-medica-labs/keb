@@ -96,6 +96,16 @@ export interface WSClientConfig {
 
 const DEFAULT_BRIDGE_URL = "ws://127.0.0.1:9876";
 const BASE_RECONNECT_DELAY = 2000;
+
+/**
+ * Ensure a bridge base URL ends with `/ws` for WebSocket connections.
+ * Handles trailing slashes and avoids double `/ws`.
+ */
+function normalizeWsUrl(url: string): string {
+  const trimmed = url.replace(/\/+$/, "");
+  if (trimmed.endsWith("/ws")) return trimmed;
+  return `${trimmed}/ws`;
+}
 const MAX_RECONNECT_RETRIES = 3;
 
 export class WSClient {
@@ -163,7 +173,7 @@ export class WSClient {
     this.authComplete = false;
     this.callbacks.onStatusChange("connecting");
 
-    this.ws = new WebSocket(this.bridgeUrl);
+    this.ws = new WebSocket(normalizeWsUrl(this.bridgeUrl));
 
     this.ws.onopen = () => {
       console.log("[keb] WS connected");

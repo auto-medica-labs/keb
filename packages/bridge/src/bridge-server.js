@@ -32,7 +32,7 @@
 import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { log } from "./lib/utils.js";
-import { createPiKbStore } from "./adapters/pi-keb-store.js";
+import { createPiKebStore } from "./adapters/pi-keb-store.js";
 import { createSqliteUserStore } from "./adapters/user-store-sqlite.js";
 import { createAuthHandler } from "./handlers/auth-handler.js";
 import { spawnPi } from "./adapters/pi-rpc-spawner.js";
@@ -143,7 +143,7 @@ const ADMIN_KEY = process.env.ADMIN_KEY || undefined;
 // ---------------------------------------------------------------------------
 
 /** @type {import('./ports/kb-store.js').KbStore} */
-const kbStore = createPiKbStore();
+const kbStore = createPiKebStore();
 
 /** @type {import('./ports/user-store.js').UserStore} */
 const userStore = createSqliteUserStore();

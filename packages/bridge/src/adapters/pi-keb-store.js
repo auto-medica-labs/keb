@@ -1,7 +1,7 @@
 // @ts-check
 
 // ---------------------------------------------------------------------------
-// Adapter: PiKbStore
+// Adapter: PiKebStore
 //
 // Wraps pi-keb's FilesystemStore (from the git submodule) to implement
 // the bridge's KbStore port. The heavy lifting (registry reads, concept
@@ -48,7 +48,7 @@ export function workspaceExists(name) {
  * Create a pi-keb-backed KbStore adapter.
  * @returns {import('../ports/kb-store.js').KbStore}
  */
-export function createPiKbStore() {
+export function createPiKebStore() {
   return {
     readRegistry(workspace) {
       return store.readRegistry(workspace);

@@ -66,7 +66,7 @@ The bridge follows the same port/adapter architecture as pi-keb:
 
 | Port | Adapter (today) | Swappable to |
 |---|---|---|
-| `KbStore` (kb read/workspace ops) | `PiKbStore` → pi-keb's `FilesystemStore` | — |
+| `KbStore` (kb read/workspace ops) | `PiKebStore` → pi-keb's `FilesystemStore` | — |
 | `UserStore` (user credentials) | `SqliteUserStore` (SQLite) | PostgreSQL |
 | (spawnPi) | `PiRpcSpawner` → spawns `pi --mode rpc` | — |
 

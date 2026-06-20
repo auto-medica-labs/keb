@@ -236,110 +236,69 @@ OKF §7 defines an optional `log.md` at any level. On `ensureKebDir()`, `wiki/lo
 
 ## 5. Layer-by-Layer Implementation Plan
 
-### Layer 1: pi-keb FilesystemStore (`packages/pi-keb/extensions/keb/`)
+### ✅ Layer 1: pi-keb FilesystemStore (`packages/pi-keb/extensions/keb/`) — COMPLETE
 
 #### 5.1 Frontmatter helpers
 
-Add pure functions to `utils.ts`:
+Added `buildOkfFrontmatter()` and `parseOkfFrontmatter()` to `utils.ts`:
 
-```typescript
-function buildOkfFrontmatter(fields: Record<string, any>): string
-function parseOkfFrontmatter(raw: string): { frontmatter: Record<string, any>, body: string }
-```
-
-These are format-aware but side-effect-free. They handle:
-- `---` delimiters
-- Required `type` field (validate presence)
-- All string values **always quoted** to avoid YAML parsing issues with colons, asterisks, etc.
-- Serialization/deserialization of YAML lists (`tags`, `keb_sources`)
-- Boolean values unquoted
+- `buildOkfFrontmatter(fields)` — serializes key-value map into `---`-delimited YAML. All string values double-quoted (avoids YAML edge cases), arrays as inline `[val1, val2]`, booleans unquoted, null/undefined skipped.
+- `parseOkfFrontmatter(raw)` — parses `---`-delimited frontmatter block, returns `{ frontmatter, body }`. Handles arrays, booleans, quoted strings.
 
 #### 5.2 Changes in `filesystem-store.ts`
 
 | Method | Change |
 |---|---|
-| `writeSummary()` | Emit OKF frontmatter (`type: Summary`, `timestamp`, `keb_name`, `keb_source`, plus optional `title`, `description`, `resource`, `tags`). **No footer.** |
-| `readSummary()` | Parse OKF frontmatter, return body without frontmatter. |
-| `writeConcept()` | Emit OKF frontmatter (`type: Concept`, `timestamp`, `keb_name`, `keb_sources`, `keb_needs_review`, plus optional `title`, `description`, `tags`). **No footer.** |
-| `readConcept()` | Parse OKF frontmatter, return `ConceptInfo` with `title`/`description`/`tags` populated. |
-| `writeIndex()` | Generate OKF-style `index.md` with standard markdown links. |
-| `ensureKebDir()` | Also create `wiki/log.md` with initial entry. |
-| **Remove:** `syncSummaryFooters()` | Dead — no footers to sync. |
-| **Remove:** `extractConceptLinks()` | Dead. |
-| **Remove:** `buildSummaryFooter()` | Dead. |
-| **Remove:** `buildConceptFooter()` | Dead. |
-| **Remove:** `export { syncSummaryFooters }` | No longer needed by tools.ts. |
+| `writeSummary()` | Emits OKF frontmatter (`type: Summary`, `timestamp`, `keb_name`, `keb_source`, plus optional `title`, `description`, `resource`, `tags`). **No footer.** |
+| `readSummary()` | **Unchanged** — still returns raw file content (frontmatter included). Bridge parses frontmatter in Phase 2; LLM reads raw content via tool. |
+| `writeConcept()` | Emits OKF frontmatter (`type: Concept`, `timestamp`, `keb_name`, `keb_sources`, `keb_needs_review`, plus optional `title`, `description`, `tags`). **No footer.** |
+| `readConcept()` | Uses `parseOkfFrontmatter`. Returns `ConceptInfo` with `title`/`description`/`tags` populated from frontmatter. **No footer stripping.** |
+| `ensureKebDir()` | Also creates `wiki/log.md` with initial entry (`# Workspace Update Log`). |
+| **Removed** | `syncSummaryFooters()`, `extractConceptLinks()`, `buildSummaryFooter()`, `buildConceptFooter()`, `extractDocNameFromSource()`, `export { syncSummaryFooters }` |
 
 #### 5.3 Changes in `tools.ts`
 
 | Tool | Change |
 |---|---|
-| `keb_write_summary` | Accept optional `title`, `description`, `tags` params. Pass to `store.writeSummary()`. |
-| `keb_write_concept` | Accept optional `title`, `description`, `tags` params. Pass to `store.writeConcept()`. |
-| `keb_update_concept` | Same — accept optional OKF fields, pass through on write. |
-| `keb_update_index` | Generate OKF-style index (standard markdown links). **Remove** `syncSummaryFooters()` import and call. Update `parseIndexBriefs()` to parse `[text](/summaries/foo.md)` links. |
-| `keb_read_concept` | Show `title`, `tags` in output header alongside sources. |
+| `keb_write_summary` | Accepts optional `title`, `description`, `tags` params. Passed to `store.writeSummary()` as `okfFields`. |
+| `keb_write_concept` | Accepts optional `title`, `description`, `tags` params. Passed to `store.writeConcept()` as `okfFields`. |
+| `keb_update_concept` | Accepts optional OKF fields. Merges with existing concept's fields (new overrides old). Passes preserved fields on write. |
+| `keb_update_index` | Generates OKF-style index: `[slug](/summaries/slug.md) — brief`. **Removed** `syncSummaryFooters()` import and call. Updated `parseIndexBriefs()` regex for standard markdown links. |
+| `keb_read_concept` | Shows `title`, `tags` in output header alongside sources. |
 | `keb_set_docname` | No change. |
 
 #### 5.4 Changes in `prompts.ts`
 
-- Replace all `[[wiki-link]]` references with standard markdown: `/concepts/foo.md`, `/summaries/bar.md`
-- Add: "Use standard markdown links: `[text](/concepts/foo.md)`"
-- Add: "Include a brief `description` in the frontmatter — it feeds the index"
-- Add: "Use `tags` for cross-cutting categorization"
-- Remove: "Do NOT write footer sections — they are generated automatically"
-- `buildQueryPrompt`: Change "NEVER use [[wiki-links]]" → "Use standard markdown links"
-- `buildRemovePrompt`: Change "never [[wiki-links]]" → "Use standard markdown links"
+- All `[[wiki-link]]` references replaced with standard markdown: `/concepts/foo.md`, `/summaries/bar.md`
+- Added: "Use standard markdown links"
+- Added: "Include a brief `description` in the frontmatter"
+- Added: "Use `tags` for cross-cutting categorization"
+- Removed: "Do NOT write footer sections — they are generated automatically"
+- `buildQueryPrompt`: "NEVER use [[wiki-links]]" → "Use standard markdown links"
+- `buildRemovePrompt`: "never [[wiki-links]]" → "Use standard markdown links"
 
 #### 5.5 Changes in `commands/queries.ts`
 
-- `/keb:list` output: change `[[summary/${name}]]` and `[[concept/${slug}]]` to backtick format: `` `summary/${name}` ``, `` `concept/${slug}` `` (terminal notification output, not a file on disk).
+- `/keb:list` output: `[[summary/${name}]]` → `` `summary/${name}` ``, `[[concept/${slug}]]` → `` `concept/${slug}` ``
 
 #### 5.6 Type changes in `ports/types.ts`
 
-```typescript
-export interface ConceptInfo {
-  slug: string;
-  sources: string[];
-  dateAdded?: string;
-  needsReview: boolean;
-  body: string;
-  // OKF fields (optional, populated from frontmatter)
-  title?: string;
-  description?: string;
-  tags?: string[];
-}
-```
-
-`writeSummary` signature update:
-```typescript
-writeSummary(
-  docName: string, content: string, originalName: string, addedAt: string,
-  workspace?: string,
-  okfFields?: { title?: string; description?: string; resource?: string; tags?: string[] }
-): void;
-```
-
-`writeConcept` signature update:
-```typescript
-writeConcept(
-  slug: string, content: string, sources: string[],
-  workspace?: string, needsReview?: boolean,
-  okfFields?: { title?: string; description?: string; tags?: string[] }
-): void;
-```
+- `ConceptInfo` gained `title?`, `description?`, `tags?`
+- `writeSummary()` gained optional `okfFields` param
+- `writeConcept()` gained optional `okfFields` param
 
 #### 5.7 Test changes in `tools.test.ts`
 
-- Remove `import { syncSummaryFooters }` (no longer exported)
-- Remove `describe("syncSummaryFooters")` block entirely
-- `writeSummary` tests: stop asserting footer presence (`**Concepts**`, `[[concept/...]]`). Assert OKF frontmatter instead (`type: Summary`, `timestamp`, `keb_name`).
-- `writeConcept` tests: stop asserting footer presence (`**Sources**`, `[[summary/...]]`). Assert OKF frontmatter instead (`type: Concept`, `keb_name`, `keb_sources`, `keb_needs_review`).
-- `updateConcept` tests: stop asserting footer content.
+- Removed `import { syncSummaryFooters }`
+- Removed `describe("syncSummaryFooters")` block
+- `writeSummary` tests: assert OKF frontmatter (`type: Summary`, `keb_name`, `keb_source`, `timestamp`), assert absence of `**Concepts**` footer
+- `writeConcept` tests: assert OKF frontmatter (`type: Concept`, `keb_name`, `keb_sources`, `keb_needs_review`), assert absence of `**Sources**` footer
+- Added tests for optional OKF fields (`title`, `description`, `tags`)
+- All **9 tests pass**, TypeScript compiles cleanly
 
-### Layer 2: Bridge (`packages/bridge/src/`)
+### 🔜 Layer 2: Bridge (`packages/bridge/src/`)
 
-#### 5.8 `adapters/pi-keb-store.js`
+#### 5.8 `adapters/pi-keb-store.js` — NOT STARTED
 
 `buildSyncData()` currently parses custom frontmatter to extract `source` and `added` for summaries, and `sources`, `updated` for concepts. Update to parse OKF keys:
 
@@ -351,9 +310,9 @@ writeConcept(
 
 **No legacy fallback** — all workspaces are fresh OKF format. No handler changes needed (they call `spawnPi` which communicates with pi-keb internally).
 
-### Layer 3: Chrome Extension (`packages/extension/src/`)
+### 🔜 Layer 3: Chrome Extension (`packages/extension/src/`)
 
-#### 5.9 `lib/store.ts`
+#### 5.9 `lib/store.ts` — NOT STARTED
 
 Add optional fields to `Summary` and `Concept` interfaces:
 
@@ -377,7 +336,7 @@ export interface Concept {
 }
 ```
 
-#### 5.10 `sidepanel/components/BrowsePanel.tsx`
+#### 5.10 `sidepanel/components/BrowsePanel.tsx` — NOT STARTED
 
 - Simplify `stripFrontmatterAndFooter()` → `stripFrontmatter()`: remove the footer-strip patterns (`**Concepts**`, `**Sources**`, etc.) — OKF files have no footers.
 - Optional: show `title` and `tags` as badges in the detail view.
@@ -386,22 +345,24 @@ export interface Concept {
 
 ## 6. Phasing
 
-### Phase 1 — pi-keb format layer (Layer 1)
+### ✅ Phase 1 — pi-keb format layer (Layer 1) — COMPLETE
+
 The core change. Everything is downstream of this.
 
-| File | Change |
-|---|---|
-| `ports/types.ts` | Add `title`/`description`/`tags` to `ConceptInfo`; update `writeSummary`/`writeConcept` signatures |
-| `utils.ts` | Add `buildOkfFrontmatter`, `parseOkfFrontmatter`; update `buildIndexContent` for standard links |
-| `adapters/filesystem-store.ts` | Rewrite frontmatter read/write with OKF fields + `keb_*` prefix; remove footer generation, `syncSummaryFooters`, helper functions; add `log.md` creation in `ensureKebDir` |
-| `tools.ts` | Accept optional OKF params; remove `syncSummaryFooters` import+call; update `parseIndexBriefs` |
-| `prompts.ts` | Update instructions for standard markdown links, `description`, `tags` |
-| `commands/queries.ts` | Update `/keb:list` wiki-link output to backtick format |
-| `tools.test.ts` | Remove footer assertions; assert OKF frontmatter; remove `syncSummaryFooters` test block |
+| File | Change | Status |
+|---|---|---|
+| `ports/types.ts` | Add `title`/`description`/`tags` to `ConceptInfo`; update `writeSummary`/`writeConcept` signatures | ✅ Done |
+| `utils.ts` | Add `buildOkfFrontmatter`, `parseOkfFrontmatter`; update `buildIndexContent` for standard links | ✅ Done |
+| `adapters/filesystem-store.ts` | Rewrite frontmatter read/write with OKF fields + `keb_*` prefix; remove footer generation, `syncSummaryFooters`, helper functions; add `log.md` creation | ✅ Done |
+| `tools.ts` | Accept optional OKF params; remove `syncSummaryFooters` import+call; update `parseIndexBriefs` | ✅ Done |
+| `prompts.ts` | Update instructions for standard markdown links, `description`, `tags` | ✅ Done |
+| `commands/queries.ts` | Update `/keb:list` wiki-link output to backtick format | ✅ Done |
+| `tools.test.ts` | Remove footer assertions; assert OKF frontmatter; remove `syncSummaryFooters` test block | ✅ Done |
 
-**Verify:** `/keb:add` + `/keb:query` end-to-end on a fresh workspace produces OKF files. All tests pass.
+**Verify:** All 9 tests pass. TypeScript compiles cleanly (`pnpm build:pi-keb`).
 
-### Phase 2 — bridge sync layer (Layer 2)
+### 🔜 Phase 2 — bridge sync layer (Layer 2) — NOT STARTED
+
 Update `buildSyncData()` to parse OKF keys only.
 
 | File | Change |
@@ -410,7 +371,8 @@ Update `buildSyncData()` to parse OKF keys only.
 
 **Verify:** Extension sync works with OKF-format workspace.
 
-### Phase 3 — extension rendering (Layer 3)
+### 🔜 Phase 3 — extension rendering (Layer 3) — NOT STARTED
+
 Add optional fields to store types, simplify footer stripping, optionally show tags.
 
 | File | Change |
@@ -424,19 +386,19 @@ Add optional fields to store types, simplify footer stripping, optionally show t
 
 ## 7. File Change Summary
 
-| File | Phase | Change |
-|---|---|---|
-| `pi-keb/.../ports/types.ts` | 1 | Add `title`/`description`/`tags` to `ConceptInfo`; update `writeSummary`/`writeConcept` signatures with `okfFields` param |
-| `pi-keb/.../utils.ts` | 1 | Add `buildOkfFrontmatter`, `parseOkfFrontmatter`; update `buildIndexContent` for standard markdown links |
-| `pi-keb/.../adapters/filesystem-store.ts` | 1 | Rewrite frontmatter read/write with OKF `type` + `keb_*` keys; remove footer generation; remove `syncSummaryFooters`, `extractConceptLinks`, `buildSummaryFooter`, `buildConceptFooter`; add `log.md` creation in `ensureKebDir` |
-| `pi-keb/.../tools.ts` | 1 | Accept optional `title`/`description`/`tags` params; remove `syncSummaryFooters` import+calls; update `parseIndexBriefs` for standard links |
-| `pi-keb/.../prompts.ts` | 1 | Replace `[[wiki-link]]` refs with standard markdown; add description/tags guidance; remove "don't write footers" |
-| `pi-keb/.../commands/queries.ts` | 1 | Update `/keb:list` wiki-link output to backtick format |
-| `pi-keb/.../tools.test.ts` | 1 | Remove footer assertions; assert OKF frontmatter; remove `syncSummaryFooters` test block |
-| `bridge/.../adapters/pi-keb-store.js` | 2 | Parse `keb_source`, `keb_sources`, `timestamp` — no legacy fallback |
-| `extension/.../lib/store.ts` | 3 | Add optional `title`/`description`/`tags` to `Summary`/`Concept` |
-| `extension/.../BrowsePanel.tsx` | 3 | Simplify footer stripping; optionally show `tags` badges |
-| `pi-keb/scripts/migrate-to-okf.ts` | **DROPPED** | Starting fresh — no migration needed |
+| File | Phase | Change | Status |
+|---|---|---|---|
+| `pi-keb/.../ports/types.ts` | 1 | Add `title`/`description`/`tags` to `ConceptInfo`; update `writeSummary`/`writeConcept` signatures with `okfFields` param | ✅ |
+| `pi-keb/.../utils.ts` | 1 | Add `buildOkfFrontmatter`, `parseOkfFrontmatter`; update `buildIndexContent` for standard markdown links | ✅ |
+| `pi-keb/.../adapters/filesystem-store.ts` | 1 | Rewrite frontmatter read/write with OKF `type` + `keb_*` keys; remove footer generation; remove `syncSummaryFooters`, `extractConceptLinks`, `buildSummaryFooter`, `buildConceptFooter`; add `log.md` creation | ✅ |
+| `pi-keb/.../tools.ts` | 1 | Accept optional `title`/`description`/`tags` params; remove `syncSummaryFooters` import+calls; update `parseIndexBriefs` for standard links | ✅ |
+| `pi-keb/.../prompts.ts` | 1 | Replace `[[wiki-link]]` refs with standard markdown; add description/tags guidance; remove "don't write footers" | ✅ |
+| `pi-keb/.../commands/queries.ts` | 1 | Update `/keb:list` wiki-link output to backtick format | ✅ |
+| `pi-keb/.../tools.test.ts` | 1 | Remove footer assertions; assert OKF frontmatter; remove `syncSummaryFooters` test block | ✅ |
+| `bridge/.../adapters/pi-keb-store.js` | 2 | Parse `keb_source`, `keb_sources`, `timestamp` — no legacy fallback | 🔜 |
+| `extension/.../lib/store.ts` | 3 | Add optional `title`/`description`/`tags` to `Summary`/`Concept` | 🔜 |
+| `extension/.../BrowsePanel.tsx` | 3 | Simplify footer stripping; optionally show `tags` badges | 🔜 |
+| `pi-keb/scripts/migrate-to-okf.ts` | **DROPPED** | Starting fresh — no migration needed | — |
 
 ---
 

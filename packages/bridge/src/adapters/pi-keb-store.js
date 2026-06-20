@@ -79,6 +79,9 @@ export function createPiKebStore() {
         sources: c.sources,
         updated: c.dateAdded ?? "",
         content: c.body,
+        title: c.title,
+        description: c.description,
+        tags: c.tags,
       };
     },
 
@@ -114,6 +117,9 @@ export function createPiKebStore() {
           content: body,
           source: frontmatter.keb_source ?? "",
           added: frontmatter.timestamp ?? "",
+          title: frontmatter.title,
+          description: frontmatter.description,
+          tags: frontmatter.tags,
         };
       }
 
@@ -127,6 +133,9 @@ export function createPiKebStore() {
           sources: c.sources,
           updated: c.dateAdded ?? "",
           content: c.body,
+          title: c.title,
+          description: c.description,
+          tags: c.tags,
         };
       }
 

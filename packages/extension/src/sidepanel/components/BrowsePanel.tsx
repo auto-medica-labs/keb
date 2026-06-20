@@ -20,26 +20,12 @@ import { getSummaries, getConcepts } from "../../lib/store";
 import type { Summary, Concept } from "../../lib/store";
 import { escapeHtml } from "../../lib/utils";
 
-/** Strip YAML frontmatter and auto-generated footer from content. */
-function stripFrontmatterAndFooter(content: string): string {
-  // Strip YAML frontmatter if present (defensive — bridge should already strip it)
+/** Strip YAML frontmatter from content if present (defensive — bridge already strips it). */
+function stripFrontmatter(content: string): string {
   if (content.startsWith("---")) {
     const end = content.indexOf("---", 3);
     if (end !== -1) {
       content = content.slice(end + 3).trimStart();
-    }
-  }
-  // Strip auto-generated footer (--- + Concepts/Sources section)
-  const patterns = [
-    "\n\n---\n\n**Concepts**",
-    "\n\n---\n\n*No concepts",
-    "\n\n---\n\n**Sources**",
-    "\n\n---\n\n*No sources",
-  ];
-  for (const pattern of patterns) {
-    const idx = content.lastIndexOf(pattern);
-    if (idx !== -1) {
-      return content.slice(0, idx);
     }
   }
   return content;
@@ -98,8 +84,19 @@ export default function BrowsePanel({ onClearWorkspace }: BrowsePanelProps) {
             Back to Browse
           </button>
 
+          {/* Title & tags */}
+          {doc.title && <h1 className="text-lg font-semibold">{doc.title}</h1>}
+          {doc.tags && doc.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {doc.tags.map((t) => (
+                <Badge key={t} variant="secondary" className="text-[10px]">
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          )}
           {/* Rendered content */}
-          <MarkdownRenderer text={stripFrontmatterAndFooter(doc.content)} />
+          <MarkdownRenderer text={stripFrontmatter(doc.content)} />
         </div>
       </ScrollArea>
     );
@@ -123,8 +120,19 @@ export default function BrowsePanel({ onClearWorkspace }: BrowsePanelProps) {
             Back to Browse
           </button>
 
+          {/* Title & tags */}
+          {concept.title && <h1 className="text-lg font-semibold">{concept.title}</h1>}
+          {concept.tags && concept.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {concept.tags.map((t) => (
+                <Badge key={t} variant="secondary" className="text-[10px]">
+                  {t}
+                </Badge>
+              ))}
+            </div>
+          )}
           {/* Rendered content */}
-          <MarkdownRenderer text={stripFrontmatterAndFooter(concept.content)} />
+          <MarkdownRenderer text={stripFrontmatter(concept.content)} />
         </div>
       </ScrollArea>
     );

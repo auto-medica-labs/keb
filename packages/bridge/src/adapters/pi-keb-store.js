@@ -13,6 +13,7 @@
 // ---------------------------------------------------------------------------
 
 import { FilesystemStore } from "../../../pi-keb/dist/standalone/extensions/keb/adapters/filesystem-store.js";
+import { parseOkfFrontmatter } from "../../../pi-keb/dist/standalone/extensions/keb/utils.js";
 
 /** @type {FilesystemStore} */
 const store = new FilesystemStore();
@@ -107,31 +108,13 @@ export function createPiKebStore() {
       for (const name of summariesList) {
         const raw = store.readSummary(name, workspace);
         if (!raw) continue;
-        // Parse pi-keb summary frontmatter: source, date_added
-        let source = "",
-          added = "",
-          content = raw;
-        if (raw.startsWith("---")) {
-          const end = raw.indexOf("---", 3);
-          if (end !== -1) {
-            const fm = raw.slice(3, end);
-            content = raw.slice(end + 3).trimStart();
-            for (const line of fm.split("\n")) {
-              const t = line.trim();
-              if (t.startsWith("source:"))
-                source = t
-                  .slice("source:".length)
-                  .trim()
-                  .replace(/^["']|["']$/g, "");
-              else if (t.startsWith("date_added:"))
-                added = t
-                  .slice("date_added:".length)
-                  .trim()
-                  .replace(/^["']|["']$/g, "");
-            }
-          }
-        }
-        summaries[name] = { content, source, added };
+        // Parse OKF frontmatter: keb_source, timestamp
+        const { frontmatter, body } = parseOkfFrontmatter(raw);
+        summaries[name] = {
+          content: body,
+          source: frontmatter.keb_source ?? "",
+          added: frontmatter.timestamp ?? "",
+        };
       }
 
       /** @type {Object<string, import('../ports/keb-store.js').ConceptPage>} */

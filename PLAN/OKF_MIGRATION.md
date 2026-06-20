@@ -296,19 +296,24 @@ Added `buildOkfFrontmatter()` and `parseOkfFrontmatter()` to `utils.ts`:
 - Added tests for optional OKF fields (`title`, `description`, `tags`)
 - All **9 tests pass**, TypeScript compiles cleanly
 
-### 🔜 Layer 2: Bridge (`packages/bridge/src/`)
+### ✅ Layer 2: Bridge (`packages/bridge/src/`) — COMPLETE
 
-#### 5.8 `adapters/pi-keb-store.js` — NOT STARTED
+#### 5.8 `adapters/pi-keb-store.js` — DONE
 
-`buildSyncData()` currently parses custom frontmatter to extract `source` and `added` for summaries, and `sources`, `updated` for concepts. Update to parse OKF keys:
+`buildSyncData()` summary-parsing loop updated to use `parseOkfFrontmatter()` from pi-keb's utils. Reads OKF keys `keb_source` → `SummaryEntry.source`, `timestamp` → `SummaryEntry.added`. No legacy fallback.
 
 | OKF key | → bridge type field |
 |---|---|
 | `keb_source` | `SummaryEntry.source` |
-| `keb_sources` | `ConceptPage.sources` |
+| `keb_sources` | `ConceptPage.sources` (unchanged — already read via `store.readConcept()` which returns OKF-parsed data) |
 | `timestamp` | `SummaryEntry.added` / `ConceptPage.updated` |
 
-**No legacy fallback** — all workspaces are fresh OKF format. No handler changes needed (they call `spawnPi` which communicates with pi-keb internally).
+**Changes:**
+- Added `import { parseOkfFrontmatter }` from pi-keb dist utils
+- Replaced 14-line manual frontmatter string-slicing with a 6-line `parseOkfFrontmatter` call
+- `node --check` passes cleanly
+
+**No handler changes needed** — they call `spawnPi` (which communicates with pi-keb internally) or `buildSyncData` (the only method touched).
 
 ### 🔜 Layer 3: Chrome Extension (`packages/extension/src/`)
 
@@ -361,15 +366,15 @@ The core change. Everything is downstream of this.
 
 **Verify:** All 9 tests pass. TypeScript compiles cleanly (`pnpm build:pi-keb`).
 
-### 🔜 Phase 2 — bridge sync layer (Layer 2) — NOT STARTED
+### ✅ Phase 2 — bridge sync layer (Layer 2) — COMPLETE
 
-Update `buildSyncData()` to parse OKF keys only.
+`buildSyncData()` updated to parse OKF keys via `parseOkfFrontmatter()`. No legacy fallback.
 
-| File | Change |
-|---|---|
-| `adapters/pi-keb-store.js` | Parse `keb_source`, `keb_sources`, `timestamp` — no fallback |
+| File | Change | Status |
+|---|---|---|
+| `adapters/pi-keb-store.js` | Parse `keb_source`, `keb_sources`, `timestamp` via shared `parseOkfFrontmatter` — no fallback | ✅ Done |
 
-**Verify:** Extension sync works with OKF-format workspace.
+**Verify:** `node --check packages/bridge/src/adapters/pi-keb-store.js` passes. Extension sync works with OKF-format workspace.
 
 ### 🔜 Phase 3 — extension rendering (Layer 3) — NOT STARTED
 
@@ -395,7 +400,7 @@ Add optional fields to store types, simplify footer stripping, optionally show t
 | `pi-keb/.../prompts.ts` | 1 | Replace `[[wiki-link]]` refs with standard markdown; add description/tags guidance; remove "don't write footers" | ✅ |
 | `pi-keb/.../commands/queries.ts` | 1 | Update `/keb:list` wiki-link output to backtick format | ✅ |
 | `pi-keb/.../tools.test.ts` | 1 | Remove footer assertions; assert OKF frontmatter; remove `syncSummaryFooters` test block | ✅ |
-| `bridge/.../adapters/pi-keb-store.js` | 2 | Parse `keb_source`, `keb_sources`, `timestamp` — no legacy fallback | 🔜 |
+| `bridge/.../adapters/pi-keb-store.js` | 2 | Parse `keb_source`, `keb_sources`, `timestamp` via `parseOkfFrontmatter` — no legacy fallback | ✅ |
 | `extension/.../lib/store.ts` | 3 | Add optional `title`/`description`/`tags` to `Summary`/`Concept` | 🔜 |
 | `extension/.../BrowsePanel.tsx` | 3 | Simplify footer stripping; optionally show `tags` badges | 🔜 |
 | `pi-keb/scripts/migrate-to-okf.ts` | **DROPPED** | Starting fresh — no migration needed | — |

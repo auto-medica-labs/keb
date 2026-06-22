@@ -60,6 +60,55 @@ Built with **React 19**, **TypeScript**, **Vite**, **Tailwind CSS v4**, and **sh
 2. **`@keb/extension`** — React side panel + TypeScript service worker. Built with Vite.
 3. **`pi-keb`** — pi extension providing the knowledge base. Included as a git submodule at `packages/pi-keb/`. The bridge imports its `FilesystemStore` directly for filesystem reads and workspace creation.
 
+### Knowledge base format
+
+The compiled knowledge base lives on disk at `~/.pi/agent/keb/workspaces/<name>/` (or `~/.pi/agent/keb/` for default). Each workspace follows the [Open Knowledge Format (OKF) v0.1](PLAN/OKF_SPEC.md):
+
+```
+workspace/
+├── registry.json              # Operational cache (document tracking, dedup)
+├── source/                    # Raw source files / fetched HTML
+└── wiki/                      # OKF bundle root
+    ├── index.md                  # Directory listing (Documents + Concepts sections)
+    ├── log.md                    # Update history (created on workspace init)
+    ├── summaries/                # Summary documents (type: Summary)
+    │   ├── architecture.md
+    │   └── ...
+    └── concepts/                 # Cross-document topic syntheses (type: Concept)
+        ├── caching-strategy.md
+        └── ...
+```
+
+**Summary frontmatter:**
+```yaml
+---
+type: Summary
+title: Architecture
+description: Key architectural decisions and patterns.
+resource: https://github.com/org/repo/blob/main/docs/architecture.md
+tags: [architecture, design]
+timestamp: 2026-05-26T14:30:00Z
+keb_name: "architecture"       # producer key: docName slug
+keb_source: "architecture.md"  # producer key: original filename
+---
+```
+
+**Concept frontmatter:**
+```yaml
+---
+type: Concept
+title: Caching Strategy
+description: How caching is implemented across the architecture and design.
+tags: [caching, performance]
+timestamp: 2026-05-26T14:30:00Z
+keb_name: "caching-strategy"              # producer key: concept slug
+keb_sources: ["summary/architecture", "summary/design"]
+keb_needs_review: false
+---
+```
+
+Key differences from the legacy pi-keb format: OKF standard fields (`type`, `title`, `description`, `tags`, `timestamp`) replace custom frontmatter. `keb_*` keys preserve pi-keb-specific metadata. Wiki-links (`[[...]]`) are replaced with standard markdown links (`/summaries/foo.md`, `/concepts/bar.md`). Code-generated footers are removed.
+
 ### Port & adapter pattern
 
 The bridge follows the same port/adapter architecture as pi-keb:

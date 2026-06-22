@@ -230,6 +230,53 @@ curl -X POST http://127.0.0.1:9876/api/login \
   -d '{"username":"alice","password":"password123"}'
 ```
 
+## Knowledge base format (OKF)
+
+The on-disk format follows [Open Knowledge Format v0.1](PLAN/OKF_SPEC.md). All wiki files live under `wiki/` (the OKF bundle root) within each workspace.
+
+### Summary frontmatter (`wiki/summaries/<docName>.md`)
+
+| Field | Type | Required | Source |
+|---|---|---|---|
+| `type` | `"Summary"` | ✅ | Hardcoded on write |
+| `title` | string | — | LLM (via `keb_write_summary`) |
+| `description` | string | — | LLM (one-liner for index) |
+| `resource` | string (URI) | — | Registry `originalPath` |
+| `tags` | string[] | — | LLM (call `keb_list_tags` first) |
+| `timestamp` | ISO 8601 | — | Registry `addedAt` |
+| `keb_name` | string | — | `docName` param (producer key) |
+| `keb_source` | string | — | `originalName` param (producer key) |
+
+### Concept frontmatter (`wiki/concepts/<slug>.md`)
+
+| Field | Type | Required | Source |
+|---|---|---|---|
+| `type` | `"Concept"` | ✅ | Hardcoded on write |
+| `title` | string | — | LLM (via `keb_write_concept` / `keb_update_concept`) |
+| `description` | string | — | LLM (one-liner for index) |
+| `tags` | string[] | — | LLM (call `keb_list_tags` first) |
+| `timestamp` | ISO 8601 | — | Auto-generated on write |
+| `keb_name` | string | — | `slug` param (producer key) |
+| `keb_sources` | string[] | — | `sources` param (producer key) |
+| `keb_needs_review` | boolean | — | `needsReview` param (producer key) |
+
+### Cross-linking
+
+Use standard markdown links, not `[[wiki-links]]`:
+- Summary references: `[text](/summaries/docname.md)`
+- Concept references: `[text](/concepts/slug.md)`
+
+### Index (`wiki/index.md`)
+
+Uses standard markdown list format:
+```
+## Documents
+- [slug](/summaries/slug.md) — one-line description
+
+## Concepts
+- [slug](/concepts/slug.md) — one-line description
+```
+
 ## Code style
 
 ### Bridge (`packages/bridge/`)

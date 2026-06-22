@@ -42,12 +42,18 @@ export interface Summary {
   content: string;
   source: string;
   added: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
 }
 
 export interface Concept {
   content: string;
   sources: string[];
   updated: string;
+  title?: string;
+  description?: string;
+  tags?: string[];
 }
 
 /** Mirror of pi-keb's RegistryEntry. `compiled` tracks whether ALL wiki

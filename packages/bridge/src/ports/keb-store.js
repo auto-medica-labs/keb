@@ -29,6 +29,9 @@
  * @property {string[]} sources - Source filenames this concept was derived from
  * @property {string} updated   - ISO timestamp of last update
  * @property {string} content   - Markdown body (frontmatter stripped)
+ * @property {string} [title]   - Optional display title from OKF frontmatter
+ * @property {string} [description] - Optional one-line description from OKF frontmatter
+ * @property {string[]} [tags]  - Optional tags from OKF frontmatter
  */
 
 /**
@@ -37,6 +40,9 @@
  * @property {string} content - Markdown summary content
  * @property {string} source  - Original source URL or file path
  * @property {string} added   - ISO timestamp when created
+ * @property {string} [title] - Optional display title from OKF frontmatter
+ * @property {string} [description] - Optional one-line description from OKF frontmatter
+ * @property {string[]} [tags] - Optional tags from OKF frontmatter
  */
 
 /**

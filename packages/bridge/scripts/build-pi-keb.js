@@ -24,9 +24,8 @@ function addJsExtensions(dir) {
     } else if (entry.name.endsWith(".js")) {
       let content = readFileSync(full, "utf-8");
       const original = content;
-      content = content.replace(
-        /(?<=from\s+['"])\.\.?(?:\/[^'"]+)+(?=['"])/g,
-        (m) => (extname(m) ? m : m + ".js"),
+      content = content.replace(/(?<=from\s+['"])\.\.?(?:\/[^'"]+)+(?=['"])/g, (m) =>
+        extname(m) ? m : m + ".js",
       );
       if (content !== original) {
         writeFileSync(full, content, "utf-8");

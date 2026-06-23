@@ -61,6 +61,7 @@ LLM_API_KEY=sk-ant-...
 | `LLM_MODEL_NAME` | `LLM_MODEL` value | Human-readable model name                                         |
 | `LLM_REASONING`  | `false`           | Set `"true"` for reasoning-capable models                         |
 | `LLM_THINKING`   | `off`             | Thinking level: `"off"`, `"low"`, `"medium"`, `"high"`, `"xhigh"` |
+| `ADMIN_KEY`      | —                 | Secret for `GET /api/status` (sent via `X-API-Key` header)        |
 
 ### Generating the JWT secret
 
@@ -69,6 +70,14 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 This must remain stable across restarts. If the JWT secret changes, all user sessions are invalidated and everyone must log in again.
+
+### Generating the admin key (optional)
+
+```bash
+node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
+```
+
+Add the output to `.env` as `ADMIN_KEY=your-generated-key`. The admin key enables the `GET /api/status` endpoint for live runtime metrics. Without it, the endpoint returns 501.
 
 ## Step 3 — Build the Docker image
 

@@ -53,7 +53,7 @@ services:
 
   backup:
     build:
-      context: .
+      context: ../..
       dockerfile: packages/bridge/backup.Dockerfile
     container_name: keb-backup
     restart: unless-stopped

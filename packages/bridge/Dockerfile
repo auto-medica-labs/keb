@@ -100,13 +100,14 @@ FROM deps-layer AS pi-keb-build
 # Copy the pi-keb source files needed for compilation (preserve dir structure)
 COPY packages/pi-keb/extensions /app/pi-keb/extensions
 
-# Copy the bridge's pi-keb build tsconfig
+# Copy the bridge's pi-keb build tsconfig and build script
 COPY packages/bridge/tsconfig.build-pi-keb.json /app/bridge/tsconfig.build-pi-keb.json
+COPY packages/bridge/scripts/build-pi-keb.js /app/bridge/scripts/build-pi-keb.js
 
-# Compile pi-keb standalone adapter to JS
+# Compile pi-keb standalone adapter to JS (uses build-pi-keb.js which
+# post-processes output to add .js extensions for Node ESM resolution)
 WORKDIR /app/bridge
-RUN npx tsc -p tsconfig.build-pi-keb.json && \
-    node -e "require('fs').writeFileSync('../pi-keb/dist/standalone/package.json', JSON.stringify({type:'module'})+String.fromCharCode(10))"
+RUN PATH="/app/bridge/node_modules/.bin:$PATH" node scripts/build-pi-keb.js
 
 # ---------------------------------------------------------------------------
 # Final stage — minimal runtime image

@@ -70,6 +70,13 @@ const AGENT_EVENT_TYPES = new Set([
 ]);
 
 /**
+ * Hard timeout for pi child processes. If agent_end is not received
+ * within this window, the child is killed and an error is surfaced.
+ * @type {number}
+ */
+const PI_TIMEOUT_MS = 300_000; // 5 minutes
+
+/**
  * Spawn a child `pi` process in RPC mode.
  *
  * Wires stdout (JSON lines → onEvent / onDone) and stderr (→ onStderr)
@@ -106,11 +113,17 @@ export function spawnPi(promptText, command, callbacks) {
 
   let settled = false;
   let agentStarted = false;
+  /** @type {ReturnType<typeof setTimeout>|null} */
+  let timeoutId = null;
 
   /** Mark the operation settled (error or done) — guards against double-firing. */
   function settle() {
     if (settled) return;
     settled = true;
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      timeoutId = null;
+    }
     try {
       child.stdin?.end();
     } catch {
@@ -128,11 +141,17 @@ export function spawnPi(promptText, command, callbacks) {
 
   child.on("exit", (code, signal) => {
     log(`child exit: ${command}${opTag} (code=${code}, signal=${signal})`);
-    // If the child was killed externally (e.g. SIGTERM), notify via onDone
-    // so the client can clean up. Only fire if not already settled.
-    if (signal && !settled) {
-      settle();
+    if (settled) return;
+    settle();
+    if (signal) {
+      // Killed externally (e.g. SIGTERM during shutdown) — operation is done
       callbacks.onDone();
+    } else if (code !== 0) {
+      // Non-zero exit without signal — crash, bad arg, or fetch failure
+      callbacks.onError(`pi process exited with code ${code}`);
+    } else {
+      // code === 0 yet no agent_end — shouldn't happen, but don't hang client
+      callbacks.onError("pi process ended without completing compilation");
     }
   });
 
@@ -150,6 +169,12 @@ export function spawnPi(promptText, command, callbacks) {
     }
     callbacks.onError(message);
   }
+
+  // ── Timeout ──────────────────────────────────────────────
+  // Kill the child if agent_end hasn't arrived within the window.
+  timeoutId = setTimeout(() => {
+    fail(`pi process timed out after ${PI_TIMEOUT_MS / 1000}s`);
+  }, PI_TIMEOUT_MS);
 
   // stdout → parse JSON lines, forward events
   let buffer = "";

@@ -1,6 +1,6 @@
 # Production Readiness Plan — Keb
 
-**Status:** Draft  
+**Status:** Phase 1 in progress — 3 / 10 tasks done  
 **Goal:** Get the Keb Chrome extension + hosted bridge from working MVP to production launch.  
 **Approach:** Three phases. Phase 1 = launch blockers. Phase 2 = production hardening. Phase 3 = scale & monetization.
 
@@ -18,18 +18,44 @@ This plan assumes we keep the existing ports-and-adapters architecture and do no
 
 *Target: complete before public beta / Chrome Web Store submission.*
 
+### Priority tiers
+
+| Tier | Label | Count |
+|------|-------|-------|
+| 🔴 | Critical — functional bugs / security holes that break the product today | 0 🎉 |
+| 🟠 | High — security / DoS / CWS submission blockers | 3 |
+| 🟡 | Medium — deployment reliability | 2 |
+| 🟢 | Low — legal / compliance / nice-to-have | 2 |
+
+### 🔴 Critical (do first)
+
 | # | Task | Why it blocks launch | Suggested implementation | Acceptance criteria |
 |---|------|---------------------|--------------------------|---------------------|
-| 1.1 | **Bundle extension logo** | Chrome Web Store requires extension resources to be bundled, not loaded remotely. Currently `AuthPanel.tsx` and `Header.tsx` load `https://r2.mdevd.co/asset/logo_transparent.png`. | Add `logo.png` to `packages/extension/public/`, reference it with a relative path, and remove the remote URL. | No remote image requests in extension UI; logo works offline. |
-| 1.2 | **Rate-limit auth endpoints** | `/api/signup` and `/api/login` have no rate limiting and are brute-forceable. | Add per-IP rate limiting in `lib/http-routes.js` or a small middleware (e.g. 5 attempts per 15 min window). Use an in-memory store or SQLite. | 10 failed logins from one IP within 1 min returns HTTP 429. |
-| 1.3 | **Add request/message size limits** | A huge `add-content` HTML payload or JSON body can OOM the bridge. | Limit HTTP request body to ~1 MB and WebSocket message size to ~5 MB in `bridge-server.js`. Reject oversized `add-content` before HTML→Markdown conversion. | 2 MB JSON body returns 413; 10 MB WS message closes connection cleanly. |
-| 1.4 | **Add pi child process timeout** | A hung LLM call can run forever. | In `pi-rpc-spawner.js`, set a hard timeout (e.g. 5 min) and kill the child if `agent_end` is not received. Surface error to client. | A stalled operation is killed and client receives `{type:"error"}` within timeout + 10 s. |
-| 1.5 | **Fix pi crash / non-zero exit handling** | If pi exits without `agent_end`, the client operation hangs. | In `pi-rpc-spawner.js`, on `exit` with non-zero code and not already settled, call `callbacks.onError()` with the exit code. | A crashing pi process sends an error frame to the extension and cleans up. |
-| 1.6 | **Add WebSocket ping/pong** | Proxies/firewalls may silently drop idle connections. | Enable `ws` ping/pong in `bridge-server.js` (e.g. 30 s interval). | Server pings clients every 30 s; unresponsive clients are terminated. |
-| 1.7 | **Align pi-keb versions in Docker** | The runtime pi extension is installed from `main`, but the bridge compiles the git submodule. They can drift and break file-format compatibility. | Install pi-keb in Docker from the committed submodule (`COPY packages/pi-keb …`) instead of `pi install git:github.com/auto-medica-labs/pi-keb`. | Runtime pi-keb and compiled `FilesystemStore` come from the same commit. |
-| 1.8 | **Make Docker builds reproducible** | Dockerfile uses `npm install` and installs `pi@latest`, ignoring pnpm lockfiles. | Pin `PI_VERSION`, copy `pnpm-lock.yaml`, use `pnpm install --frozen-lockfile`, and build in a single package-manager context. | Two builds one week apart produce the same installed dependency tree. |
-| 1.9 | **Add Terms of Service page** | CWS and hosted SaaS require clear terms. | Add `packages/landing/tos.html`, build it, host it at `https://keb.mdevd.co/tos`, and link from the landing page. | `/tos` is live and linked from landing + extension if applicable. |
-| 1.10 | **Audit privacy policy accuracy** | The policy names Poolside.ai as the hosted LLM provider. If that has changed, the policy is false. | Verify current hosted provider/model and update `packages/landing/privacy.html`. Rebuild and deploy. | Privacy policy accurately describes the LLM provider and data flow. |
+| ~~1.5~~ | ~~**Fix pi crash / non-zero exit handling**~~ | ✅ Completed — `pi-rpc-spawner.js` exit handler now fires `onError` for non-zero exit codes. Catches the edge case of code 0 with no `agent_end`. | | |
+| ~~1.4~~ | ~~**Add pi child process timeout**~~ | ✅ Completed — 5-minute hard timeout in `pi-rpc-spawner.js`. Kills hung child and surfaces `{type:"error"}`. Timeout cleared on any `settle()`. | | |
+| ~~1.6~~ | ~~**Add WebSocket ping/pong**~~ | ✅ Completed — Heartbeat interval (30 s) in `bridge-server.js` with `_isAlive` tracking. Unresponsive clients terminated after 2 missed pings. | | |
+
+### 🟠 High (do second)
+
+| # | Task | Why it blocks launch | Suggested implementation | Acceptance criteria |
+|---|------|---------------------|--------------------------|---------------------|
+| 1.2 | **Rate-limit auth endpoints** | `/api/signup` and `/api/login` have zero rate limiting in `auth-handler.js`. Attackers can brute-force passwords, enumerate accounts (signup returns 409 vs 400), and spam account creation trivially. Needed before opening to the public. | Add per-IP rate limiting in `lib/http-routes.js` or a small middleware. Use an in-memory Map with sliding window or SQLite. Conservative: 5 attempts per 15 min window. Return HTTP 429 with `Retry-After` header on throttle. | 10 failed logins from one IP within 1 min returns HTTP 429; valid logins unaffected. |
+| 1.3 | **Add request/message size limits** | No body size checks anywhere. A 50 MB `add-content` HTML payload or giant JSON body hits `readBody()` which buffers the entire thing in memory → OOM crash. Also no WebSocket message size limit. | Limit HTTP request body to ~1 MB (return 413) and WebSocket `maxPayload` to ~5 MB in `bridge-server.js`. Add an early size check in `add-content-handler.js` before the expensive HTML→Markdown conversion. | 2 MB JSON body returns 413; 10 MB WS message closes connection cleanly with error. |
+| 1.1 | **Bundle extension logo** | Chrome Web Store requires all extension resources to be bundled, not loaded remotely. Currently `AuthPanel.tsx` and `Header.tsx` load `https://r2.mdevd.co/asset/logo_transparent.png`. Also breaks offline: no logo appears in local mode without internet. | Add `logo.png` to `packages/extension/public/` alongside existing icons, reference it with a relative path (`src="logo.png"`), and remove the remote URL from both components. | No remote image requests in extension UI; logo renders offline. |
+
+### 🟡 Medium (do when deploying)
+
+| # | Task | Why it blocks launch | Suggested implementation | Acceptance criteria |
+|---|------|---------------------|--------------------------|---------------------|
+| 1.7 | **Align pi-keb versions in Docker** | The Dockerfile runs `pi install git:github.com/auto-medica-labs/pi-keb` which installs from the `main` branch at build time. The bridge compiles the git submodule (a pinned commit). These can drift — new frontmatter fields or file-format changes in one but not the other → silent corruption. | Install pi-keb in Docker from the committed submodule via `COPY packages/pi-keb …` instead of fetching from GitHub at build time. | Runtime pi-keb and compiled `FilesystemStore` come from the same submodule commit. |
+| 1.8 | **Make Docker builds reproducible** | `PI_VERSION=latest` (unpinned), `npm install` instead of `pnpm install --frozen-lockfile`, no lockfile copied into the Docker build context. Two builds a week apart can produce different dependency trees, making bugs hard to reproduce. | Pin `PI_VERSION` to a specific semver, copy `pnpm-lock.yaml` from the repo root, use `pnpm install --frozen-lockfile`, and build in a single package-manager context (pnpm, not npm). | Two builds one week apart produce identical dependency trees (modulo OS patches). |
+
+### 🟢 Low (do before CWS submission)
+
+| # | Task | Why it blocks launch | Suggested implementation | Acceptance criteria |
+|---|------|---------------------|--------------------------|---------------------|
+| 1.10 | **Audit privacy policy accuracy** | The published policy (`packages/landing/privacy.html`) names **Poolside.ai** as the hosted LLM provider. If the provider has changed (the plan itself asks this question in Open questions), the published policy is legally false and must be corrected before launch. | Verify the actual hosted provider and model. Update `privacy.html` if needed. Add `privacy.html` to the landing build pipeline (it already is — confirmed in `build.mjs`). Rebuild and deploy. | Privacy policy accurately describes the LLM provider, data flow, and any third-party processing. |
+| 1.9 | **Add Terms of Service page** | Chrome Web Store requires a link to Terms of Service. No `tos.html` exists. The landing's `_nav.html` has no ToS link, and `_footer.html` only links to the Privacy Policy. | Create `packages/landing/tos.html` (standard terms template adapted for Keb). Add it to `build.mjs` page list. Link from `_nav.html` and `_footer.html`. Host at `https://keb.mdevd.co/tos`. | `/tos` is live, linked from the landing page footer and nav, and covers the hosted service. | 
 
 ---
 

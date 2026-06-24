@@ -229,8 +229,30 @@ function startBridge(port, host) {
     });
   });
 
+  // ── Heartbeat (ping/pong) ────────────────────────────────
+  // ping every 30 s; terminate unresponsive clients after 2 missed pings
+  const heartbeatInterval = setInterval(() => {
+    for (const ws of wss.clients) {
+      const client = /** @type {import('ws').WebSocket & { _isAlive?: boolean }} */ (ws);
+      if (client._isAlive === false) {
+        log(`heartbeat: terminating unresponsive client`);
+        return client.terminate();
+      }
+      client._isAlive = false;
+      client.ping();
+    }
+  }, 30_000);
+
+  wss.on("close", () => clearInterval(heartbeatInterval));
+
   // ── Connection factory ────────────────────────────────────────
   wss.on("connection", (ws) => {
+    const client = /** @type {import('ws').WebSocket & { _isAlive?: boolean }} */ (ws);
+    client._isAlive = true;
+    client.on("pong", () => {
+      client._isAlive = true;
+    });
+
     log(`🔗 Client connected`);
     new Connection(ws, {
       kebStore,

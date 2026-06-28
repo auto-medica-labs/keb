@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#171717"/>
+  <g transform="translate(256,256)" fill="none" stroke="#fafafa" stroke-width="28" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M-80,-80 L80,-80 L80,80 L-80,80 Z" stroke-width="24"/>
+    <circle cx="0" cy="0" r="24" fill="#fafafa" stroke="none"/>
+    <line x1="-40" y1="-40" x2="-16" y2="-16" stroke-width="16"/>
+    <line x1="40" y1="-40" x2="16" y2="-16" stroke-width="16"/>
+    <line x1="-40" y1="40" x2="-16" y2="16" stroke-width="16"/>
+    <line x1="40" y1="40" x2="16" y2="16" stroke-width="16"/>
+    <line x1="0" y1="-80" x2="0" y2="-40" stroke-width="16"/>
+    <line x1="-80" y1="0" x2="-40" y2="0" stroke-width="16"/>
+    <line x1="80" y1="0" x2="40" y2="0" stroke-width="16"/>
+    <line x1="0" y1="80" x2="0" y2="40" stroke-width="16"/>
+  </g>
+</svg>

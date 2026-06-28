@@ -48,12 +48,16 @@ function readBody(req) {
 }
 
 /**
- * Send a JSON response.
- * @param {import('node:http').ServerResponse} res
- * @param {number} statusCode
- * @param {object} body
+ * CORS headers matching those in http-routes.js.
  */
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key",
+};
+
 /**
+ * Send a JSON response with CORS headers.
  * @param {import('node:http').ServerResponse} res
  * @param {number} statusCode
  * @param {object} body
@@ -62,6 +66,7 @@ function readBody(req) {
 function json(res, statusCode, body) {
   const payload = JSON.stringify(body);
   res.writeHead(statusCode, {
+    ...CORS_HEADERS,
     "Content-Type": "application/json",
     "Content-Length": String(Buffer.byteLength(payload)),
   });

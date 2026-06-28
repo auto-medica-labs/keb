@@ -1,24 +1,65 @@
 // @ts-check
 
+// @ts-check
+
 // ---------------------------------------------------------------------------
-// HTTP route handler — healthcheck, status, auth
+// HTTP route handler — healthcheck, status, auth, config
 //
 // Mounted on the bridge's HTTP server (same port as WebSocket).
 // Handles non-upgrade HTTP requests. WebSocket upgrades are handled
 // separately by the ws library.
+//
+// All endpoints return CORS headers so browser-based clients (PWA, web app)
+// can call them cross-origin.
 // ---------------------------------------------------------------------------
+
+/**
+ * CORS headers applied to every response.
+ * Allows any origin so the web app can live on any domain.
+ */
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-API-Key",
+  "Access-Control-Max-Age": "86400",
+};
+
+/**
+ * Wrap res.writeHead to include CORS headers.
+ * @param {import('node:http').ServerResponse} res
+ * @param {number} statusCode
+ * @param {Record<string, string>} [headers]
+ */
+function writeHead(res, statusCode, headers = {}) {
+  const allHeaders = { ...CORS_HEADERS, ...headers };
+  res.writeHead(statusCode, allHeaders);
+}
+
+/**
+ * Send a JSON response with CORS headers.
+ * @param {import('node:http').ServerResponse} res
+ * @param {number} statusCode
+ * @param {object} body
+ */
+function json(res, statusCode, body) {
+  const payload = JSON.stringify(body);
+  writeHead(res, statusCode, {
+    "Content-Type": "application/json",
+    "Content-Length": String(Buffer.byteLength(payload)),
+  });
+  res.end(payload);
+}
 
 /**
  * Create an HTTP request handler for the bridge.
  *
  * Routes:
  *   GET  /api/healthcheck  — always available, no auth
+ *   GET  /api/config       — server config (mode, etc.), no auth
  *   GET  /api/status       — requires X-API-Key matching ADMIN_KEY
  *   POST /api/signup       — hosted mode only
  *   POST /api/login        — hosted mode only
  *   GET  /api/me           — hosted mode only
- *
- * Returns true if the request was handled, false otherwise (404).
  *
  * @param {object} opts
  * @param {'local' | 'hosted'} opts.mode
@@ -29,33 +70,47 @@
  */
 export function createHttpHandler({ mode, adminKey, authHandler, statusTracker }) {
   return async function httpHandler(req, res) {
+    const method = req.method?.toUpperCase() || "";
+
+    // ── CORS preflight: handle OPTIONS for all paths ────────
+    if (method === "OPTIONS") {
+      writeHead(res, 204);
+      res.end();
+      return;
+    }
+
     const url = new URL(req.url || "/", `http://${req.headers.host || "localhost"}`);
 
     // ── Health check: always available, no auth required ────
-    if (url.pathname === "/api/healthcheck" && req.method?.toUpperCase() === "GET") {
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ status: "ok", mode }));
+    if (url.pathname === "/api/healthcheck" && method === "GET") {
+      json(res, 200, { status: "ok", mode });
+      return;
+    }
+
+    // ── Config: expose server mode + bridge version info ────
+    if (url.pathname === "/api/config" && method === "GET") {
+      json(res, 200, {
+        mode,
+        version: "0.1.0",
+        auth: mode === "hosted"
+          ? { endpoints: ["signup", "login", "me"] }
+          : { endpoints: [] },
+      });
       return;
     }
 
     // ── Status: admin key required ──────────────────────────
-    if (url.pathname === "/api/status" && req.method?.toUpperCase() === "GET") {
+    if (url.pathname === "/api/status" && method === "GET") {
       if (!adminKey) {
-        res.writeHead(501, { "Content-Type": "application/json" });
-        res.end(
-          JSON.stringify({ error: "ADMIN_KEY not configured on server. Set ADMIN_KEY env var." }),
-        );
+        json(res, 501, { error: "ADMIN_KEY not configured on server. Set ADMIN_KEY env var." });
         return;
       }
       const apiKey = req.headers["x-api-key"];
       if (!apiKey || apiKey !== adminKey) {
-        res.writeHead(401, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "Invalid or missing X-API-Key header." }));
+        json(res, 401, { error: "Invalid or missing X-API-Key header." });
         return;
       }
-      const payload = JSON.stringify(statusTracker.buildStatus());
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(payload);
+      json(res, 200, statusTracker.buildStatus());
       return;
     }
 
@@ -65,9 +120,7 @@ export function createHttpHandler({ mode, adminKey, authHandler, statusTracker }
       if (handled) return;
     }
 
-    // If not an auth route, return 404 (WebSocket upgrade is handled
-    // by the ws library attaching to the same httpServer, not here)
-    res.writeHead(404, { "Content-Type": "application/json" });
-    res.end(JSON.stringify({ error: "Not found" }));
+    // 404 for everything else
+    json(res, 404, { error: "Not found" });
   };
 }

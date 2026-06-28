@@ -1,68 +1,91 @@
-/**
- * HTTP client for bridge auth and config endpoints.
- *
- * The bridge base URL is the WebSocket URL (e.g., "wss://api.mdevd.co/keb/v1").
- * HTTP calls use the same base but with http/https scheme.
- */
+// lib/api.ts — HTTP client for bridge auth endpoints
 
-export type BridgeConfig = {
-  mode: "local" | "hosted";
-  version: string;
-  auth: { endpoints: string[] };
-};
-
-/** Derive the HTTP base URL from a WebSocket bridge URL. */
-function httpBase(wsUrl: string): string {
-  return wsUrl.replace(/^ws/, "http");
+export interface AuthResult {
+  token: string;
+  username: string;
 }
 
-async function request(url: string, options: RequestInit = {}): Promise<any> {
-  const res = await fetch(url, {
-    ...options,
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-  });
-  const body = await res.json();
-  if (!res.ok) {
-    throw new Error(body.error || `HTTP ${res.status}`);
-  }
-  return body;
+export interface MeResult {
+  username: string;
+  createdAt: string;
 }
 
-/** Fetch server config (mode, version, available auth endpoints). */
-export async function fetchConfig(bridgeUrl: string): Promise<BridgeConfig> {
-  return request(`${httpBase(bridgeUrl)}/api/config`);
+export interface ApiError {
+  error: string;
 }
 
-/** Login with username and password. Returns JWT token. */
-export async function login(
+function normalizeBridgeUrl(url: string): string {
+  const trimmed = url.replace(/\/+$/, "");
+  const httpUrl = trimmed.replace(/^ws(s?):\/\//, "http$1://");
+  if (/^https?:\/\//.test(httpUrl)) return httpUrl;
+  return `http://${httpUrl}`;
+}
+
+async function apiPost(
   bridgeUrl: string,
-  username: string,
-  password: string,
-): Promise<{ token: string; username: string }> {
-  return request(`${httpBase(bridgeUrl)}/api/login`, {
-    method: "POST",
-    body: JSON.stringify({ username, password }),
-  });
+  path: string,
+  body: Record<string, unknown>,
+): Promise<{ ok: true; data: AuthResult } | { ok: false; error: string }> {
+  try {
+    const base = normalizeBridgeUrl(bridgeUrl);
+    const res = await fetch(`${base}${path}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { ok: false, error: (data as ApiError).error || `HTTP ${res.status}` };
+    }
+
+    return { ok: true, data: data as AuthResult };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Network error";
+    return { ok: false, error: `Cannot reach bridge: ${message}` };
+  }
 }
 
-/** Sign up with username and password. Returns JWT token. */
 export async function signup(
   bridgeUrl: string,
   username: string,
   password: string,
-): Promise<{ token: string; username: string }> {
-  return request(`${httpBase(bridgeUrl)}/api/signup`, {
-    method: "POST",
-    body: JSON.stringify({ username, password }),
-  });
+): Promise<{ ok: true; data: AuthResult } | { ok: false; error: string }> {
+  return apiPost(bridgeUrl, "/api/signup", { username, password });
 }
 
-/** Verify a token and get current user info. */
-export async function getMe(bridgeUrl: string, token: string): Promise<{ username: string }> {
-  return request(`${httpBase(bridgeUrl)}/api/me`, {
-    headers: { Authorization: `Bearer ${token}` },
-  });
+export async function login(
+  bridgeUrl: string,
+  username: string,
+  password: string,
+): Promise<{ ok: true; data: AuthResult } | { ok: false; error: string }> {
+  return apiPost(bridgeUrl, "/api/login", { username, password });
+}
+
+export async function getMe(
+  bridgeUrl: string,
+  token: string,
+): Promise<{ ok: true; data: MeResult } | { ok: false; error: string }> {
+  try {
+    const base = normalizeBridgeUrl(bridgeUrl);
+    const res = await fetch(`${base}/api/me`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      return { ok: false, error: (data as ApiError).error || `HTTP ${res.status}` };
+    }
+
+    return { ok: true, data: data as MeResult };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Network error";
+    return { ok: false, error: `Cannot reach bridge: ${message}` };
+  }
 }

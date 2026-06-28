@@ -1,127 +1,130 @@
-import { useState, type FormEvent } from "react";
-import type { BridgeMode } from "../lib/store";
+import { useState, useCallback } from "react";
+import { LogOut, Settings, X, Monitor, Globe } from "lucide-react";
+import type { BridgeMode, BridgeConfig } from "../lib/store";
 
-interface SettingsPanelProps {
-  mode: BridgeMode;
-  bridgeUrl: string;
-  username?: string;
-  onSave: (mode: BridgeMode, bridgeUrl: string) => void;
+export interface SettingsPanelProps {
+  config: BridgeConfig;
+  onModeChange: (mode: BridgeMode) => void;
+  onBridgeUrlChange: (url: string) => void;
+  onLogout: () => void;
   onClose: () => void;
-  onLogout?: () => void;
 }
 
 export default function SettingsPanel({
-  mode: initialMode,
-  bridgeUrl: initialUrl,
-  username,
-  onSave,
-  onClose,
+  config,
+  onModeChange,
+  onBridgeUrlChange,
   onLogout,
+  onClose,
 }: SettingsPanelProps) {
-  const [mode, setMode] = useState<BridgeMode>(initialMode);
-  const [bridgeUrl, setBridgeUrl] = useState(initialUrl);
-  const [error, setError] = useState("");
+  const [draftUrl, setDraftUrl] = useState(config.bridgeUrl);
+  const [saved, setSaved] = useState(false);
 
-  function handleSubmit(e: FormEvent) {
-    e.preventDefault();
-    setError("");
-
-    const url = bridgeUrl.trim();
-    if (!url.startsWith("ws://") && !url.startsWith("wss://")) {
-      setError("Bridge URL must start with ws:// or wss://");
-      return;
+  const handleSaveUrl = useCallback(() => {
+    const trimmed = draftUrl.trim();
+    if (trimmed && trimmed !== config.bridgeUrl) {
+      onBridgeUrlChange(trimmed);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 1500);
     }
-    // Remove trailing /ws if present
-    const clean = url.replace(/\/ws\/?$/, "").replace(/\/+$/, "");
-    onSave(mode, clean);
-  }
+  }, [draftUrl, config.bridgeUrl, onBridgeUrlChange]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm">
-      <div className="w-full max-w-sm rounded-xl border border-border bg-background p-6 shadow-lg">
-        <h2 className="text-lg font-semibold">Settings</h2>
-        <p className="mt-1 text-xs text-muted-foreground">
-          Configure your bridge connection.
-        </p>
+    <div className="absolute inset-0 z-50 flex flex-col bg-background">
+      {/* Header */}
+      <div className="flex shrink-0 items-center justify-between border-b px-3 py-2.5">
+        <div className="flex items-center gap-2">
+          <Settings className="size-4 text-muted-foreground" />
+          <span className="text-sm font-semibold">Settings</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="rounded p-1 transition-colors hover:bg-muted"
+          aria-label="Close settings"
+        >
+          <X className="size-4" />
+        </button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="mt-5 space-y-4">
-          {/* Mode toggle */}
-          <div>
-            <label className="block text-sm font-medium mb-2">Mode</label>
-            <div className="flex gap-2">
+      {/* Content */}
+      <div className="flex-1 space-y-5 overflow-y-auto p-4">
+        {config.mode === "hosted" ? (
+          <>
+            {config.username && (
+              <p className="text-xs text-muted-foreground">
+                Signed in as <span className="font-medium text-foreground">{config.username}</span>
+              </p>
+            )}
+            <button
+              onClick={() => {
+                onLogout();
+                onClose();
+              }}
+              className="flex h-9 w-full items-center justify-center gap-2 rounded-md border border-destructive/30 text-xs font-medium text-destructive transition-colors hover:bg-destructive/10"
+            >
+              <LogOut className="size-4" />
+              Sign Out
+            </button>
+          </>
+        ) : (
+          <>
+            {/* Bridge URL */}
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-muted-foreground">Bridge URL</label>
+              <div>
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={draftUrl}
+                    onChange={(e) => setDraftUrl(e.target.value)}
+                    placeholder="ws://127.0.0.1:9876"
+                    className="h-9 flex-1 rounded-md border border-border bg-transparent px-2.5 text-xs placeholder:text-muted-foreground/50 focus:ring-1 focus:ring-primary focus:outline-none"
+                  />
+                  <button
+                    onClick={handleSaveUrl}
+                    disabled={!draftUrl.trim() || draftUrl.trim() === config.bridgeUrl}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-border transition-colors hover:bg-muted disabled:opacity-40"
+                    aria-label="Save bridge URL"
+                  >
+                    {saved ? (
+                      <span className="text-xs text-green-500">✓</span>
+                    ) : (
+                      <span className="text-xs">✓</span>
+                    )}
+                  </button>
+                </div>
+                <p className="mt-1 text-[10px] text-muted-foreground">
+                  WebSocket endpoint for bridge connection
+                </p>
+              </div>
+            </div>
+
+            {/* Mode toggle */}
+            <label className="text-xs font-medium text-muted-foreground">Bridge Mode</label>
+            <div className="mt-2 flex gap-2">
               <button
-                type="button"
-                onClick={() => setMode("hosted")}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                  mode === "hosted"
-                    ? "border-primary bg-primary/10 text-foreground font-medium"
-                    : "border-input text-muted-foreground hover:text-foreground"
-                }`}
+                onClick={() => onModeChange("local")}
+                className="flex-1 rounded-md border border-primary bg-primary/10 px-3 py-2 text-xs font-medium text-primary"
               >
-                Hosted
+                <Monitor className="mx-auto mb-1 size-4" />
+                Local
+                <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                  No login required
+                </span>
               </button>
               <button
-                type="button"
-                onClick={() => setMode("local")}
-                className={`flex-1 rounded-lg border px-3 py-2 text-sm transition-colors ${
-                  mode === "local"
-                    ? "border-primary bg-primary/10 text-foreground font-medium"
-                    : "border-input text-muted-foreground hover:text-foreground"
-                }`}
+                onClick={() => onModeChange("hosted")}
+                className="flex-1 rounded-md border border-border px-3 py-2 text-xs font-medium transition-colors hover:bg-muted"
               >
-                Local
+                <Globe className="mx-auto mb-1 size-4" />
+                Hosted
+                <span className="mt-0.5 block text-[10px] font-normal text-muted-foreground">
+                  Login required
+                </span>
               </button>
             </div>
-          </div>
-
-          {/* Bridge URL */}
-          <div>
-            <label htmlFor="bridgeUrl" className="block text-sm font-medium mb-1">
-              Bridge URL
-            </label>
-            <input
-              id="bridgeUrl"
-              type="text"
-              value={bridgeUrl}
-              onChange={(e) => setBridgeUrl(e.target.value)}
-              placeholder="wss://api.mdevd.co/keb/v1"
-              className="block w-full rounded-lg border border-input bg-background px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
-            />
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              {mode === "hosted"
-                ? "The hosted Keb bridge URL. Login/signup required."
-                : "Your local bridge server URL (e.g., ws://127.0.0.1:9876)."}
-            </p>
-          </div>
-
-          {error && <p className="text-sm text-destructive">{error}</p>}
-
-          <div className="flex gap-2 pt-2">
-            {username && onLogout && (
-              <button
-                type="button"
-                onClick={onLogout}
-                className="rounded-lg border border-destructive/30 px-3 py-2 text-xs text-destructive hover:bg-destructive/10"
-              >
-                Log out ({username})
-              </button>
-            )}
-            <div className="flex-1" />
-            <button
-              type="button"
-              onClick={onClose}
-              className="rounded-lg border border-input px-4 py-2 text-sm hover:bg-muted"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90"
-            >
-              Save & Connect
-            </button>
-          </div>
-        </form>
+          </>
+        )}
       </div>
     </div>
   );

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, LogIn, UserPlus } from "lucide-react";
-import { signup, login } from "../../lib/api";
+import { signup, login } from "@keb/shared/lib/api";
 import type { BridgeMode } from "../../lib/store";
 
 export interface AuthPanelProps {

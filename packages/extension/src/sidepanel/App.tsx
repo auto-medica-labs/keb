@@ -23,35 +23,20 @@ import {
   isFirstUse,
   setFirstUseComplete,
 } from "../lib/store";
-import { HOSTED_BRIDGE_URL } from "../lib/env";
+import { HOSTED_BRIDGE_URL } from "@keb/shared/lib/env";
 import Header from "./components/Header";
 import AuthPanel from "./components/AuthPanel";
 import SettingsPanel from "./components/SettingsPanel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import AddPanel from "./components/AddPanel";
-import QueryPanel from "./components/QueryPanel";
+import QueryPanel from "@keb/shared/components/QueryPanel";
 import BrowsePanel from "./components/BrowsePanel";
-import Footer from "./components/Footer";
+import Footer from "@keb/shared/components/Footer";
 
 type ActiveTab = "add" | "query" | "browse";
 
-// Unified timeline — interleaves tool events and text deltas
-export type TimelineEntry =
-  | { type: "tool"; text: string; cls: string }
-  | { type: "text"; text: string };
-
-/** A single in-flight or completed operation (add, query, or repair). */
-export type ActiveOperation = {
-  id: string;
-  type: "add" | "query" | "repair";
-  timeline: TimelineEntry[];
-  /** Display label (URL for add, question for query). */
-  label: string;
-  done: boolean;
-  /** True when the bridge reported a 403/401 — the target site blocked fetching. */
-  blocked?: boolean;
-};
+import type { ActiveOperation, TimelineEntry } from "@keb/shared/components/OperationTimeline";
 
 export default function App() {
   // ── UI state ──────────────────────────────────────────────────

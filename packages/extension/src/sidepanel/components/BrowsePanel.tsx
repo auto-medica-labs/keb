@@ -15,7 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { AlertDialog as AlertDialogPrimitive } from "@base-ui/react/alert-dialog";
-import MarkdownRenderer from "@/components/MarkdownRenderer";
+import MarkdownRenderer from "@keb/shared/components/MarkdownRenderer";
 import { getSummaries, getConcepts } from "../../lib/store";
 import type { Summary, Concept } from "../../lib/store";
 import { escapeHtml } from "../../lib/utils";

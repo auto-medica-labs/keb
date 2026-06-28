@@ -92,9 +92,7 @@ export function createHttpHandler({ mode, adminKey, authHandler, statusTracker }
       json(res, 200, {
         mode,
         version: "0.1.0",
-        auth: mode === "hosted"
-          ? { endpoints: ["signup", "login", "me"] }
-          : { endpoints: [] },
+        auth: mode === "hosted" ? { endpoints: ["signup", "login", "me"] } : { endpoints: [] },
       });
       return;
     }

@@ -19,16 +19,16 @@ import {
   type RegistryEntry,
   type BridgeMode,
 } from "./lib/store";
-import { HOSTED_BRIDGE_URL } from "./lib/env";
+import { HOSTED_BRIDGE_URL } from "@keb/shared/lib/env";
 import Header from "./components/Header";
 import AuthScreen from "./components/AuthScreen";
 import SettingsPanel from "./components/SettingsPanel";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import QueryPanel from "./components/QueryPanel";
+import QueryPanel from "@keb/shared/components/QueryPanel";
 import BrowsePanel from "./components/BrowsePanel";
-import Footer from "./components/Footer";
-import type { ActiveOperation, TimelineEntry } from "./components/OperationTimeline";
+import Footer from "@keb/shared/components/Footer";
+import type { ActiveOperation, TimelineEntry } from "@keb/shared/components/OperationTimeline";
 
 type ActiveTab = "query" | "browse";
 
@@ -118,11 +118,19 @@ export default function App() {
           return;
         }
         if (etype === "tool_execution_start") {
-          appendToolToOperation(opId, `Running ${event.toolName || "unknown tool"}...`, "text-yellow-400");
+          appendToolToOperation(
+            opId,
+            `Running ${event.toolName || "unknown tool"}...`,
+            "text-yellow-400",
+          );
           return;
         }
         if (etype === "tool_execution_end") {
-          appendToolToOperation(opId, `Finished ${event.toolName || "unknown tool"}`, "text-green-400");
+          appendToolToOperation(
+            opId,
+            `Finished ${event.toolName || "unknown tool"}`,
+            "text-green-400",
+          );
           return;
         }
       },

@@ -2,9 +2,9 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2, CheckCircle2 } from "lucide-react";
-import OperationTimeline from "./OperationTimeline";
+import OperationTimeline from "@keb/shared/components/OperationTimeline";
 import { AutoScrollArea } from "@/components/ui/auto-scroll-area";
-import type { ActiveOperation } from "../App";
+import type { ActiveOperation } from "@keb/shared/components/OperationTimeline";
 
 interface AddPanelProps {
   operations: ActiveOperation[];

@@ -19,12 +19,7 @@ const statusColors: Record<ConnectionStatus, string> = {
   max_retries: "bg-red-500 shadow-[0_0_6px_var(--color-red-500)]",
 };
 
-export default function Header({
-  connectionStatus,
-  mode,
-  username,
-  onOpenSettings,
-}: HeaderProps) {
+export default function Header({ connectionStatus, mode, username, onOpenSettings }: HeaderProps) {
   const [isNarrow, setIsNarrow] = useState(false);
   const headerRef = useRef<HTMLElement | null>(null);
 

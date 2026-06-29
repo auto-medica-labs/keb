@@ -107,6 +107,17 @@ export function handleAddUrl({ ws, operationId, url, workspace, kebStore, spawn,
             message: `${url} blocked Keb from accessing its content. Instead:\n\n1. Right-click on the page\n2. Select Keb menu\n3. Select "Add this content into Knowledge base"\n\nThis captures the page as your browser sees it, bypassing the block.`,
           }),
         );
+      // Detect empty/skeleton/blocker content (captcha, login wall, etc.)
+      // where the page returned HTML but no substantive content.
+      } else if (/EMPTY_CONTENT/i.test(message)) {
+        ws.send(
+          safeStringify({
+            type: "error",
+            operationId,
+            toast: `${url} appears to be empty or blocked by a captcha/login wall.`,
+            message: `${url} appears to be empty, a skeleton placeholder, or blocked (captcha, login, paywall). Instead:\n\n1. Open the page in your browser\n2. Right-click on the page\n3. Select Keb menu\n4. Select "Add this content into Knowledge base"\n\nThis captures the page as your browser sees it, bypassing the block.`,
+          }),
+        );
       } else {
         ws.send(safeStringify({ type: "error", operationId, message }));
       }

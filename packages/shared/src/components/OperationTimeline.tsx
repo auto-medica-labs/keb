@@ -20,14 +20,17 @@ interface OperationTimelineProps {
 
 export default function OperationTimeline({ operation }: OperationTimelineProps) {
   const { timeline } = operation;
+  const visibleEntries = timeline.filter(
+    (entry) => entry.type !== "text" || entry.text.trim() !== "",
+  );
 
   return (
     <div>
-      {timeline.map((entry, i) =>
+      {visibleEntries.map((entry, i) =>
         entry.type === "tool" ? (
           <div
             key={i}
-            className={`flex items-start gap-1.5 font-mono text-[11px] whitespace-pre-wrap ${entry.cls}${i > 0 && timeline[i - 1].type === "text" ? " mt-3" : ""}`}
+            className={`flex items-start gap-1.5 font-mono text-[11px] whitespace-pre-wrap ${entry.cls}${i > 0 && visibleEntries[i - 1].type === "text" ? " mt-5" : ""}`}
           >
             {entry.cls.includes("green") ? (
               <CheckCircle2 className="size-3 shrink-0" />
@@ -39,7 +42,10 @@ export default function OperationTimeline({ operation }: OperationTimelineProps)
             {entry.text}
           </div>
         ) : (
-          <div key={i} className="border-b border-border py-2 last:border-b-0">
+          <div
+            key={i}
+            className={`py-2${i > 0 && visibleEntries[i - 1].type === "tool" ? " mt-5" : ""}`}
+          >
             <MarkdownRenderer text={entry.text} />
           </div>
         ),

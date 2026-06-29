@@ -2,7 +2,7 @@ import { useMemo } from "react";
 import MarkdownIt from "markdown-it";
 
 const md = new MarkdownIt({
-  breaks: true,
+  breaks: false,
   linkify: true,
   typographer: true,
 });
@@ -12,11 +12,12 @@ interface MarkdownRendererProps {
 }
 
 export default function MarkdownRenderer({ text }: MarkdownRendererProps) {
-  const html = useMemo(() => md.render(text), [text]);
+  const html = useMemo(() => md.render(text.trim()), [text]);
 
   return (
     <div
-      className="markdown-content text-sm leading-relaxed"
+      data-markdown-content
+      className="text-sm leading-relaxed"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

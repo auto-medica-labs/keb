@@ -46,7 +46,16 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
               {operations.map((op) => (
                 <div key={op.id}>
                   {/* Question */}
-                  <div className="mb-2 rounded-r-md border-l-2 border-primary bg-accent px-3 py-2 text-sm font-medium">
+                  <div
+                    className="mb-2 rounded-r-md px-3 py-2 text-sm font-medium"
+                    style={{
+                      borderLeftWidth: "4px",
+                      borderLeftStyle: "solid",
+                      borderLeftColor: "#1e3a8a",
+                      backgroundColor: "#eff6ff",
+                      color: "#000000",
+                    }}
+                  >
                     {op.label}
                   </div>
 

@@ -107,8 +107,8 @@ export function handleAddUrl({ ws, operationId, url, workspace, kebStore, spawn,
             message: `${url} blocked Keb from accessing its content. Instead:\n\n1. Right-click on the page\n2. Select Keb menu\n3. Select "Add this content into Knowledge base"\n\nThis captures the page as your browser sees it, bypassing the block.`,
           }),
         );
-      // Detect empty/skeleton/blocker content (captcha, login wall, etc.)
-      // where the page returned HTML but no substantive content.
+        // Detect empty/skeleton/blocker content (captcha, login wall, etc.)
+        // where the page returned HTML but no substantive content.
       } else if (/EMPTY_CONTENT/i.test(message)) {
         ws.send(
           safeStringify({

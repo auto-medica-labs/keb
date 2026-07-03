@@ -37,7 +37,7 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
   }, [op?.timeline]);
 
   return (
-    <div className="flex h-full flex-col gap-3">
+    <div className="flex h-full flex-col gap-4">
       {/* Chat area — fills remaining space, scrolls from bottom */}
       {hasAnyOps && (
         <div className="flex min-h-0 flex-1 flex-col rounded-md border bg-muted/50">
@@ -89,7 +89,7 @@ export default function QueryPanel({ operations, connected, onQuery }: QueryPane
 
       {/* Input area */}
       <div className="shrink-0">
-        <label className="mb-1.5 block text-xs font-medium text-muted-foreground">
+        <label className="mb-3 block text-xs font-medium text-muted-foreground" style={{ paddingLeft: 5 }}>
           Ask the knowledge base
         </label>
         <div className="flex gap-2">

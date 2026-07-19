@@ -4,7 +4,7 @@
 
 Add a "Chat" tab to the Keb Chrome extension that lets users have a conversation with pi about the current browser tab. One pi RPC process per side-panel lifetime. No session persistence on disk. No resume across restarts.
 
----
+______________________________________________________________________
 
 ## Architecture
 
@@ -16,14 +16,14 @@ User chats ──► sendPrompt() on same child process   │
 Side panel closes ──► ws.on("close") ──► child.kill()
 ```
 
-| Layer | Role |
-|---|---|
-| **Extension (ChatPanel.tsx)** | Chat UI; captures tab content via `chrome.scripting.executeScript` before first message |
-| **Extension (ws.ts)** | Sends `chat` messages; no new response types |
-| **Bridge (chat-handler.js)** | Per-connection state: one long-lived pi child, tracks whether it's first message or follow-up |
-| **Bridge (pi-rpc-spawner.js)** | New `spawnPiChat()` — keeps child alive across prompts, exposes `sendPrompt()` / `kill()` |
+| Layer                          | Role                                                                                          |
+| ------------------------------ | --------------------------------------------------------------------------------------------- |
+| **Extension (ChatPanel.tsx)**  | Chat UI; captures tab content via `chrome.scripting.executeScript` before first message       |
+| **Extension (ws.ts)**          | Sends `chat` messages; no new response types                                                  |
+| **Bridge (chat-handler.js)**   | Per-connection state: one long-lived pi child, tracks whether it's first message or follow-up |
+| **Bridge (pi-rpc-spawner.js)** | New `spawnPiChat()` — keeps child alive across prompts, exposes `sendPrompt()` / `kill()`     |
 
----
+______________________________________________________________________
 
 ## 1. Bridge — `pi-rpc-spawner.js`
 
@@ -51,6 +51,7 @@ export function spawnPiChat({ callbacks }) {
 ```
 
 Key differences from existing `spawnPi`:
+
 - No `--no-builtin-tools` (agent can use `read`, `bash`, etc.)
 - `--no-session` (no disk persistence)
 - Returns a handle with `sendPrompt()` and `kill()` instead of auto-exiting
@@ -65,17 +66,20 @@ const chatSessions = new Map(); // connectionId → { handle, isFirstMessage }
 ```
 
 **`handleChatInit({ ws, connectionId, operationId, text, url, title, content })`**
+
 - Spawn piChat via `spawnPiChat()`
 - Send initial prompt with tab context: text + url/title/content
 - Wire stdout JSONL events → `ws.send()`
 - Set `isFirstMessage = false`
 
 **`handleChatMessage({ ws, connectionId, operationId, text })`**
+
 - Look up handle for this connectionId
 - Send prompt to the existing child (or steer if currently streaming)
 - Wire events → ws
 
 **`handleChatClose({ connectionId })`**
+
 - Kill child process
 - Clean up map entry
 
@@ -153,6 +157,7 @@ Chat UI component:
 State lives in React only. No storage. Side panel close → component unmounts → gone.
 
 **Tab content capture** (on first message or refresh):
+
 ```typescript
 const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 const [{ result }] = await chrome.scripting.executeScript({
@@ -187,6 +192,7 @@ On click: capture page content, store in `chrome.storage.local` for the side pan
 ## 8. Protocol
 
 **Extension → Bridge (first message):**
+
 ```json
 {
   "type": "chat",
@@ -199,6 +205,7 @@ On click: capture page content, store in `chrome.storage.local` for the side pan
 ```
 
 **Extension → Bridge (follow-up):**
+
 ```json
 {
   "type": "chat",
@@ -223,15 +230,15 @@ Side panel closes    ──► ws.on("close") → bridge kills child
 
 ## File Change Summary
 
-| File | Change |
-|---|---|
-| `packages/bridge/src/adapters/pi-rpc-spawner.js` | Add `spawnPiChat()` — long-lived child, `sendPrompt()`/`kill()` |
-| `packages/bridge/src/handlers/chat-handler.js` | **NEW** — init, message, close handlers + per-connection state map |
-| `packages/bridge/src/bridge-server.js` | Route `chat` msg type; hook `ws.on("close")` → kill chat child |
-| `packages/extension/src/lib/ws.ts` | Add `chat()` method; add `chat` to WSMessage union |
-| `packages/extension/src/sidepanel/components/ChatPanel.tsx` | **NEW** — chat UI, tab capture, streaming bubbles |
-| `packages/extension/src/sidepanel/App.tsx` | Add Chat tab, wire handler |
-| `packages/extension/src/service-worker.ts` | Add "Talk with this page" context menu |
-| `packages/extension/public/manifest.json` | No changes needed |
+| File                                                        | Change                                                             |
+| ----------------------------------------------------------- | ------------------------------------------------------------------ |
+| `packages/bridge/src/adapters/pi-rpc-spawner.js`            | Add `spawnPiChat()` — long-lived child, `sendPrompt()`/`kill()`    |
+| `packages/bridge/src/handlers/chat-handler.js`              | **NEW** — init, message, close handlers + per-connection state map |
+| `packages/bridge/src/bridge-server.js`                      | Route `chat` msg type; hook `ws.on("close")` → kill chat child     |
+| `packages/extension/src/lib/ws.ts`                          | Add `chat()` method; add `chat` to WSMessage union                 |
+| `packages/extension/src/sidepanel/components/ChatPanel.tsx` | **NEW** — chat UI, tab capture, streaming bubbles                  |
+| `packages/extension/src/sidepanel/App.tsx`                  | Add Chat tab, wire handler                                         |
+| `packages/extension/src/service-worker.ts`                  | Add "Talk with this page" context menu                             |
+| `packages/extension/public/manifest.json`                   | No changes needed                                                  |
 
 **Not changed:** `store.ts`, `AddPanel.tsx`, `QueryPanel.tsx`, `BrowsePanel.tsx`, `filesystem-keb-store.js`, `sync-handler.js`, `command-handler.js`, `add-content-handler.js`, `query-handler.js` — existing features untouched.

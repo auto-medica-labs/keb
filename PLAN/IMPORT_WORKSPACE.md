@@ -1,15 +1,16 @@
 # Plan: Import hand-authored markdown as a pi-keb workspace
 
-**Date:** 2026-06-22  
+**Date:** 2026-06-22\
 **Status:** Draft (updated for read-only clarification)
 
----
+______________________________________________________________________
 
 ## Problem
 
 pi-keb is designed for **LLM-generated** knowledge bases: you feed it URLs or markdown files, and the LLM writes summaries and extracts concepts. This works great when you have source documents, but it's useless when a domain expert wants to write a knowledge base from scratch — no source documents to feed, no LLM opinions needed.
 
 Currently there's no way to take a directory of hand-written `.md` files and make pi-keb treat it as a native workspace. The expert would need to:
+
 - Know the OKF frontmatter format by heart
 - Manually create `wiki/index.md` with the right syntax
 - Create the right directory structure
@@ -24,21 +25,21 @@ Imported workspaces are **read-only** — they contain only concepts, hand-autho
 
 **Operations that work without issue:**
 
-| Operation | How |
-|---|---|
-| `/keb:query` | The LLM reads the index, then reads relevant concepts. If it tries `keb_read_summary` on a non-existent summary, the tool returns "not found" — LLM adapts gracefully. |
-| `/keb:list` | Shows concepts with `sources: ?` because there's no registry. Cosmetic only. |
-| `/keb:status` | Shows correct concept count, `Last add: never`. |
-| Extension Browse panel | Concepts render with tags and markdown content via `MarkdownRenderer`. |
-| Extension sync | `buildSyncData()` reads empty registry + populated concepts independently. |
+| Operation              | How                                                                                                                                                                    |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/keb:query`           | The LLM reads the index, then reads relevant concepts. If it tries `keb_read_summary` on a non-existent summary, the tool returns "not found" — LLM adapts gracefully. |
+| `/keb:list`            | Shows concepts with `sources: ?` because there's no registry. Cosmetic only.                                                                                           |
+| `/keb:status`          | Shows correct concept count, `Last add: never`.                                                                                                                        |
+| Extension Browse panel | Concepts render with tags and markdown content via `MarkdownRenderer`.                                                                                                 |
+| Extension sync         | `buildSyncData()` reads empty registry + populated concepts independently.                                                                                             |
 
 **Should NOT be used (no enforcement):**
 
-| Operation | Why |
-|---|---|
+| Operation                      | Why                                                                                                                                                                       |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `/keb:add` / `keb:add:content` | Would create a registry entry, source doc, summary, and LLM concepts mixed with hand-authored ones. The LLM may `keb_update_concept` and overwrite hand-authored content. |
-| `/keb:remove` | Blocked naturally — registry is empty, no docName to look up. |
-| `/keb:repair` | Blocked naturally — scans for `compiled === false` entries in registry (none). |
+| `/keb:remove`                  | Blocked naturally — registry is empty, no docName to look up.                                                                                                             |
+| `/keb:repair`                  | Blocked naturally — scans for `compiled === false` entries in registry (none).                                                                                            |
 
 No code enforcement is planned. The tool is for creating read-only knowledge bases; if you need an LLM-compiled workspace, use pi-keb's normal workflow instead.
 
@@ -71,7 +72,7 @@ my-knowledge/
 Each file is pure markdown with **no frontmatter required**. Every input file **must** follow two rules:
 
 1. Must contain a `# ` heading (level-1 heading)
-2. Must contain a `>` blockquote immediately or shortly after the heading
+1. Must contain a `>` blockquote immediately or shortly after the heading
 
 Files that fail either rule are skipped with an error message explaining why.
 
@@ -97,13 +98,13 @@ See [deployment](/concepts/deployment.md) for Redis cluster setup.
 
 **Extraction rules:**
 
-| Attribute | Source | Required |
-|---|---|---|
-| `title` | First `# ` heading | ✅ **Yes** — fail if missing |
-| `description` | First `>` blockquote after heading (strip `> ` prefix, join multiline) | ✅ **Yes** — fail if missing |
-| `body` | Everything after the heading | — |
-| `tags` | Optional YAML frontmatter `tags: [...]` at file start, or `--tags` CLI flag | No — defaults to `[]` |
-| `slug` | Filename without `.md`, slugified | ✅ **Yes** — derived automatically |
+| Attribute     | Source                                                                      | Required                           |
+| ------------- | --------------------------------------------------------------------------- | ---------------------------------- |
+| `title`       | First `# ` heading                                                          | ✅ **Yes** — fail if missing       |
+| `description` | First `>` blockquote after heading (strip `> ` prefix, join multiline)      | ✅ **Yes** — fail if missing       |
+| `body`        | Everything after the heading                                                | —                                  |
+| `tags`        | Optional YAML frontmatter `tags: [...]` at file start, or `--tags` CLI flag | No — defaults to `[]`              |
+| `slug`        | Filename without `.md`, slugified                                           | ✅ **Yes** — derived automatically |
 
 Multiline blockquotes are joined into a single description string:
 
@@ -177,16 +178,16 @@ keb_needs_review: false
 
 Field rationale:
 
-| Field | Value | Why |
-|---|---|---|
-| `type` | `Concept` | Required by OKF v0.1 |
-| `title` | From `# ` heading (required) | Display in extension UI |
-| `description` | First `>` blockquote after heading (required) | Index briefs, search snippets |
-| `tags` | From frontmatter or `--tags` CLI | Cross-cutting categorization |
-| `timestamp` | Current ISO time | Last-modified (set to file mtime if available) |
-| `keb_name` | Slug matching filename | pi-keb's concept identity field |
-| `keb_sources` | `[]` | No source documents — empty array |
-| `keb_needs_review` | `false` | No pending cleanup needed |
+| Field              | Value                                         | Why                                            |
+| ------------------ | --------------------------------------------- | ---------------------------------------------- |
+| `type`             | `Concept`                                     | Required by OKF v0.1                           |
+| `title`            | From `# ` heading (required)                  | Display in extension UI                        |
+| `description`      | First `>` blockquote after heading (required) | Index briefs, search snippets                  |
+| `tags`             | From frontmatter or `--tags` CLI              | Cross-cutting categorization                   |
+| `timestamp`        | Current ISO time                              | Last-modified (set to file mtime if available) |
+| `keb_name`         | Slug matching filename                        | pi-keb's concept identity field                |
+| `keb_sources`      | `[]`                                          | No source documents — empty array              |
+| `keb_needs_review` | `false`                                       | No pending cleanup needed                      |
 
 ### Index page (`wiki/index.md`)
 
@@ -208,12 +209,12 @@ An empty file at the workspace root signals the workspace's intended read-only n
 
 ### Files NOT created
 
-| File | Reason |
-|---|---|
-| `registry.json` | Not needed — no `/keb:add` will be used against this workspace. `/keb:list` shows `?` sources, cosmetic only. |
-| `source/` | No source documents to store (read-only workspace) |
-| `wiki/summaries/` | No source documents to summarize (read-only workspace) |
-| `wiki/log.md` | pi-keb creates it on `ensureKebDir()`, tool doesn't need to |
+| File              | Reason                                                                                                        |
+| ----------------- | ------------------------------------------------------------------------------------------------------------- |
+| `registry.json`   | Not needed — no `/keb:add` will be used against this workspace. `/keb:list` shows `?` sources, cosmetic only. |
+| `source/`         | No source documents to store (read-only workspace)                                                            |
+| `wiki/summaries/` | No source documents to summarize (read-only workspace)                                                        |
+| `wiki/log.md`     | pi-keb creates it on `ensureKebDir()`, tool doesn't need to                                                   |
 
 ## CLI interface
 
@@ -242,11 +243,11 @@ Examples:
 
 ### Exit codes
 
-| Code | Meaning |
-|---|---|
-| 0 | Success (all files imported) |
-| 1 | Validation error (bad slug, collision, missing workspace) |
-| 2 | Input directory not found or empty |
+| Code | Meaning                                                   |
+| ---- | --------------------------------------------------------- |
+| 0    | Success (all files imported)                              |
+| 1    | Validation error (bad slug, collision, missing workspace) |
+| 2    | Input directory not found or empty                        |
 
 ## Implementation
 
@@ -257,6 +258,7 @@ Examples:
 ### Dependencies
 
 None beyond Node.js built-ins:
+
 - `node:fs`, `node:path`, `node:process`, `node:os`
 
 The frontmatter builder (`buildOkfFrontmatter`) is inlined (~20 lines) rather than imported from pi-keb's compiled dist. This keeps the tool standalone and avoids the pi-keb build step.
@@ -290,19 +292,19 @@ The frontmatter builder (`buildOkfFrontmatter`) is inlined (~20 lines) rather th
 
 ### Edge cases
 
-| Case | Handling |
-|---|---|
-| Input dir doesn't exist | Exit with error, print path |
-| No `.md` files found | Exit with error, show scanned path |
-| Duplicate slugs | Detect collision before writing, error with conflict list |
-| Filename with spaces | Slugify: lowercase, replace spaces/special chars with hyphens |
-| Very long filename | Truncate slug at 80 chars (matching pi-keb's `slugify`) |
-| Missing `# ` heading | Skip file, print error: `Missing # heading in <filename>` |
-| Missing `>` blockquote after heading | Skip file, print error: `Missing > blockquote after heading in <filename>` |
-| File with only frontmatter (no heading) | Caught by missing heading check — error |
-| File with `---` not followed by tags | Parsed as empty frontmatter, validation continues normally |
-| Existing workspace with same name | Overwrites wiki/ directory (idempotent — re-run to update) |
-| Permission denied on write | Catch error, print message, continue with other files |
+| Case                                    | Handling                                                                   |
+| --------------------------------------- | -------------------------------------------------------------------------- |
+| Input dir doesn't exist                 | Exit with error, print path                                                |
+| No `.md` files found                    | Exit with error, show scanned path                                         |
+| Duplicate slugs                         | Detect collision before writing, error with conflict list                  |
+| Filename with spaces                    | Slugify: lowercase, replace spaces/special chars with hyphens              |
+| Very long filename                      | Truncate slug at 80 chars (matching pi-keb's `slugify`)                    |
+| Missing `# ` heading                    | Skip file, print error: `Missing # heading in <filename>`                  |
+| Missing `>` blockquote after heading    | Skip file, print error: `Missing > blockquote after heading in <filename>` |
+| File with only frontmatter (no heading) | Caught by missing heading check — error                                    |
+| File with `---` not followed by tags    | Parsed as empty frontmatter, validation continues normally                 |
+| Existing workspace with same name       | Overwrites wiki/ directory (idempotent — re-run to update)                 |
+| Permission denied on write              | Catch error, print message, continue with other files                      |
 
 ### No concurrency concerns
 
@@ -345,8 +347,8 @@ Automated tests can be added later as a `test.mjs` script or integrated into `pn
 
 1. **`.keb-readonly` marker** — ✅ **Added.** An empty file at `<workspace_root>/.keb-readonly` documents the workspace's intended use. No enforcement yet; the bridge or pi extension can optionally check for it later.
 
-2. **Per-file timestamp from mtime?** The tool currently uses the current time. Could use the file's mtime for a more accurate "last modified" timestamp. Minor effort, useful for git-tracked source files.
+1. **Per-file timestamp from mtime?** The tool currently uses the current time. Could use the file's mtime for a more accurate "last modified" timestamp. Minor effort, useful for git-tracked source files.
 
-3. **Recursive input directories?** Currently single-level (flat). Could add `--recursive` to scan subdirectories and map them to a flat concept list, or map directory structure to concept slugs. Overkill for v1.
+1. **Recursive input directories?** Currently single-level (flat). Could add `--recursive` to scan subdirectories and map them to a flat concept list, or map directory structure to concept slugs. Overkill for v1.
 
-4. **Add to pnpm workspace?** The tool has zero npm dependencies, so adding it to the workspace is unnecessary. A standalone `packages/import-workspace/` directory with `import.mjs` and a `README.md` is sufficient. If we later add tests with Jest/Vitest, we can make it a proper package.
+1. **Add to pnpm workspace?** The tool has zero npm dependencies, so adding it to the workspace is unnecessary. A standalone `packages/import-workspace/` directory with `import.mjs` and a `README.md` is sufficient. If we later add tests with Jest/Vitest, we can make it a proper package.

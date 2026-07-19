@@ -1,10 +1,10 @@
 # Plan: Validate Workspace on LLM Tool Calls
 
-**Date:** 2026-06-06  
-**Status:** Draft  
+**Date:** 2026-06-06\
+**Status:** Draft\
 **Author:** Analysis after code review
 
----
+______________________________________________________________________
 
 ## Problem
 
@@ -24,11 +24,11 @@ Since each `pi --mode rpc` process is a fresh Node.js process (one per add/query
 
 ## Files to Modify
 
-| File                                                 | Change                                                                        |
-| ---------------------------------------------------- | ----------------------------------------------------------------------------- |
+| File                                                   | Change                                                                        |
+| ------------------------------------------------------ | ----------------------------------------------------------------------------- |
 | `packages/pi-keb/extensions/keb/tools.ts`              | Add `_expectedWorkspace` state + setter + validation in every tool            |
 | `packages/pi-keb/extensions/keb/commands/documents.ts` | Call `setExpectedWorkspace(workspace)` before every `pi.sendUserMessage(...)` |
-| `packages/pi-keb/extensions/keb/commands/queries.ts`   | Call `setExpectedWorkspace(workspace)` before /keb-query prompt                |
+| `packages/pi-keb/extensions/keb/commands/queries.ts`   | Call `setExpectedWorkspace(workspace)` before /keb-query prompt               |
 
 ## Detailed Changes
 
@@ -156,16 +156,16 @@ When validation fails, the LLM gets an error message telling it exactly which wo
 
 ## Edge Cases
 
-| Case                                        | Analysis                                                                                              |
-| ------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Case                                         | Analysis                                                                                              |
+| -------------------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | **`/keb-repair` with multiple pending docs** | All docs in same workspace; `_expectedWorkspace` stays constant across iterations ✅                  |
-| **`/keb-remove` Phase 2**                    | Uses `keb_read_concept` / `keb_write_concept` — validated against remove command's workspace ✅         |
-| **Concurrent pi RPC processes**             | Each `pi --mode rpc` is a separate OS process — module-level state is isolated ✅                     |
-| **`/keb-list`, `/keb-status`**                | No LLM prompts sent, no tool calls involved — no impact ✅                                            |
-| **Bridge in local mode (no workspace)**     | `workspace = undefined` → `_expectedWorkspace = undefined` → LLM omits `workspace` param → matches ✅ |
+| **`/keb-remove` Phase 2**                    | Uses `keb_read_concept` / `keb_write_concept` — validated against remove command's workspace ✅       |
+| **Concurrent pi RPC processes**              | Each `pi --mode rpc` is a separate OS process — module-level state is isolated ✅                     |
+| **`/keb-list`, `/keb-status`**               | No LLM prompts sent, no tool calls involved — no impact ✅                                            |
+| **Bridge in local mode (no workspace)**      | `workspace = undefined` → `_expectedWorkspace = undefined` → LLM omits `workspace` param → matches ✅ |
 
 ## Verification
 
 1. Run a compile with `-w alice`, verify all tool calls pass `workspace: "alice"` → content lands in `workspaces/alice/wiki/`
-2. Run a compile with no `-w` flag, verify LLM omits `workspace` param → content lands in default Keb root
-3. (Adversarial) Force the LLM to pass `workspace: "bob"` when `-w alice` was used → verify error returned and LLM retries with correct workspace
+1. Run a compile with no `-w` flag, verify LLM omits `workspace` param → content lands in default Keb root
+1. (Adversarial) Force the LLM to pass `workspace: "bob"` when `-w alice` was used → verify error returned and LLM retries with correct workspace
